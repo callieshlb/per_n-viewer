@@ -1,0 +1,11 @@
+Per_n(0) atlas, built by runs/2026-11-09-E96-pern-site/make_site.py at commit 448a3ca
+n 3 puncture 0 loop0 param -10003.0001 + 0i -> inf (distance 1e+04)
+n 3 puncture 1 loop0 param 4.99900005e-05 + 0.009997875474i -> 0 (distance 0.01)
+n 4 puncture 0 loop0 param -40013.00078 + 0i -> inf (distance 4e+04)
+n 4 puncture 1 loop0 param 0.99990003 + 0i -> 1 (distance 0.0001)
+n 4 puncture 2 loop0 param 0.4999906257 - 0.001767443841i -> 0.5 (distance 0.00177)
+n 4 puncture 3 loop0 param 9.99750045e-05 + 0.0099980004i -> 0 (distance 0.01)
+G5: 37 edges in G5.json, 36 distinct centre pairs drawn
+per6: 2026-11-07-E92-per6-atlas viewer + 8 files, 23.2 MB, largest file 12.4 MB
+per7: 2026-11-08-E93-per7-conformal viewer + 9 files, 52.9 MB, largest file 45.9 MB
+per8: 2026-11-08-E94-per8-conformal viewer + 11 files, 155.5 MB, largest file 59.8 MB

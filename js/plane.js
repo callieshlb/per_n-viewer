@@ -1,0 +1,102 @@
+// E96: parameter pane for kind = plane (Per_1 .. Per_4) and kind = torus (Per_5). URL: plane.html?m=<model id>
+'use strict';
+(async function () {
+  const id = new URLSearchParams(location.search).get('m') || 'per1';
+  const man = await fetch('models/manifest.json').then(r => r.json());
+  const E = man.models.find(m => m.id === id);
+  const C = await fetch(E.census).then(r => r.json());
+  const torus = E.kind === 'torus', T5 = PM.T5;
+  const $ = s => document.getElementById(s);
+  $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
+  document.title = E.titleText || id;
+  $('legend').innerHTML = GLSL.LEGEND(E.n).map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
+  if (torus) ['gnl', 'gn', 'sml', 'sm'].forEach(k => { $(k).style.display = ''; });
+  const opt = { mk: true, ml: true, gn: true, sm: true };
+  ['mk', 'ml', 'gn', 'sm'].forEach(k => { $(k).onchange = e => { opt[k] = e.target.checked; pv.redraw(); }; });
+  $('minb').onclick = () => { $('side').classList.toggle('min'); $('minb').textContent = $('side').classList.contains('min') ? '+' : '–'; };
+  let picked = null;
+  function lattice(W, H) {           // visible lattice translates (torus)
+    const a = pv.toPlane(0, H), b = pv.toPlane(W, 0), out = [];
+    const m0 = Math.floor(a[0]/T5.W1) - 1, m1 = Math.ceil(b[0]/T5.W1) + 1, l0 = Math.floor(a[1]/T5.W2) - 1, l1 = Math.ceil(b[1]/T5.W2) + 1;
+    if ((m1 - m0)*(l1 - l0) > 400) return [[0, 0]];
+    for (let m = m0; m <= m1; m++) for (let l = l0; l <= l1; l++) out.push([m*T5.W1, l*T5.W2]);
+    return out;
+  }
+  const markers = C.centres.map(c => ({ ...c, kind: 'centre' })).concat(C.punctures.filter(p => p.p).map(p => ({ ...p, kind: 'puncture' })));
+  function drawOverlay(g, W, H) {
+    const offs = torus ? lattice(W, H) : [[0, 0]];
+    if (torus && opt.sm) {                    // seams: the fundamental rectangle's edges
+      g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1; g.setLineDash([5, 4]);
+      for (const o of offs) { const p = pv.toScreen(o), q = pv.toScreen([o[0] + T5.W1, o[1] + T5.W2]);
+        g.strokeRect(p[0], q[1], q[0] - p[0], p[1] - q[1]); }
+      g.setLineDash([]);
+    }
+    if (torus && opt.gn && C.edges) {
+      for (const o of offs) for (const e of C.edges) {
+        const P = [e.P[0] + o[0], e.P[1] + o[1]], Q = [e.Q[0] + o[0], e.Q[1] + o[1]], a = pv.toScreen(P), b = pv.toScreen(Q);
+        if (Math.max(a[0], b[0]) < 0 || Math.min(a[0], b[0]) > W || Math.max(a[1], b[1]) < 0 || Math.min(a[1], b[1]) > H) continue;
+        g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = 4; g.stroke();
+        g.strokeStyle = '#ffffff'; g.lineWidth = 2; g.stroke();
+      }
+    }
+    if (opt.mk) {
+      g.font = '600 12px system-ui'; g.textBaseline = 'middle';
+      for (const o of offs) for (const m of markers) {
+        const s = pv.toScreen([m.p[0] + o[0], m.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
+        g.beginPath(); g.arc(s[0], s[1], 5, 0, 2*Math.PI); g.fillStyle = m.kind === 'centre' ? '#fff' : '#e8173a'; g.fill();
+        g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
+        if (opt.ml) { g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(m.label, s[0] + 8, s[1]);
+          g.fillStyle = m.kind === 'centre' ? '#fff' : '#ffd0d8'; g.fillText(m.label, s[0] + 8, s[1]); }
+      }
+    }
+    if (picked) { const s = pv.toScreen(picked); g.strokeStyle = '#fff'; g.lineWidth = 2;
+      g.beginPath(); g.moveTo(s[0] - 9, s[1]); g.lineTo(s[0] + 9, s[1]); g.moveTo(s[0], s[1] - 9); g.lineTo(s[0], s[1] + 9); g.stroke(); }
+  }
+  function showCard(title, lines) {
+    const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    $('cardt').innerHTML = '<b>' + esc(title) + '</b>\n' + esc(lines.join('\n')); $('card').style.display = 'block';
+  }
+  $('cardx').onclick = () => { $('card').style.display = 'none'; };
+  function pick(p, marker) {
+    picked = p; pv.redraw();
+    const M = PM.mapFrom(E.family, E.n, { p });
+    const lines = [];
+    let x = null, y = null;
+    if (torus) { const P = PM.torusXY(p); x = P.x; y = P.y; lines.push(`u = ${PM.fmt(p)}  (flat coordinate)`, `y = a3 = ${PM.fmt(y)}`, `x = a4 = ${PM.fmt(x)}`); }
+    else lines.push(`${E.param} = ${PM.fmt(p)}`);
+    if (!M) lines.push('degenerate map here (puncture)');
+    else { const f = PM.fate(M, M.omega, pv.maxIt, pv.delta, 1e-7); lines.push('free critical point: ' + PM.fateText(f)); }
+    if (marker) lines.unshift(...marker.lines, '');
+    showCard(marker ? marker.title : 'Parameter', lines);
+    parent.postMessage({ e96: 'param', model: id, p, x, y, label: marker ? marker.title : null }, '*');
+  }
+  const pv = new PlaneView($('view'), {
+    ctr: E.view.ctr, upp: E.view.upp, maxIt: 600, delta: 1e-3,
+    setUniforms: (gl, U) => { gl.uniform1i(U('fam'), E.famId);
+      gl.uniform1f(U('W1'), T5.W1); gl.uniform1f(U('W2'), T5.W2); gl.uniform1f(U('qn'), Math.exp(-Math.PI*T5.W2/T5.W1)); gl.uniform1f(U('e1'), 0.75); },
+    drawOverlay,
+    onPick: (p, s) => {
+      let best = null, bd = 12;
+      if (opt.mk) { const [W, H] = pv.size(); for (const o of torus ? lattice(W, H) : [[0, 0]]) for (const m of markers) {
+        const q = pv.toScreen([m.p[0] + o[0], m.p[1] + o[1]]), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o }; } } }
+      if (best) pick([best.m.p[0] + best.o[0], best.m.p[1] + best.o[1]], best.m); else pick(p, null);
+    } });
+  window.PV = pv;
+  $('pit').oninput = e => { pv.maxIt = +e.target.value; $('pitv').textContent = pv.maxIt; pv.redraw(); };
+  $('del').oninput = e => { pv.delta = Math.pow(10, +e.target.value); $('delv').textContent = pv.delta.toExponential(0); pv.redraw(); };
+  $('home').onclick = () => { pv.ctr = E.view.ctr.slice(); pv.upp = E.view.upp; pv.redraw(); };
+  function buildList() {
+    const q = $('mfilter').value.trim().toLowerCase(), box = $('mlist'); box.innerHTML = '';
+    const all = C.centres.map(c => ({ ...c, kind: 'centre' })).concat(C.punctures.map(p => ({ ...p, kind: 'puncture' })));
+    for (const it of all) {
+      const text = `${it.kind} ${it.label}: ${it.summary || ''}`; if (q && !text.toLowerCase().includes(q)) continue;
+      const d = document.createElement('div'); d.textContent = text; d.title = it.lines.join('\n');
+      d.onclick = () => { if (it.p) { pv.ctr = it.p.slice(); pv.redraw(); pick(it.p, it); } else showCard(it.title, it.lines); };
+      box.appendChild(d);
+    }
+  }
+  $('mfilter').oninput = buildList; buildList();
+  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'goto' && d.p) { pv.ctr = d.p.slice(); pv.redraw(); pick(d.p, null); } });
+  if (window.innerWidth < 650) $('minb').onclick();
+  window.E96READY = true;
+})().catch(e => { document.body.innerHTML = '<pre style="color:#fff;padding:20px">' + e.stack + '</pre>'; console.error(e); });

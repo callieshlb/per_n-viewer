@@ -1,0 +1,162 @@
+{
+ "built_from": "448a3ca",
+ "models": [
+  {
+   "id": "per1",
+   "n": 1,
+   "short": "Per<sub>1</sub>",
+   "title": "Per<sub>1</sub>(0): z<sup>2</sup> + c",
+   "titleText": "Per_1(0)",
+   "kind": "plane",
+   "family": "quad",
+   "famId": 1,
+   "param": "c",
+   "page": "plane.html?m=per1",
+   "census": "models/census_n1.json",
+   "view": {
+    "ctr": [
+     -0.6,
+     0
+    ],
+    "upp": 0.006
+   },
+   "normal": "f(z) = z<sup>2</sup> + c. Marked cycle {\u221e} (critical, fixed); capture = escape to \u221e. Free critical point 0.",
+   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py."
+  },
+  {
+   "id": "per2",
+   "n": 2,
+   "short": "Per<sub>2</sub>",
+   "title": "Per<sub>2</sub>(0)",
+   "titleText": "Per_2(0)",
+   "kind": "plane",
+   "family": "per2",
+   "famId": 2,
+   "param": "t",
+   "page": "plane.html?m=per2",
+   "census": "models/census_n2.json",
+   "view": {
+    "ctr": [
+     4,
+     0
+    ],
+    "upp": 0.04
+   },
+   "normal": "f<sub>t</sub>(z) = t(2z + 1)/(8z<sup>2</sup>): marked 0 \u2192 \u221e \u2192 0 (0 critical), free critical point \u22121. Milnor\u2019s a/(z<sup>2</sup> + 2z) has a = 8/t; t = 0 is the class of 1/z<sup>2</sup> (orbifold point).",
+   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py."
+  },
+  {
+   "id": "per3",
+   "n": 3,
+   "short": "Per<sub>3</sub>",
+   "title": "Per<sub>3</sub>(0)",
+   "titleText": "Per_3(0)",
+   "kind": "plane",
+   "family": "cor3",
+   "famId": 3,
+   "param": "x",
+   "page": "plane.html?m=per3",
+   "census": "models/census_n3.json",
+   "view": {
+    "ctr": [
+     -2.5,
+     0
+    ],
+    "upp": 0.015
+   },
+   "normal": "Caroline\u2019s chart f(z) = (z \u2212 x)(z \u2212 w)/z<sup>2</sup> with y = a<sub>3</sub> = 0, w = 1: f(z) = (z \u2212 x)(z \u2212 1)/z<sup>2</sup>, marked 0 \u2192 \u221e \u2192 1 \u2192 0. Parameter x (the other zero of f).",
+   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py."
+  },
+  {
+   "id": "per4",
+   "n": 4,
+   "short": "Per<sub>4</sub>",
+   "title": "Per<sub>4</sub>(0)",
+   "titleText": "Per_4(0)",
+   "kind": "plane",
+   "family": "cor4",
+   "famId": 4,
+   "param": "y",
+   "page": "plane.html?m=per4",
+   "census": "models/census_n4.json",
+   "view": {
+    "ctr": [
+     0.45,
+     0
+    ],
+    "upp": 0.0025
+   },
+   "normal": "Caroline\u2019s chart with x = a<sub>3</sub> = y: f(z) = (z \u2212 y)(z \u2212 w)/z<sup>2</sup>, w = (2y \u2212 1)/(y \u2212 1), marked 0 \u2192 \u221e \u2192 1 \u2192 y \u2192 0. Parameter y.",
+   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py."
+  },
+  {
+   "id": "per5",
+   "n": 5,
+   "short": "Per<sub>5</sub>",
+   "title": "Per<sub>5</sub>(0): flat torus",
+   "titleText": "Per_5(0)",
+   "kind": "torus",
+   "family": "torus5",
+   "famId": 5,
+   "param": "u",
+   "page": "plane.html?m=per5",
+   "census": "models/census_n5.json",
+   "view": {
+    "ctr": [
+     1.5470797535511203,
+     1.3728695590448767
+    ],
+    "upp": 0.0065
+   },
+   "normal": "The genus-1 curve x<sup>2</sup>(y<sup>2</sup> + y \u2212 1) \u2212 x(2y<sup>2</sup> + y \u2212 1) + 2y<sup>2</sup> \u2212 y = 0 (y = a<sub>3</sub>, x = a<sub>4</sub>, Caroline\u2019s chart) uniformized: y = 1 \u2212 1/(\u2118(u) + 5/4), \u2118 for g<sub>2</sub> = 11/4, g<sub>3</sub> = \u22123/8, periods 3.0942 and 2.7457i (dashed seams). The plane of u covers the torus: the picture repeats.",
+   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py. White segments: G<sub>5</sub> (E91), each edge drawn as the shortest straight segment on the flat torus between its two centres (pairs of multiplicity 2 once): a stand-in for the capture path. The flat coordinate is u = \u222b dy/v, v<sup>2</sup> = \u22124y<sup>4</sup> + 9y<sup>2</sup> \u2212 6y + 1 (E96 torus5.py; checks in log_torus5.txt)."
+  },
+  {
+   "id": "per6",
+   "n": 6,
+   "short": "Per<sub>6</sub>",
+   "title": "Per<sub>6</sub>(0)",
+   "titleText": "Per_6(0)",
+   "kind": "hyperbolic",
+   "family": "cor",
+   "param": "(x, y)",
+   "page": "models/per6/index.html",
+   "genus": 6,
+   "source": "2026-11-07-E92-per6-atlas"
+  },
+  {
+   "id": "per7",
+   "n": 7,
+   "short": "Per<sub>7</sub>",
+   "title": "Per<sub>7</sub>(0)",
+   "titleText": "Per_7(0)",
+   "kind": "hyperbolic",
+   "family": "cor",
+   "param": "(x, y)",
+   "page": "models/per7/index.html",
+   "genus": 24,
+   "source": "2026-11-08-E93-per7-conformal"
+  },
+  {
+   "id": "per8",
+   "n": 8,
+   "short": "Per<sub>8</sub>",
+   "title": "Per<sub>8</sub>(0)",
+   "titleText": "Per_8(0)",
+   "kind": "hyperbolic",
+   "family": "cor",
+   "param": "(x, y)",
+   "page": "models/per8/index.html",
+   "genus": 69,
+   "source": "2026-11-08-E94-per8-conformal"
+  },
+  {
+   "id": "per9",
+   "n": 9,
+   "short": "Per<sub>9</sub>",
+   "titleText": "Per_9(0)",
+   "kind": "hyperbolic",
+   "placeholder": "Per_9: in preparation (E95 probe)"
+  }
+ ]
+}

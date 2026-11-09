@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Per_n(0) atlas</title>
+<style>
+  :root { --ink:#2b2b2b; --muted:#6b6b6b; --faint:#d9d9d9; --bg:#f4f3ef; }
+  html, body { margin:0; height:100%; font:13px/1.4 -apple-system, system-ui, sans-serif; color:var(--ink); background:var(--bg); overflow:hidden; }
+  #top { position:absolute; left:0; right:0; top:0; height:38px; display:flex; align-items:center; gap:10px; padding:0 10px;
+         border-bottom:1px solid var(--faint); background:#fafaf8; box-sizing:border-box; }
+  #top h1 { font-size:15px; margin:0 6px 0 0; white-space:nowrap; }
+  #models { display:flex; gap:3px; flex-wrap:wrap; }
+  #models button { font:inherit; padding:3px 9px; border:1px solid #bbb; background:#fff; border-radius:4px; cursor:pointer; }
+  #models button.on { background:#2b2b2b; color:#fff; border-color:#2b2b2b; }
+  #models button:disabled { color:#aaa; cursor:default; }
+  #kind { color:var(--muted); font-size:12px; margin-left:auto; white-space:nowrap; }
+  #main { position:absolute; left:0; right:0; top:38px; bottom:64px; }
+  #left, #right { position:absolute; top:0; bottom:0; overflow:hidden; }
+  #left { left:0; }
+  #left iframe { border:0; width:100%; height:100%; display:block; }
+  #split { position:absolute; top:0; bottom:0; width:7px; margin-left:-3px; cursor:col-resize; background:#cfcdc6; z-index:5; }
+  #right { right:0; background:#111; }
+  #dyn { position:absolute; inset:0; }
+  #dside { position:absolute; top:8px; right:8px; width:240px; background:rgba(250,250,248,.95); border:1px solid var(--faint);
+           border-radius:6px; padding:7px 9px; z-index:3; font-size:12px; box-sizing:border-box; }
+  #dside.min > :not(.hd) { display:none; }
+  .hd { display:flex; justify-content:space-between; align-items:center; }
+  .ctrl { display:grid; grid-template-columns:auto 1fr; gap:3px 8px; align-items:center; margin:5px 0; }
+  #dhint { position:absolute; left:50%; top:45%; transform:translate(-50%, -50%); color:#bbb; text-align:center; font-size:14px; pointer-events:none; }
+  #status { position:absolute; left:0; right:0; bottom:0; height:64px; border-top:1px solid var(--faint); background:#fafaf8;
+            font:12px/1.5 ui-monospace, Menlo, monospace; padding:4px 10px; box-sizing:border-box; overflow:auto; white-space:pre; }
+  button.sm { font:inherit; padding:0 6px; border:1px solid #bbb; background:#fff; border-radius:4px; cursor:pointer; }
+</style>
+<script src="js/pern_math.js"></script>
+<script src="js/glsl.js"></script>
+<script src="js/planeview.js"></script>
+</head>
+<body>
+<div id="top"><h1>Per<sub>n</sub>(0) atlas</h1><div id="models"></div><span id="kind"></span></div>
+<div id="main">
+  <div id="left"><iframe id="frame" title="parameter space"></iframe></div>
+  <div id="split" title="drag to resize"></div>
+  <div id="right"><div id="dyn"></div><div id="dhint">Dynamical plane<br><span style="font-size:12px">click a parameter on the left</span></div>
+    <div id="dside">
+      <div class="hd"><b>Dynamical plane&nbsp;</b><button class="sm" id="dmin" title="show / hide the controls">–</button></div>
+      <div class="ctrl">
+        <span>Iterates</span><span><input type="range" id="dit" min="50" max="4000" step="50" value="500"> <span id="ditv">500</span></span>
+        <span>Capture δ</span><span><input type="range" id="ddel" min="-5" max="-1" step="0.25" value="-3"> <span id="ddelv">1e-3</span></span>
+        <span>Marked cycle</span><input type="checkbox" id="dmk" checked>
+        <span>Labels</span><input type="checkbox" id="dml" checked>
+        <span>Critical orbit</span><span><input type="checkbox" id="dorb"> <input type="number" id="dorbn" value="60" min="1" max="2000" style="width:60px"></span>
+      </div>
+      <button class="sm" id="dhome">Fit view</button>
+      <div style="margin-top:6px;color:#6b6b6b">Colours: capture into the marked cycle by phase (j − t) mod n, as in the parameter pane;
+        grey = basin of another attracting cycle; black = undecided (Julia set). White dots a<sub>j</sub>: the marked cycle
+        (a<sub>0</sub> critical); yellow ω: the free critical point.</div>
+    </div>
+  </div>
+</div>
+<div id="status">Choose a model, then click a parameter.</div>
+<script src="js/shell.js"></script>
+</body>
+</html>
