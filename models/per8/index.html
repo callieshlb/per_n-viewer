@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Per_8(0): conformal model, live dynamics</title>
+<style>
+  :root { --ink:#2b2b2b; --muted:#6b6b6b; --faint:#d9d9d9; --bg:#f4f3ef; }
+  html, body { margin:0; height:100%; font:13px/1.4 -apple-system, system-ui, sans-serif; color:var(--ink); background:var(--bg); overflow:hidden; }
+  #view { position:absolute; inset:0 340px 0 0; cursor:grab; }
+  #view.drag { cursor:grabbing; }
+  #gl, #ov { position:absolute; inset:0; width:100%; height:100%; }
+  #ov { pointer-events:none; }
+  #side { position:absolute; top:0; right:0; width:340px; bottom:0; overflow:auto; background:#fafaf8; border-left:1px solid var(--faint); padding:10px 12px; box-sizing:border-box; }
+  h1 { font-size:15px; margin:0 0 4px; }
+  .sub { color:var(--muted); font-size:12px; margin-bottom:8px; }
+  .ctrl { display:grid; grid-template-columns:auto 1fr; gap:4px 8px; align-items:center; margin:8px 0; }
+  .info { font-family:ui-monospace, Menlo, monospace; font-size:12px; white-space:pre-wrap; background:#fff; border:1px solid var(--faint); padding:6px 8px; min-height:92px; }
+  button { font:inherit; padding:2px 8px; border:1px solid #bbb; background:#fff; border-radius:4px; cursor:pointer; }
+  button:disabled { color:#aaa; cursor:default; }
+  details summary { cursor:pointer; color:var(--muted); }
+  .legend { display:grid; grid-template-columns:14px 1fr; gap:2px 6px; font-size:11.5px; margin:4px 0 8px; }
+  .sw { width:12px; height:12px; border-radius:2px; display:inline-block; margin-top:2px; }
+  #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
+  #load { position:absolute; left:20px; top:20px; color:var(--muted); }
+  #card { position:absolute; left:10px; top:10px; max-width:min(460px, 70%); max-height:60%; overflow:auto; background:rgba(255,255,255,.97);
+          border:1px solid #bbb; border-radius:6px; padding:8px 10px 8px; font:12px/1.45 ui-monospace, Menlo, monospace; white-space:pre-wrap;
+          display:none; box-shadow:0 2px 10px rgba(0,0,0,.3); z-index:5; color:#222; }
+  #card b { font-family:-apple-system, system-ui, sans-serif; font-size:13px; }
+  #cardx { position:sticky; float:right; top:0; border:none; background:none; font-size:16px; line-height:1; padding:0 2px; cursor:pointer; }
+  #mlist { max-height:240px; overflow:auto; border:1px solid var(--faint); background:#fff; font-size:12px; }
+  #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #mlist div:hover { background:#eef3ff; }
+</style>
+<script src="conformal_data.js"></script>
+<script src="per8_core.js"></script>
+</head>
+<body>
+<div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
+<div id="side">
+  <h1>Per<sub>8</sub>(0): conformal model, live dynamics</h1>
+<div style="background:#fff3cd;border:1px solid #e0b84d;border-radius:4px;padding:5px 7px;margin:4px 0 8px;font-size:12px"><b>Check U6 failed for real ovals 0 and 2</b> (E94): oval 2's max distance to its geodesic is 0.0270 on the fine mesh (threshold 0.02; coarse 0.0279); oval 0 could not be evaluated (points not located near the node y = 0). Ovals 1, 3, 4, A1-A3 and U1-U5 passed. Shown after a ruling to lift the STOP (see REGISTRATION.md / result.md). Numerical model, not a theorem.</div>
+  <div class="sub">The compact genus-69 curve uniformized: the disk is its universal cover, every tile is the same Dirichlet polygon, and the picture is conformal. The colours are computed afresh at every screen pixel from (a<sub>3</sub>, a<sub>7</sub>) at that point, as in the 2-D explorer, so zooming in sharpens them. Drag to slide, click to centre a point, scroll to magnify.</div>
+  <div class="ctrl">
+    <span>Tile edges</span><input type="checkbox" id="ed" checked>
+    <span>Edge numbers</span><input type="checkbox" id="lt" checked>
+    <span>Markers</span><input type="checkbox" id="mk" checked>
+    <span>Marker labels</span><input type="checkbox" id="ml" checked>
+    <span>Real ovals</span><input type="checkbox" id="ov2" checked>
+    <span>G<sub>8</sub>: capture edges</span><input type="checkbox" id="gc" checked>
+    <span>G: violet arrow f &rarr; f&prime; when f&prime; has more factors of 2</span><input type="checkbox" id="g2" checked>
+    <span style="display:none"></span><input type="checkbox" id="gm" style="display:none">
+    <span style="display:none"></span><input type="checkbox" id="gp" style="display:none">
+  </div>
+  <div class="ctrl">
+    <span>Colouring</span><select id="cmode"><option value="1" selected>live dynamics (per pixel)</option><option value="0">mesh colours (old)</option><option value="2">plain surface (no dynamics)</option></select>
+    <span>Parameter iterates</span><span><input type="range" id="pit" min="50" max="3000" step="50" value="600"> <span id="pitv">600</span></span>
+    <span>Capture radius δ</span><span><input type="range" id="del" min="-5" max="-1" step="0.25" value="-3"> <span id="delv">1e-3</span> (relative)</span>
+  </div>
+  <div class="legend" id="legend"></div>
+  <p><button id="home">Recentre on the base tile</button> <button id="zout">Reset zoom</button></p>
+  <p style="margin:4px 0"><b>Go to</b> <input id="goto" list="gotolist" size="22" placeholder="angle 7/255, 7, 0.0275, or a puncture">
+    <button id="gobtn">Go</button><br><span id="gomsg" class="sub"></span></p>
+  <datalist id="gotolist"></datalist>
+  <details open><summary><b>Polynomials and punctures</b> (click a row, or click a white / red dot in the picture)</summary>
+    <input id="mfilter" size="30" placeholder="filter: 188, puncture, rabbit, 1/3 ..." style="margin:4px 0">
+    <div id="mlist"></div></details>
+  <p style="margin:6px 0 2px"><b>Where you are</b> <span class="sub">(the Dirichlet polygon; red cross = view centre; click to jump)</span></p>
+  <canvas id="mini" width="632" height="632"></canvas>
+  <p style="margin:8px 0 2px"><b>Point</b></p>
+  <div class="info" id="info">Click anywhere in the disk.</div>
+  <p><button id="open" disabled>Open this point in the 2-D explorer</button></p>
+  <details><summary>What this is, and what is exact</summary>
+    <p>The hyperbolic metric was computed on the glued mesh of the genus-69 curve (discrete conformal equivalence,
+    Bobenko–Pinkall–Springborn), the surface developed into the disk, and its Fuchsian group read off from the
+    side pairings. The tile is the Dirichlet polygon of that group about a base point: faces with the same number
+    and colour are glued. Corners of the same colour are one point of the surface.</p>
+    <p><b>Live colouring:</b> each pixel's point is located in one of 318 conformal charts (centres spread over the surface so
+    every point is within 1.2 of one), which store a<sub>3</sub> and a<sub>7</sub>; a<sub>7</sub> is polished by Newton's method on
+    the curve where that is well conditioned in single precision (not near the branches over y = 0, which are tangent to
+    order ~6, and only for |y|, |x| <= 6), then the free critical point is iterated in single precision on the GPU. Pixels near the view centre are read from
+    the chart of the view centre directly (no folding), which keeps zooms sharp. Very deep zooms reach the limits of single
+    precision and of the chart data.</p>
+    <p>Up to discretization error the picture is conformal: hyperbolic components keep their shape when moved to the centre.
+    Checks (angle sums, area 272π, side pairings, mesh convergence, real ovals geodesic) are in REGISTRATION.md (E94).</p>
+    <p><b>Real ovals</b> (cyan, yellow, green, magenta, orange): the five real circles of Per<sub>8</sub>(0), drawn as the
+    geodesics they are tested against (E94-U6). <b>G<sub>8</sub></b> (E91's definition, computed 2026-11-09 with gn_graph.py 8,
+    capture edges): each edge joins two polynomial centres by the shortest geodesic on the surface between them (pairs of
+    multiplicity 2 drawn once). This is a stand-in for the capture path, not the path through the shared capture component itself.</p>
+    <p>Click a marker (white dot or red dot) to see its data: for a polynomial centre z<sup>2</sup> + c its c, characteristic
+    angles, internal address and kneading; for a puncture the centres sharing it, k, q, multiplicity and its census loop point.</p>
+    <p><b>Violet edges with an arrow</b> (G<sub>8</sub>, checkbox above): the edge joins f to f&prime; where the label of f&prime; (the even
+    numerator k of k/(2<sup>8</sup> &minus; 1)) has more factors of 2 than the label of f; the arrow points to f&prime;, and the line is thicker the larger
+    the difference. White edges: both labels have the same number of factors of 2.</p>
+    <p>White dots: polynomial centres (label k means angle k/255). Red: punctures (marked points here).</p>
+  </details>
+</div>
+<script>
+'use strict';
+const T = window.CF, TAU = 2*Math.PI, NF = T.faces.length;
+const cx = (re, im = 0) => [re, im];
+const cmul = (a, b) => [a[0]*b[0] - a[1]*b[1], a[0]*b[1] + a[1]*b[0]];
+const cdiv = (a, b) => { const d = b[0]*b[0] + b[1]*b[1]; return [(a[0]*b[0] + a[1]*b[1])/d, (a[1]*b[0] - a[0]*b[1])/d]; };
+const cadd = (a, b) => [a[0] + b[0], a[1] + b[1]], csub = (a, b) => [a[0] - b[0], a[1] - b[1]];
+const cabs2 = a => a[0]*a[0] + a[1]*a[1];
+const csqrt = a => { const r = Math.hypot(a[0], a[1]), t = Math.atan2(a[1], a[0])/2, s = Math.sqrt(r); return [s*Math.cos(t), s*Math.sin(t)]; };
+const M = (a, b, c, d) => ({ a, b, c, d });
+const ap = (m, z) => cdiv(cadd(cmul(m.a, z), m.b), cadd(cmul(m.c, z), m.d));
+function norm(m) { const s = csqrt(csub(cmul(m.a, m.d), cmul(m.b, m.c))); return M(cdiv(m.a, s), cdiv(m.b, s), cdiv(m.c, s), cdiv(m.d, s)); }
+const comp = (m, n) => norm(M(cadd(cmul(m.a, n.a), cmul(m.b, n.c)), cadd(cmul(m.a, n.b), cmul(m.b, n.d)),
+                              cadd(cmul(m.c, n.a), cmul(m.d, n.c)), cadd(cmul(m.c, n.b), cmul(m.d, n.d))));
+const inv = m => M(m.d, [-m.b[0], -m.b[1]], [-m.c[0], -m.c[1]], m.a);
+const I2 = M(cx(1), cx(0), cx(0), cx(1));
+const Mq = q => norm(M(cx(1), q, [q[0], -q[1]], cx(1)));
+const hdist = (z, w) => Math.acosh(1 + 2*cabs2(csub(z, w))/((1 - cabs2(z))*(1 - cabs2(w))));
+// faces: Klein half-plane k.u <= t, fold map g^-1; neighbour tile across face a is g_a(D)
+const FG = T.faces.map(f => M([f.gi[0], f.gi[1]], [f.gi[2], f.gi[3]], [f.gi[4], f.gi[5]], [f.gi[6], f.gi[7]]));
+const FGf = FG.map(inv);
+function violMax(z) { const s = 1 + cabs2(z), k = [2*z[0]/s, 2*z[1]/s]; let best = -1e9, bi = -1;
+  for (let a = 0; a < NF; a++) { const f = T.faces[a], v = k[0]*f.u[0] + k[1]*f.u[1] - f.t; if (v > best) { best = v; bi = a; } } return [best, bi]; }
+function fold(z) { for (let it = 0; it < 500; it++) { const [v, a] = violMax(z); if (v <= 1e-12) return z; z = ap(FG[a], z); } return z; }
+const hue = (h, s = .62, l = .52) => { const f = n => { const k = (n + h*12) % 12, a = s*Math.min(l, 1 - l); return l - a*Math.max(-1, Math.min(k - 3, 9 - k, 1)); }; return [f(0), f(8), f(4)]; };
+const PAIRC = Array.from({ length: T.nPairs }, (_, i) => hue((i*0.61803398875) % 1));
+const CYCC = Array.from({ length: T.nCycles }, (_, i) => hue((i*0.61803398875 + 0.3) % 1, .75, .6));
+const css = c => `rgb(${Math.round(c[0]*255)},${Math.round(c[1]*255)},${Math.round(c[2]*255)})`;
+const dec = (s, Ty) => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return new Ty(u.buffer); };
+const VY = dec(T.Y, Float32Array), VX = dec(T.X, Float32Array), PC = dec(T.piece, Int8Array), SH = T.sheet ? dec(T.sheet, Int8Array) : null;
+// ---------- WebGL ----------
+const view = document.getElementById('view'), cv = document.getElementById('gl'), ov = document.getElementById('ov'), g2 = ov.getContext('2d');
+const gl = cv.getContext('webgl2', { antialias: false });
+const MAXF = 1024;      // loop bound only; face data live in the texture faceT (E93)
+const VS = `#version 300 es
+in vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }`;
+const FS = `#version 300 es
+precision highp float;
+uniform vec2 res; uniform float Rpx, zoom, lineW; uniform vec2 Va, Vb, Vc, Vd; uniform int nF;
+uniform highp sampler2D faceT;
+uniform sampler2D tex; uniform int edges; uniform vec3 bg;
+uniform highp sampler2DArray charts; uniform highp sampler2D cmapT; uniform highp sampler2D ptab; uniform highp sampler2D ctab;
+uniform highp sampler2D ovT; uniform int nOv; uniform int showOv; uniform highp sampler2D wT; uniform int nW;
+const float EDGES2 = .74;   // E94: shader edges only where |s| > 0.86 (2 atanh = RVIS)
+uniform float RU; uniform int SS; uniform float mapSize; uniform highp sampler2D coefT; uniform int live; uniform int maxIt; uniform float delta; uniform float tolP;
+uniform vec2 Wa, Wb, Wc, Wd; uniform int k0; uniform int useW;
+out vec4 o;
+vec2 cm(vec2 a, vec2 b){ return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
+vec2 cd(vec2 a, vec2 b){ return vec2(a.x*b.x + a.y*b.y, a.y*b.x - a.x*b.y)/dot(b, b); }
+vec4 FA(int a){ return texelFetch(faceT, ivec2(0, a), 0); }
+vec4 FB(int a){ return texelFetch(faceT, ivec2(1, a), 0); }
+vec4 FC(int a){ return texelFetch(faceT, ivec2(2, a), 0); }
+vec3 hue(float h){ vec3 k = mod(vec3(0., 8., 4.) + h*12., 12.); return .52 - .62*.48*clamp(min(k - 3., 9. - k), -1., 1.); }
+
+vec2 cinv(vec2 z){ return vec2(z.x, -z.y)/dot(z, z); }
+float chF(vec2 a, vec2 b){ float A = dot(a, a), B = dot(b, b);
+  if (A > 1. && B > 1.) { vec2 ia = cinv(a), ib = cinv(b); return length(ia - ib)/sqrt((1. + dot(ia, ia))*(1. + dot(ib, ib))); }
+  return length(a - b)/sqrt((1. + A)*(1. + B)); }
+float chI(vec2 a){ return 1./sqrt(1. + dot(a, a)); }
+float chN(vec2 a, bool ai, vec2 b, bool bi){ if (ai && bi) return 0.; if (ai) return chI(b); if (bi) return chI(a); return chF(a, b); }
+vec4 gF(int k, int ix, int iy){ return texelFetch(charts, ivec3(clamp(ix, 0, SS - 1), clamp(iy, 0, SS - 1), k), 0); }
+vec4 cw(float t){ float t2 = t*t, t3 = t2*t; return vec4(-.5*t3 + t2 - .5*t, 1.5*t3 - 2.5*t2 + 1., -1.5*t3 + 2.*t2 + .5*t, .5*t3 - .5*t2); }
+vec4 bicubic(int k, vec2 f){ vec2 i0 = floor(f), t = f - i0; vec4 wx = cw(t.x), wy = cw(t.y), acc = vec4(0.);
+  for (int j = 0; j < 4; j++) { vec4 row = vec4(0.);
+    for (int i = 0; i < 4; i++) row += wx[i]*gF(k, int(i0.x) + i - 1, int(i0.y) + j - 1);
+    acc += wy[j]*row; }
+  return acc; }
+const vec3 CAP[8] = vec3[8](vec3(42., 120., 214.), vec3(235., 104., 52.), vec3(27., 175., 122.), vec3(237., 161., 0.), vec3(232., 123., 164.), vec3(127., 63., 191.), vec3(160., 82., 45.), vec3(0., 150., 160.));
+vec3 shadeT(vec3 c, float t){ float s = max(.3, min(1., 1. - .6*log(1. + t)/log(81.))); return (c*s + 20.*(1. - s))/255.; }
+vec3 liveColourU(int k, vec2 u);
+vec3 liveColour(vec2 z){
+  vec2 mt = vec2(.5 + .5*z.x, .5 - .5*z.y)*mapSize; ivec2 mi = clamp(ivec2(mt), ivec2(0), ivec2(int(mapSize) - 1));
+  vec4 cmv = texelFetch(cmapT, mi, 0);
+  int pidx = int(cmv.r*255. + .5) + 256*int(cmv.g*255. + .5);
+  vec4 pa = texelFetch(ptab, ivec2(0, pidx), 0), pb = texelFetch(ptab, ivec2(1, pidx), 0), pc = texelFetch(ptab, ivec2(2, pidx), 0);
+  int k = int(pc.x + .5);
+  vec2 u = cd(cm(pa.xy, z) + pa.zw, cm(pb.xy, z) + pb.zw);
+  return liveColourU(k, u);
+}
+vec3 liveColourU(int k, vec2 u){
+  vec2 f = vec2((u.x + RU)/(2.*RU), (RU - u.y)/(2.*RU))*float(SS - 1);
+  vec4 g = bicubic(k, f);
+  vec4 ca = texelFetch(ctab, ivec2(0, k), 0), cb = texelFetch(ctab, ivec2(1, k), 0);
+  vec2 one = vec2(1., 0.);
+  vec2 y = cd(ca.xy - cm(ca.zw, g.xy), one - g.xy);
+  vec2 x = cd(cb.xy - cm(cb.zw, g.zw), one - g.zw);
+  if (dot(y, y) > 1e10 || dot(x, x) > 1e10) return vec3(85., 20., 20.)/255.;
+  // E93: P has degree 10 in x and y; leading coefficient exactly (y-1)^2 (y^4 + 3y^3 - 2y^2 - 2y + 1). Newton polish of x only
+  // where float32 can resolve the root: |y|, |x| <= 50 (no overflow) and estimated root error 1.2e-7 sum|c_k x^k| / |P'| below
+  // 1e-6 (1 + |x|) (fails next to the order-4 tangent branches over y = 0: the chart value is kept there).
+  {                                   // E94 fix 3: per-pixel projection of (y, x) onto P = 0, minimal move in scaled variables
+    bool iy = dot(y, y) > 1., ix = dot(x, x) > 1.;  // w = y or 1/y, v = x or 1/x; P scaled by y^-20 and/or x^-20
+    vec2 w = iy ? cd(one, y) : y, v = ix ? cd(one, x) : x, w0 = w, v0 = v; bool okp = true;
+    for (int it = 0; it < 5; it++) {
+      vec2 P = vec2(0.), Pv = vec2(0.), Pw = vec2(0.); float Sab = 0., av = length(v), pw = 1.;
+      for (int q = 0; q < 21; q++) {
+        int kk = ix ? q : 20 - q;                    // Horner order over the x-index
+        vec2 c = vec2(0.), dc = vec2(0.);
+        if (kk == 20) {                              // exact leading coefficient y^4 (y - 1)^6 (scaled: w^10 (1 - w)^6)
+          if (iy) { vec2 e1 = one - w, e2 = cm(e1, e1), e4 = cm(e2, e2), e5 = cm(e4, e1), w2 = cm(w, w), w4 = cm(w2, w2), w8 = cm(w4, w4), w9 = cm(w8, w);
+                    c = cm(cm(w9, w), cm(e5, e1)); dc = cm(cm(w9, e5), vec2(10., 0.) - 16.*w); }
+          else    { vec2 e1 = w - one, e2 = cm(e1, e1), e4 = cm(e2, e2), e5 = cm(e4, e1), w2 = cm(w, w), w3 = cm(w2, w);
+                    c = cm(cm(w3, w), cm(e5, e1)); dc = cm(cm(w3, e5), 10.*w - vec2(4., 0.)); }
+        } else if (iy) { for (int j = 0; j <= 20; j++) { dc = cm(dc, w) + c; c = cm(c, w) + vec2(texelFetch(coefT, ivec2(j, kk), 0).r, 0.); } }
+        else           { for (int j = 20; j >= 0; j--) { dc = cm(dc, w) + c; c = cm(c, w) + vec2(texelFetch(coefT, ivec2(j, kk), 0).r, 0.); } }
+        Pv = cm(Pv, v) + P; P = cm(P, v) + c; Pw = cm(Pw, v) + dc;
+        Sab = Sab*av + length(c);
+      }
+      float Dn = dot(Pv, Pv) + dot(Pw, Pw);
+      if (!(Dn > 0.) || 1.2e-7*Sab/sqrt(Dn) > 1e-5*(1. + av)) break;
+      vec2 s = P/Dn;
+      v -= cm(s, vec2(Pv.x, -Pv.y)); w -= cm(s, vec2(Pw.x, -Pw.y));
+      if (length(v - v0) + length(w - w0) > 2e-2*(1. + length(v0) + length(w0))) { okp = false; break; }
+    }
+    if (okp) { x = ix ? cd(one, v) : v; y = iy ? cd(one, w) : w; }
+  }
+  // map data
+  vec2 w = cd(x + y - one, x - one), s = x + w, p = cm(x, w), om = cd(2.*p, s);
+  vec2 mk[8]; bool mi6[8];               // marked cycle a_0 = 0, a_1 = inf, a_2 = 1, a_3 = y, a_4..a_6 = f-iterates, a_7 = x
+  mk[0] = vec2(0.); mi6[0] = false; mk[1] = vec2(0.); mi6[1] = true; mk[2] = one; mi6[2] = false;
+  mk[3] = y; mi6[3] = false; mk[7] = x; mi6[7] = false;
+  for (int j = 4; j < 7; j++) {
+    vec2 zp = mk[j - 1]; bool zpi = mi6[j - 1];
+    if (zpi) { mk[j] = one; mi6[j] = false; }
+    else { float r2 = dot(zp, zp); if (r2 < 1e-24) { mk[j] = vec2(0.); mi6[j] = true; } else { vec2 iz = cinv(zp); mk[j] = one - cm(s, iz) + cm(p, cm(iz, iz)); mi6[j] = false; } }
+  }
+  float th[8];
+  for (int j = 0; j < 8; j++) { float m = 1.; for (int i = 0; i < 8; i++) if (i != j) m = min(m, chN(mk[j], mi6[j], mk[i], mi6[i])); th[j] = delta*m; }
+  vec2 zc = om; bool zi = false;
+  vec2 ring[32]; bool ringI[32];
+  for (int it = 0; it < 6000; it++) {
+    if (it >= maxIt) break;
+    if (zi) { zc = one; zi = false; }
+    else { float r2 = dot(zc, zc); if (r2 < 1e-24) zi = true; else { vec2 iz = cinv(zc); zc = one - cm(s, iz) + cm(p, cm(iz, iz)); if (dot(zc, zc) > 1e30) zi = true; } }
+    for (int j = 0; j < 8; j++) if (chN(zc, zi, mk[j], mi6[j]) < th[j]) {
+      int ph = ((j - (it + 1)) % 8 + 8) % 8; return shadeT(CAP[ph], float(it + 1)); }
+    ring[it & 31] = zc; ringI[it & 31] = zi;
+  }
+  for (int per = 1; per <= 24; per++) {
+    int a = (maxIt - 1 - per + 3200) & 31, b = (maxIt - 1) & 31;
+    if (chN(ring[b], ringI[b], ring[a], ringI[a]) < tolP) return per == 1 ? vec3(85.)/255. : vec3(163.)/255.;
+  }
+  return vec3(18.)/255.;
+}
+void main(){
+  vec2 s = (gl_FragCoord.xy - .5*res)/(Rpx*zoom);
+  float r2 = dot(s, s);
+  if (r2 >= 1.) { o = vec4(bg, 1.); return; }
+  vec2 z = cd(cm(Va, s) + Vb, cm(Vc, s) + Vd);
+  bool ok = false;
+  for (int it = 0; it < 120; it++) {
+    vec2 k = 2.*z/(1. + dot(z, z)); float best = 0.; int bi = -1;
+    for (int a = 0; a < ${MAXF}; a++) { if (a >= nF) break; float v = dot(k, FA(a).xy) - FA(a).z; if (v > best) { best = v; bi = a; } }
+    if (bi < 0) { ok = true; break; }
+    z = cd(cm(FB(bi).xy, z) + FB(bi).zw, cm(FC(bi).xy, z) + FC(bi).zw);
+  }
+  float zz = dot(z, z);
+  float pxh = 2./((1. - r2)*Rpx*zoom);
+  float g = .5*(1. - zz)/((1. - r2)*Rpx*zoom);
+  vec3 col;
+  vec2 u0 = cd(cm(Wa, s) + Wb, cm(Wc, s) + Wd);
+  int bk = -1; vec2 bu = vec2(0.); float bl = 1e9;
+  if (live == 1) for (int j = 0; j < 256; j++) {
+    if (j >= nW) break;
+    vec4 A = texelFetch(wT, ivec2(0, j), 0), B = texelFetch(wT, ivec2(1, j), 0);
+    vec2 u = cd(cm(A.xy, s) + A.zw, cm(B.xy, s) + B.zw); float l = dot(u, u);
+    if (l < bl) { bl = l; bu = u; bk = int(texelFetch(wT, ivec2(2, j), 0).x + .5); }
+  }
+  if (live == 2) col = vec3(.94, .93, .90);                 // plain surface: no dynamics (user request 2026-11-09)
+  else if (live == 1 && bk >= 0 && bl < .9409*RU*RU) col = liveColourU(bk, bu);   // E94 fix: view-relative charts, |u| < 0.97 RU
+  else if (live == 1 && useW == 1 && length(u0) < .95*RU) col = liveColourU(k0, u0);
+  else if (live == 1) col = liveColour(z); else col = textureGrad(tex, vec2(.5 + .5*z.x, .5 - .5*z.y), vec2(g, 0.), vec2(0., g)).rgb;
+  if (edges == 1 && dot(s, s) > EDGES2) {
+    float bestd = 1e9; float bp = 0.;
+    for (int a = 0; a < ${MAXF}; a++) {
+      if (a >= nF) break;
+      float t = FA(a).z, rm = t/(1. + sqrt(1. - t*t)), Dc = (1. + rm*rm)/(2.*rm), rho = (1. - rm*rm)/(2.*rm);
+      vec2 C = Dc*FA(a).xy; float d = asinh(abs(dot(z - C, z - C) - rho*rho)/(rho*(1. - zz)));
+      if (d < bestd) { bestd = d; bp = FA(a).w; }
+    }
+    float wh = lineW*pxh*clamp(4.*(1. - r2), .3, 1.);
+    float a1 = clamp((wh - bestd)/pxh + .5, 0., 1.), ad = clamp((wh*1.9 - bestd)/pxh + .5, 0., 1.);
+    col = mix(col, vec3(.08), ad*.85); col = mix(col, hue(fract(bp*0.61803398875)), a1);
+  }
+  if (showOv == 1) {
+    float wo = lineW*pxh*1.6*clamp(4.*(1. - r2), .3, 1.);
+    for (int q = 0; q < 512; q++) {
+      if (q >= nOv) break;
+      vec4 o = texelFetch(ovT, ivec2(q, 0), 0); float d;
+      if (o.z < 0.) d = asinh(2.*abs(o.y*z.x - o.x*z.y)/(1. - zz));
+      else d = asinh(abs(dot(z - o.xy, z - o.xy) - o.z*o.z)/(o.z*(1. - zz)));
+      vec3 oc = o.w < .5 ? vec3(0., .9, 1.) : o.w < 1.5 ? vec3(1., .86, .1) : o.w < 2.5 ? vec3(.3, 1., .35) : o.w < 3.5 ? vec3(1., .45, .95) : vec3(1., .55, .1);
+      col = mix(col, vec3(.05), clamp((wo*1.8 - d)/pxh + .5, 0., 1.)*.9);
+      col = mix(col, oc, clamp((wo - d)/pxh + .5, 0., 1.));
+    }
+  }
+  if (!ok) col = mix(col, bg, .6);
+  col = mix(col, bg, smoothstep(.992, 1., sqrt(r2)));
+  o = vec4(col, 1.);
+}`;
+function sh(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
+const prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog);
+if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+gl.useProgram(prog);
+const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+const loc = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+const U = n => gl.getUniformLocation(prog, n);
+gl.uniform1i(U('nF'), NF);
+{ const ft = new Float32Array(NF*12);       // E93: face data texture (3 x NF texels: [u, t, pair], gi[0..3], gi[4..7])
+  T.faces.forEach((f, a) => ft.set([f.u[0], f.u[1], f.t, f.pair, f.gi[0], f.gi[1], f.gi[2], f.gi[3], f.gi[4], f.gi[5], f.gi[6], f.gi[7]], 12*a));
+  const fT = gl.createTexture(); gl.activeTexture(gl.TEXTURE6); gl.bindTexture(gl.TEXTURE_2D, fT);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 3, NF, 0, gl.RGBA, gl.FLOAT, ft);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.uniform1i(U('faceT'), 6); gl.activeTexture(gl.TEXTURE0); }
+gl.uniform3fv(U('bg'), new Float32Array([0xf4/255, 0xf3/255, 0xef/255]));
+let OVSEG = []; let ready = 0, idData = null, CH = null, CHG = null, CHM = null, G6E = [], MI = null;
+function geodPts(P, Q, n) {             // points along the geodesic segment P -> Q (Poincare disk)
+  const Mi = inv(Mq(P)), q = ap(Mi, Q), r = Math.hypot(q[0], q[1]), d = 2*Math.atanh(Math.min(r, 1 - 1e-15)), u = [q[0]/r, q[1]/r], M_ = Mq(P), out = [];
+  for (let i = 0; i <= n; i++) { const t = Math.tanh(d*i/n/2); out.push(ap(M_, [u[0]*t, u[1]*t])); }
+  return out;
+}
+const LEG = [['#2a78d6', 'captured, phase 0'], ['#eb6834', 'captured, phase 1'], ['#1baf7a', 'captured, phase 2'], ['#eda100', 'captured, phase 3'],
+  ['#e87ba4', 'captured, phase 4'], ['#7f3fbf', 'captured, phase 5'], ['#a0522d', 'captured, phase 6'], ['#00969f', 'captured, phase 7'], ['#555555', 'attracting fixed point (polynomial components)'],
+  ['#a3a3a3', 'other attracting cycle'], ['#121212', 'undecided: bifurcation locus'], ['#551414', 'too close to a puncture to compute']];
+document.getElementById('legend').innerHTML = LEG.map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
+let liveMode = 1, pit = 600, delta = 1e-3, interacting = false, idleT = null;
+document.getElementById('cmode').onchange = e => { liveMode = +e.target.value; dirty = true; };
+document.getElementById('pit').oninput = e => { pit = +e.target.value; document.getElementById('pitv').textContent = pit; dirty = true; };
+document.getElementById('del').oninput = e => { delta = Math.pow(10, +e.target.value); document.getElementById('delv').textContent = delta.toExponential(0); dirty = true; };
+function poke() { interacting = true; clearTimeout(idleT); idleT = setTimeout(() => { interacting = false; dirty = true; }, 220); }
+(async () => {
+  const img = new Image(); img.src = 'chart_map.png';
+  const [meta, buf, core, ovd, , mki] = await Promise.all([fetch('chart_meta.json').then(r => r.json()), Promise.all(["chart_grids_0.bin", "chart_grids_1.bin", "chart_grids_2.bin"].map(f => fetch(f).then(r => r.arrayBuffer()))).then(bs => { const n = bs.reduce((a, b) => a + b.byteLength, 0), u = new Uint8Array(n); let o = 0; for (const b of bs) { u.set(new Uint8Array(b), o); o += b.byteLength; } return u.buffer; }),
+                                               fetch('data.json').then(r => r.json()), fetch('overlay_data.json').then(r => r.json()), img.decode(), fetch('marker_info.json').then(r => r.json())]);
+  // all GL work below is synchronous (no await), so the mesh-texture onload never sees another active unit
+  CORE.init(core); CH = meta; CHG = new Float32Array(buf); MI = mki; setTimeout(buildList, 0);
+  document.getElementById('gotolist').innerHTML = MI.items.map(it => it.kind === 'centre'
+    ? `<option value="${it.ks[0]}/255">centre ${it.label}</option><option value="${it.ks[1]}/255">centre ${it.label}</option>`
+    : `<option value="puncture ${it.label}">puncture ${it.label}</option>`).join('');
+  const t3 = gl.createTexture(); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D_ARRAY, t3);
+  gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA32F, meta.S, meta.S, meta.NC, 0, gl.RGBA, gl.FLOAT, CHG);
+  gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  const pt = new Float32Array(meta.placements.length*12);
+  meta.placements.forEach((p, i) => { pt.set(p.M.slice(0, 4), 12*i); pt.set(p.M.slice(4, 8), 12*i + 4); pt[12*i + 8] = p.chart; });
+  const t4 = gl.createTexture(); gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, t4);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 3, meta.placements.length, 0, gl.RGBA, gl.FLOAT, pt);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  const ctb = new Float32Array(meta.NC*8);
+  meta.charts.forEach((c, i) => { ctb.set([c.ay[0], c.ay[1], c.by[0], c.by[1], c.ax[0], c.ax[1], c.bx[0], c.bx[1]], 8*i); });
+  const t5 = gl.createTexture(); gl.activeTexture(gl.TEXTURE3); gl.bindTexture(gl.TEXTURE_2D, t5);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 2, meta.NC, 0, gl.RGBA, gl.FLOAT, ctb);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  const cmc = document.createElement('canvas'); cmc.width = cmc.height = meta.mapSize; const cmx = cmc.getContext('2d');
+  cmx.drawImage(img, 0, 0); CHM = cmx.getImageData(0, 0, meta.mapSize, meta.mapSize).data;
+  const t6 = gl.createTexture(); gl.activeTexture(gl.TEXTURE4); gl.bindTexture(gl.TEXTURE_2D, t6);
+  gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, meta.mapSize, meta.mapSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(CHM.buffer));
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  // oval geodesics: circle (centre, radius) orthogonal to the unit circle, or a diameter (direction, -1)
+  const og = []; ovd.ovals.forEach((ov, oi) => ov.pieces.forEach(pc => {
+    const a = Math.atan2(pc.xi[0][1], pc.xi[0][0]), b = Math.atan2(pc.xi[1][1], pc.xi[1][0]), h = (b - a)/2;
+    if (Math.abs(Math.cos(h)) < 1e-9) og.push(Math.cos(a), Math.sin(a), -1, oi);
+    else { const m = (a + b)/2; og.push(Math.cos(m)/Math.cos(h), Math.sin(m)/Math.cos(h), Math.abs(Math.tan(h)), oi); } }));
+  const t7 = gl.createTexture(); gl.activeTexture(gl.TEXTURE5); gl.bindTexture(gl.TEXTURE_2D, t7);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, og.length/4, 1, 0, gl.RGBA, gl.FLOAT, new Float32Array(og));
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.uniform1i(U('ovT'), 5); gl.uniform1i(U('nOv'), og.length/4);
+  G6E = ovd.edges.map(e => ({ ...e, pts: geodPts(e.P, e.Q, 24) }));
+  { const CL = T.markers.filter(m => m.kind === 'centre').map(m => parseInt(m.label, 10));
+    const v2 = k => { let v = 0; while (k > 0 && k % 2 === 0) { k /= 2; v++; } return v; };
+    G6E.forEach(e => { e.vgap = (e.kind === 'capture' && e.b >= 0 && CL[e.a] > 0 && CL[e.b] > 0) ? v2(CL[e.b]) - v2(CL[e.a]) : 0; }); }
+  OVSEG = []; ovd.ovals.forEach((ovl, oi) => ovl.pieces.forEach(pc => {
+    const a = pc.xi[0], b = pc.xi[1], dab = [b[0] - a[0], b[1] - a[1]]; let l0 = 0, l1 = 1;
+    for (let f = 0; f < NF; f++) { const F = T.faces[f], c0_ = a[0]*F.u[0] + a[1]*F.u[1] - F.t, c1_ = dab[0]*F.u[0] + dab[1]*F.u[1];
+      if (Math.abs(c1_) < 1e-15) { if (c0_ > 0) { l1 = -1; break; } continue; }
+      const lam = -c0_/c1_; if (c1_ > 0) l1 = Math.min(l1, lam); else l0 = Math.max(l0, lam); }
+    if (l1 - l0 < 1e-12) return;
+    const kp = l => { const k = [a[0] + l*dab[0], a[1] + l*dab[1]], s_ = 1 + Math.sqrt(Math.max(0, 1 - cabs2(k))); return [k[0]/s_, k[1]/s_]; };
+    OVSEG.push({ oi, approx: !!pc.approx, pts: geodPts(kp(l0), kp(l1), 32) }); }));
+  gl.activeTexture(gl.TEXTURE0);
+  gl.uniform1i(U('charts'), 1); gl.uniform1i(U('ptab'), 2); gl.uniform1i(U('ctab'), 3); gl.uniform1i(U('cmapT'), 4);
+  gl.uniform1f(U('RU'), meta.RU); gl.uniform1i(U('SS'), meta.S); gl.uniform1f(U('mapSize'), meta.mapSize);
+  { const cf = new Float32Array(21*21); meta.coef.forEach((r, k) => r.forEach((v, j) => { cf[21*k + j] = v; }));     // E94: coefficient texture
+    const tc = gl.createTexture(); gl.activeTexture(gl.TEXTURE7); gl.bindTexture(gl.TEXTURE_2D, tc);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 21, 21, 0, gl.RED, gl.FLOAT, cf);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.uniform1i(U('coefT'), 7); gl.activeTexture(gl.TEXTURE0); }
+  gl.uniform1f(U('tolP'), 1e-5);
+  // E94 fix: all chart placements covering D (k, base frame -> u, centre image) and the per-view chart texture
+  CAND = (meta.cand || []).map(c => ({ k: c[0], M: M([c[1], c[2]], [c[3], c[4]], [c[5], c[6]], [c[7], c[8]]), p: [c[9], c[10]], w: 1 - c[9]*c[9] - c[10]*c[10] }));
+  WTEX = gl.createTexture(); gl.activeTexture(gl.TEXTURE8); gl.bindTexture(gl.TEXTURE_2D, WTEX);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, 3, NWMAX, 0, gl.RGBA, gl.FLOAT, new Float32Array(12*NWMAX));
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.uniform1i(U('wT'), 8); gl.uniform1i(U('nW'), 0); gl.activeTexture(gl.TEXTURE0);
+  ready++; start();
+})();
+const tex = gl.createTexture(), texImg = new Image();
+texImg.onload = () => {
+  gl.bindTexture(gl.TEXTURE_2D, tex); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, texImg); gl.generateMipmap(gl.TEXTURE_2D);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.uniform1i(U('tex'), 0); ready++; start();
+};
+texImg.src = T.tex;
+const idImg = new Image();
+idImg.onload = () => { const c = document.createElement('canvas'); c.width = c.height = T.idSize; const x = c.getContext('2d');
+  x.drawImage(idImg, 0, 0); idData = x.getImageData(0, 0, T.idSize, T.idSize).data; ready++; start(); };
+idImg.src = T.ids;
+// ---------- view ----------
+let V = I2, zoom = 1, tiles = [], dirty = true, anim = null;
+const opt = { ed: true, lt: true, mk: true, ml: true, ov2: true, gc: true, gm: false, gp: false, g2: true };
+['ed', 'lt', 'mk', 'ml', 'ov2', 'gc', 'gm', 'gp', 'g2'].forEach(k => { document.getElementById(k).onchange = e => { opt[k] = e.target.checked; dirty = true; }; });
+let W_ = 0, H_ = 0, Rpx = 1, dpr = 1;
+function resize() { dpr = window.devicePixelRatio || 1; W_ = view.clientWidth*dpr; H_ = view.clientHeight*dpr;
+  cv.width = ov.width = W_; cv.height = ov.height = H_; Rpx = 0.48*Math.min(W_, H_); gl.viewport(0, 0, W_, H_); dirty = true; }
+window.addEventListener('resize', resize);
+function reduceView() { for (let it = 0; it < 500; it++) { const [v, a] = violMax(ap(V, cx(0))); if (v <= 1e-12) break; V = comp(FG[a], V); } }
+function screenToDisk(ex, ey) { const r = cv.getBoundingClientRect(); return [((ex - r.left)*dpr - W_/2)/(Rpx*zoom), -((ey - r.top)*dpr - H_/2)/(Rpx*zoom)]; }
+const diskToScreen = s => [W_/2 + s[0]*Rpx*zoom, H_/2 - s[1]*Rpx*zoom];
+const RD = Math.max(...T.faces.map(f => 2*Math.atanh(Math.hypot(...f.P))));
+function enumerateTiles() {
+  const c0 = ap(V, cx(0)), Vi = inv(V);
+  const vis = Math.min(0.995, Math.hypot(W_, H_)/2/(Rpx*zoom)), Rmax = 2*Math.atanh(vis) + RD;
+  const out = [{ g: I2, W: Vi }], seen = new Set(['0,0']), q = [I2];
+  while (q.length && out.length < 3000) {
+    const g = q.shift();
+    for (let a = 0; a < NF; a++) {
+      const h = comp(g, FGf[a]), z = ap(h, cx(0));
+      if (hdist(z, c0) > Rmax) continue;
+      const key = Math.round(z[0]*1e9) + ',' + Math.round(z[1]*1e9);
+      if (seen.has(key)) continue; seen.add(key); out.push({ g: h, W: comp(Vi, h) }); q.push(h);
+    }
+  }
+  return out;
+}
+function drawOverlay() {
+  g2.clearRect(0, 0, W_, H_);
+  const fs = Math.round(13*dpr);
+  const kinds = { capture: opt.gc, mating: opt.gm, puncture: opt.gp };
+  if (G6E.length && (opt.gc || opt.gm || opt.gp)) {
+    const sty = { capture: ['#ffffff', 2.2], mating: ['#ffd84d', 1.4], puncture: ['#ff6b8a', 2.4] };
+    for (const t of tiles) {
+      const c0 = ap(t.W, [0, 0]); if (1 - cabs2(c0) < 0.01 && t !== tiles[0]) continue;
+      for (const e of G6E) {
+        if (!kinds[e.kind]) continue;
+        const pts = e.pts.map(q => diskToScreen(ap(t.W, q)));
+        let xmin = 1e9, xmax = -1e9, ymin = 1e9, ymax = -1e9;
+        for (const q of pts) { xmin = Math.min(xmin, q[0]); xmax = Math.max(xmax, q[0]); ymin = Math.min(ymin, q[1]); ymax = Math.max(ymax, q[1]); }
+        if (xmax < 0 || ymax < 0 || xmin > W_ || ymin > H_ || (xmax - xmin) + (ymax - ymin) < 3*dpr) continue;
+        let [colr, w] = sty[e.kind]; const up = opt.g2 && e.vgap;
+        if (up) { colr = '#b388ff'; w = Math.min(4.2, 2.2 + 0.6*(Math.abs(e.vgap) - 1)); }
+        g2.beginPath(); pts.forEach((q, i) => i ? g2.lineTo(q[0], q[1]) : g2.moveTo(q[0], q[1]));
+        g2.setLineDash(e.rank ? [6*dpr, 4*dpr] : []);
+        g2.strokeStyle = 'rgba(0,0,0,.7)'; g2.lineWidth = (w + 2)*dpr; g2.stroke();
+        g2.strokeStyle = colr; g2.lineWidth = w*dpr; g2.stroke();
+        if (up && (xmax - xmin) + (ymax - ymin) > 36*dpr) {     // arrowhead at the middle, toward the end with more factors of 2 (not on short edges)
+          const m = pts.length >> 1, A = pts[m - 1], B = pts[m + 1], C = pts[m], sg = e.vgap > 0 ? 1 : -1;
+          let dx = (B[0] - A[0])*sg, dy = (B[1] - A[1])*sg; const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+          const h = Math.min((6 + 1.6*w)*dpr, 0.15*((xmax - xmin) + (ymax - ymin)));
+          g2.setLineDash([]); g2.beginPath(); g2.moveTo(C[0] + dx*h, C[1] + dy*h);
+          g2.lineTo(C[0] - dx*h*0.6 - dy*h*0.7, C[1] - dy*h*0.6 + dx*h*0.7); g2.lineTo(C[0] - dx*h*0.6 + dy*h*0.7, C[1] - dy*h*0.6 - dx*h*0.7); g2.closePath();
+          g2.fillStyle = colr; g2.strokeStyle = 'rgba(0,0,0,.85)'; g2.lineWidth = 1.2*dpr; g2.fill(); g2.stroke();
+        }
+      }
+    }
+    g2.setLineDash([]);
+  }
+  if (opt.ov2 && OVSEG.length) {                 // E94 fix: real ovals (canvas, double precision)
+    const OVC = ['#00e5ff', '#ffdb1a', '#4dff59', '#ff73f2', '#ff8c1a'];
+    for (const t of tiles) {
+      const c0 = ap(t.W, [0, 0]); if (1 - cabs2(c0) < 0.01 && t !== tiles[0]) continue;
+      for (const e of OVSEG) {
+        const pts = e.pts.map(q => diskToScreen(ap(t.W, q)));
+        let xmin = 1e9, xmax = -1e9, ymin = 1e9, ymax = -1e9;
+        for (const q of pts) { xmin = Math.min(xmin, q[0]); xmax = Math.max(xmax, q[0]); ymin = Math.min(ymin, q[1]); ymax = Math.max(ymax, q[1]); }
+        if (xmax < 0 || ymax < 0 || xmin > W_ || ymin > H_ || (xmax - xmin) + (ymax - ymin) < 2*dpr) continue;
+        g2.beginPath(); pts.forEach((q, i) => i ? g2.lineTo(q[0], q[1]) : g2.moveTo(q[0], q[1]));
+        g2.setLineDash(e.approx ? [5*dpr, 4*dpr] : []);
+        g2.strokeStyle = 'rgba(0,0,0,.75)'; g2.lineWidth = 5*dpr; g2.stroke();
+        g2.strokeStyle = OVC[e.oi % 5]; g2.lineWidth = 2.6*dpr; g2.stroke();
+      }
+    }
+    g2.setLineDash([]);
+  }
+  if (opt.ed && VSEL && VSEL.segs) {             // E94 fix: tile edges near the view (canvas, double precision)
+    const Vi = inv(V);
+    for (const sg of VSEL.segs) {
+      const W = comp(Vi, sg.h), f = T.faces[sg.a], pts = geodPts(ap(W, f.P), ap(W, f.Q), 10).map(diskToScreen);
+      let xmin = 1e9, xmax = -1e9, ymin = 1e9, ymax = -1e9;
+      for (const q of pts) { xmin = Math.min(xmin, q[0]); xmax = Math.max(xmax, q[0]); ymin = Math.min(ymin, q[1]); ymax = Math.max(ymax, q[1]); }
+      if (xmax < 0 || ymax < 0 || xmin > W_ || ymin > H_ || (xmax - xmin) + (ymax - ymin) < 2*dpr) continue;
+      g2.beginPath(); pts.forEach((q, i) => i ? g2.lineTo(q[0], q[1]) : g2.moveTo(q[0], q[1]));
+      g2.strokeStyle = 'rgba(20,20,20,.8)'; g2.lineWidth = 3.2*dpr; g2.stroke();
+      g2.strokeStyle = css(PAIRC[f.pair % PAIRC.length]); g2.lineWidth = 1.6*dpr; g2.stroke();
+    }
+  }
+  if (opt.ed) {                                  // corners, coloured by the point of the surface they are
+    for (const t of tiles) for (let a = 0; a < NF; a++) {
+      const s = ap(t.W, T.faces[a].P), sc = 1 - cabs2(s); if (sc < 0.03) continue;
+      const p = diskToScreen(s); if (p[0] < -10 || p[1] < -10 || p[0] > W_ + 10 || p[1] > H_ + 10) continue;
+      const r = Math.max(2*dpr, Math.min(6*dpr, 7*dpr*sc*Math.sqrt(zoom)));
+      g2.fillStyle = css(CYCC[T.vcls[a]]); g2.strokeStyle = '#141414'; g2.lineWidth = 1.2*dpr;
+      g2.beginPath(); g2.arc(p[0], p[1], r, 0, TAU); g2.fill(); g2.stroke();
+    }
+  }
+  if (opt.lt && opt.ed) {
+    g2.textAlign = 'center'; g2.textBaseline = 'middle';
+    const done = new Set();
+    for (const t of tiles) for (let a = 0; a < NF; a++) {
+      const s = ap(t.W, T.faces[a].mid), sc = 1 - cabs2(s); if (sc < 0.12) continue;
+      const key = Math.round(s[0]*2000) + ',' + Math.round(s[1]*2000); if (done.has(key)) continue; done.add(key);
+      const p = diskToScreen(s); if (p[0] < -20 || p[1] < -20 || p[0] > W_ + 20 || p[1] > H_ + 20) continue;
+      const r = Math.max(7*dpr, Math.min(11*dpr, 13*dpr*sc*Math.sqrt(zoom)));
+      g2.fillStyle = css(PAIRC[T.faces[a].pair]); g2.strokeStyle = '#141414'; g2.lineWidth = 1.5*dpr;
+      g2.beginPath(); g2.arc(p[0], p[1], r, 0, TAU); g2.fill(); g2.stroke();
+      g2.fillStyle = '#141414'; g2.font = `700 ${Math.round(r*1.05)}px system-ui`; g2.fillText(String(T.faces[a].pair + 1), p[0], p[1] + 0.5*dpr);
+    }
+  }
+  if (opt.mk) {
+    g2.textAlign = 'left'; g2.textBaseline = 'middle';
+    for (const t of tiles) for (const m of T.markers) {
+      const s = ap(t.W, m.p), sc = 1 - cabs2(s); if (sc < 0.02) continue;
+      const p = diskToScreen(s); if (p[0] < -10 || p[1] < -10 || p[0] > W_ + 10 || p[1] > H_ + 10) continue;
+      const r = Math.max(1.5*dpr, Math.min(7*dpr, 7*dpr*sc*Math.pow(zoom, 0.35)));
+      g2.fillStyle = m.kind === 'centre' ? '#ffffff' : '#e8173a'; g2.strokeStyle = '#141414'; g2.lineWidth = 1.2*dpr;
+      g2.beginPath(); g2.arc(p[0], p[1], r, 0, TAU); g2.fill(); g2.stroke();
+      if (opt.ml && r > 4*dpr) {
+        g2.font = `600 ${fs}px system-ui`; g2.lineWidth = 3*dpr; g2.strokeStyle = 'rgba(0,0,0,.85)'; g2.strokeText(m.label, p[0] + r + 3*dpr, p[1]);
+        g2.fillStyle = m.kind === 'centre' ? '#ffffff' : '#ffd0d8'; g2.fillText(m.label, p[0] + r + 3*dpr, p[1]);
+      }
+    }
+  }
+}
+function render() {
+  const q = interacting ? 0.34 : 1, GW = Math.max(1, Math.round(W_*q)), GH = Math.max(1, Math.round(H_*q));   // low-res while moving
+  if (cv.width !== GW || cv.height !== GH) { cv.width = GW; cv.height = GH; }
+  gl.viewport(0, 0, GW, GH);
+  gl.uniform2f(U('res'), GW, GH); gl.uniform1f(U('Rpx'), Rpx*q); gl.uniform1f(U('zoom'), zoom); gl.uniform1f(U('lineW'), 1.5*dpr*q);
+  gl.uniform2f(U('Va'), ...V.a); gl.uniform2f(U('Vb'), ...V.b); gl.uniform2f(U('Vc'), ...V.c); gl.uniform2f(U('Vd'), ...V.d);
+  gl.uniform1i(U('edges'), opt.ed ? 1 : 0);
+  setW0(); setViewCharts();
+  gl.uniform1i(U('showOv'), 0);
+  gl.uniform1i(U('live'), liveMode); gl.uniform1i(U('maxIt'), interacting ? Math.min(pit, 120) : pit); gl.uniform1f(U('delta'), delta);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  tiles = enumerateTiles(); drawOverlay(); drawMini();
+}
+function loop(t) {
+  if (anim) { const k = Math.min(1, (t - anim.t0)/anim.dur), e = k < .5 ? 2*k*k : 1 - 2*(1 - k)*(1 - k), dd = (e - anim.done)*anim.d;
+    V = comp(V, Mq([anim.u[0]*Math.tanh(dd/2), anim.u[1]*Math.tanh(dd/2)])); anim.done = e; reduceView(); dirty = true; poke(); if (k >= 1) anim = null; }
+  if (dirty && ready === 3) { render(); dirty = false; }
+  requestAnimationFrame(loop);
+}
+function start() { if (ready < 3) return; document.getElementById('load')?.remove(); resize(); requestAnimationFrame(loop); }
+let down = null, last = null, moved = 0;
+cv.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; last = screenToDisk(e.clientX, e.clientY); moved = 0; cv.setPointerCapture(e.pointerId); view.classList.add('drag'); anim = null; });
+cv.addEventListener('pointermove', e => {
+  if (!down) return; const s = screenToDisk(e.clientX, e.clientY);
+  moved = Math.max(moved, Math.hypot(e.clientX - down[0], e.clientY - down[1]));
+  if (cabs2(s) < 0.995 && cabs2(last) < 0.995) { V = comp(V, comp(Mq(last), inv(Mq(s)))); reduceView(); dirty = true; poke(); }
+  last = s;
+});
+cv.addEventListener('pointerup', e => {
+  view.classList.remove('drag'); if (!down) return; down = null; if (moved > 4) return;
+  const s = screenToDisk(e.clientX, e.clientY); if (cabs2(s) >= 0.999) return;
+  inspect(fold(ap(V, s)), 12*dpr*2/((1 - cabs2(s))*Rpx*zoom));      // pick radius: 12 screen pixels
+  const r = Math.hypot(s[0], s[1]); if (r > 1e-9) anim = { t0: performance.now(), dur: 450, u: [s[0]/r, s[1]/r], d: 2*Math.atanh(r), done: 0 };
+});
+cv.addEventListener('wheel', e => { e.preventDefault(); zoom = Math.min(2000, Math.max(1, zoom*Math.exp(-e.deltaY*0.0015))); dirty = true; poke(); }, { passive: false });
+document.getElementById('home').onclick = () => { V = I2; anim = null; dirty = true; };
+document.getElementById('zout').onclick = () => { zoom = 1; dirty = true; };
+let pick = null;
+const fm = v => (Math.abs(v) < 1e-12 ? 0 : v).toPrecision(6), cs = (re, im) => `${fm(re)} ${im < 0 ? '−' : '+'} ${fm(Math.abs(im))}i`;
+function gotoMarker(text) {          // E93: centre the view on a polynomial (by angle) or a puncture (by name)
+  const msg = document.getElementById('gomsg'); if (!MI) { msg.textContent = 'data still loading'; return; }
+  let t = text.trim().toLowerCase().replace(/^(centre|center|c)\s*/, ''), i = -1, note = '';
+  const byAngle = k => MI.items.findIndex(it => it.kind === 'centre' && it.ks.includes(k));
+  let m;
+  if ((m = t.match(/^(?:puncture|p)\s*(\S+)$/))) i = MI.items.findIndex(it => it.kind === 'puncture' && it.label === m[1]);
+  else if ((m = t.match(/^(\d+)\s*\/\s*(\d+)$/))) {
+    const a = +m[1], b = +m[2];
+    if ((a*255) % b === 0) { i = byAngle(a*255/b); if (i < 0) note = `no period-8 centre has angle ${a}/${b}`; }
+    if (i < 0) { const j = MI.items.findIndex(it => it.kind === 'puncture' && it.label === `${a}/${b}`); if (j >= 0) { i = j; note = ''; } }
+  } else if ((m = t.match(/^(\d+)$/))) { i = byAngle(+m[1]); if (i < 0) note = `no period-8 centre has angle ${m[1]}/255`; }
+  else if ((m = t.match(/^0?\.\d+$/))) { const v = +t, k = Math.round(v*255); i = byAngle(k);
+    note = i >= 0 ? `${t} -> nearest k/255 is ${k}/255 (off by ${Math.abs(v - k/255).toExponential(1)})` : `no centre near ${t}`; }
+  if (i < 0) { msg.textContent = note || `not found: "${text}" (try 7/255, 7, 0.0275, or a puncture name)`; return; }
+  const mk = T.markers[i]; V = Mq(mk.p); anim = null; reduceView(); dirty = true;
+  inspect(mk.p, Infinity);
+  msg.textContent = (note ? note + '; ' : '') + `centred on ${MI.items[i].title}`;
+}
+document.getElementById('gobtn').onclick = () => gotoMarker(document.getElementById('goto').value);
+document.getElementById('goto').addEventListener('keydown', e => { if (e.key === 'Enter') gotoMarker(e.target.value); });
+// E94 fix: per-view chart selection (double precision). Tiles h(D) within RVIS of the view centre c0 (BFS over faces, distance
+// lower bound from the face half-planes); for each, the placements whose chart centre lies within RVIS + 1.45 of c0; the nearest
+// NWMAX are composed with the view (screen -> chart coordinate u) and uploaded; the list is rebuilt when c0 moves by > 0.25.
+let CAND = [], WTEX = null, VSEL = null; const NWMAX = 256, RVIS = 2.6;
+let FN = null;                // per face: u, t, 1/sqrt(1 - t^2)
+function farFromD(q, R) {     // true if a face half-plane puts q (Poincare) more than R from D (early exit)
+  if (!FN) FN = T.faces.map(f => [f.u[0], f.u[1], f.t, 1/Math.sqrt(1 - f.t*f.t)]);
+  const s = 1 + cabs2(q), k0 = 2*q[0]/s, k1 = 2*q[1]/s, lim = Math.sinh(R)*Math.sqrt(Math.max(1e-300, 1 - k0*k0 - k1*k1));
+  for (let a = 0; a < NF; a++) { const f = FN[a]; if ((k0*f[0] + k1*f[1] - f[2])*f[3] > lim) return true; }
+  return false;
+}
+function selectCharts(c0) {
+  const tiles = [I2], seen = new Set(['0,0']), q = [I2], sel = [];
+  while (q.length && tiles.length < 400) {
+    const g = q.shift();
+    for (let a = 0; a < NF; a++) {
+      const h = comp(g, FGf[a]), z = ap(h, cx(0)), key = Math.round(z[0]*1e9) + ',' + Math.round(z[1]*1e9);
+      if (seen.has(key)) continue; seen.add(key);
+      if (farFromD(ap(inv(h), c0), RVIS)) continue;
+      tiles.push(h); q.push(h);
+    }
+  }
+  const ch = Math.cosh(RVIS + 1.45);
+  for (const h of tiles) {
+    const hi = inv(h), q0 = ap(hi, c0), w0 = 1 - cabs2(q0);
+    for (const c of CAND) {            // cosh d = 1 + 2 |q - p|^2 / ((1 - |q|^2)(1 - |p|^2)), no acosh in the filter
+      const dx = q0[0] - c.p[0], dy = q0[1] - c.p[1], cd_ = 1 + 2*(dx*dx + dy*dy)/(w0*c.w);
+      if (cd_ <= ch) sel.push({ d: Math.acosh(cd_), k: c.k, B: comp(c.M, hi) });
+    }
+  }
+  sel.sort((x, y) => x.d - y.d);
+  const segs = [];            // tile edges within RVIS + 0.5 of c0 (by an end point or the midpoint)
+  for (const h of tiles) { const q0 = ap(inv(h), c0);
+    for (let a = 0; a < NF; a++) { const f = T.faces[a];
+      if (Math.min(hdist(q0, f.P), hdist(q0, f.Q), hdist(q0, f.mid)) <= RVIS + 0.5) segs.push({ h, a }); } }
+  return { c0, sel: sel.slice(0, NWMAX), ntiles: tiles.length, ncand: sel.length, segs };
+}
+function setViewCharts() {
+  if (!WTEX || !CAND.length) return;
+  const c0 = ap(V, cx(0));
+  if (!VSEL || hdist(VSEL.c0, c0) > 0.25) VSEL = selectCharts(c0);
+  const data = new Float32Array(12*NWMAX);
+  VSEL.sel.forEach((e, j) => { const W = comp(e.B, V); data.set([W.a[0], W.a[1], W.b[0], W.b[1], W.c[0], W.c[1], W.d[0], W.d[1], e.k, 0, 0, 0], 12*j); });
+  gl.activeTexture(gl.TEXTURE8); gl.bindTexture(gl.TEXTURE_2D, WTEX);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 3, NWMAX, gl.RGBA, gl.FLOAT, data); gl.activeTexture(gl.TEXTURE0);
+  gl.uniform1i(U('nW'), VSEL.sel.length);
+}
+function setW0() {             // E93: chart of the view centre, composed with the view (double), for unfolded pixels near the centre
+  gl.uniform1i(U('useW'), 0);
+  if (!CH || !CHM) return;
+  const c = ap(V, [0, 0]), S = CH.mapSize, mx_ = Math.min(S - 1, Math.max(0, Math.floor((.5 + .5*c[0])*S))), my_ = Math.min(S - 1, Math.max(0, Math.floor((.5 - .5*c[1])*S)));
+  const o = 4*(my_*S + mx_); if (CHM[o + 3] === 0) return;
+  const P = CH.placements[CHM[o] + 256*CHM[o + 1]]; if (!P) return;
+  const Mp = M([P.M[0], P.M[1]], [P.M[2], P.M[3]], [P.M[4], P.M[5]], [P.M[6], P.M[7]]), W = comp(Mp, V);
+  gl.uniform2f(U('Wa'), ...W.a); gl.uniform2f(U('Wb'), ...W.b); gl.uniform2f(U('Wc'), ...W.c); gl.uniform2f(U('Wd'), ...W.d);
+  gl.uniform1i(U('k0'), P.chart); gl.uniform1i(U('useW'), 1);
+}
+function projectYX(y, x) {   // E94 fix 3: minimal (chordal-weighted) move of (y, x) onto P = 0, double precision
+  let yy = y, xx = x, it = 0;
+  for (; it < 12; it++) {
+    const e = CORE.pEval(xx, CORE.coeffs(yy)), p = e[0], px = e[1], py = e[2];
+    const rx = 1/(1 + CORE.cabs(xx)**2), ry = 1/(1 + CORE.cabs(yy)**2), ax = CORE.cabs(px)/rx, ay = CORE.cabs(py)/ry, D = ax*ax + ay*ay;
+    if (!(D > 0)) break;
+    const sx = CORE.cmul(p, [px[0]/(rx*rx*D), -px[1]/(rx*rx*D)]), sy = CORE.cmul(p, [py[0]/(ry*ry*D), -py[1]/(ry*ry*D)]);
+    xx = CORE.csub(xx, sx); yy = CORE.csub(yy, sy);
+    if (CORE.cabs(sx)*rx + CORE.cabs(sy)*ry < 1e-15) break;
+  }
+  const mv = CORE.cabs(CORE.csub(xx, x))/(1 + CORE.cabs(x)**2) + CORE.cabs(CORE.csub(yy, y))/(1 + CORE.cabs(y)**2);
+  return mv < 2e-2 ? { y: yy, x: xx, it, ok: true } : { y, x, it, ok: false };
+}
+function chartLookup(p) {
+  if (!CH || !CHM) return null;
+  const S = CH.mapSize, mx_ = Math.min(S - 1, Math.max(0, Math.floor((.5 + .5*p[0])*S))), my_ = Math.min(S - 1, Math.max(0, Math.floor((.5 - .5*p[1])*S)));
+  // E94 fix: the placement this point is deepest in (all of chart_meta 'cand' within 1.6 of p), not the base-frame chart map
+  let bestC = null, bu_ = null, bl_ = Infinity;
+  for (const c of CAND) { if (hdist(p, c.p) > 1.6) continue; const uu = ap(c.M, p), l = cabs2(uu); if (l < bl_) { bl_ = l; bestC = c; bu_ = uu; } }
+  if (!bestC) return null;
+  const u = bu_, k = bestC.k, NS = CH.S, RU = CH.RU;
+  const fx = (u[0] + RU)/(2*RU)*(NS - 1), fy = (RU - u[1])/(2*RU)*(NS - 1), ix = Math.floor(fx), iy = Math.floor(fy), tx = fx - ix, ty = fy - iy;
+  const cwj = t => { const t2 = t*t, t3 = t2*t; return [-.5*t3 + t2 - .5*t, 1.5*t3 - 2.5*t2 + 1, -1.5*t3 + 2*t2 + .5*t, .5*t3 - .5*t2]; };
+  const wx = cwj(tx), wy = cwj(ty), g = [0, 0, 0, 0];
+  for (let j = 0; j < 4; j++) for (let i = 0; i < 4; i++) {
+    const cxi = Math.min(NS - 1, Math.max(0, ix + i - 1)), cyj = Math.min(NS - 1, Math.max(0, iy + j - 1)), b = 4*((k*NS + cyj)*NS + cxi);
+    for (let c = 0; c < 4; c++) g[c] += wx[i]*wy[j]*CHG[b + c];
+  }
+  const C = CH.charts[k], one = [1, 0];
+  let y = cdiv(csub(C.ay, cmul(C.by, [g[0], g[1]])), csub(one, [g[0], g[1]]));
+  let x = cdiv(csub(C.ax, cmul(C.bx, [g[2], g[3]])), csub(one, [g[2], g[3]]));
+  const pr = projectYX(y, x); const x0 = x; y = pr.y; x = pr.x; const nw = [x, pr.it];
+  // E93: keep the Newton value only if it stays next to the chart value (near y = 0 double precision cannot separate the branches)
+  let nit = pr.ok ? 'proj ' + pr.it : 'skipped';
+  return { y, x, k, nit };
+}
+function inspect(p, rpick) {
+  const S = T.idSize, px = Math.min(S - 1, Math.max(0, Math.floor((.5 + .5*p[0])*S))), py = Math.min(S - 1, Math.max(0, Math.floor((.5 - .5*p[1])*S)));
+  const o = 4*(py*S + px), id = (idData[o] << 16) | (idData[o + 1] << 8) | idData[o + 2];
+  let y = [VY[2*id], VY[2*id + 1]], x = [VX[2*id], VX[2*id + 1]], how = 'mesh vertex';
+  const L = chartLookup(p); if (L) { y = L.y; x = L.x; how = `chart ${L.k}, Newton ${L.nit}`; }
+  let fateTxt = '';
+  if (CH) { const MM = CORE.mapData(x, y), f = CORE.fate(MM, MM.omega, pit, delta, 1e-7, null, true);
+    fateTxt = f.kind === 'capture' ? `\ncaptured, phase ${f.phase}, time ${f.t}` : f.kind === 'cycle' ? `\nattracting cycle, period ${f.period}` : '\nundecided (bifurcation locus)'; }
+  let best = null, bd = Infinity;
+  for (const m of T.markers) { const d = hdist(p, m.p); if (d < bd) { bd = d; best = m; } }
+  pick = { y, x };
+  document.getElementById('info').textContent =
+    `${T.regions[String(PC[id])] || 'region ' + PC[id]}${SH ? '\n2-D explorer: atlas sheet ' + SH[id] + ' (its cuts differ)' : ''}\ny = a3  ${cs(...y)}\nx = a7  ${cs(...x)}  (${how})${fateTxt}` +
+    (bd < 0.4 ? `\nnear ${best.kind} ${best.label} (distance ${bd.toFixed(3)})` : '');
+  const bi = best ? T.markers.indexOf(best) : -1;
+  if (MI && rpick && bd < rpick && MI.items[bi]) {            // a marker was clicked: its census data
+    const it = MI.items[bi], MM = CORE.mapData(it.x, it.y), f = CORE.fate(MM, MM.omega, pit, delta, 1e-7, null, true);
+    const ft = f.kind === 'capture' ? `captured, phase ${f.phase}, time ${f.t}` : f.kind === 'cycle' ? `attracting cycle, period ${f.period}` : 'undecided';
+    pick = { y: it.y, x: it.x };
+    document.getElementById('info').textContent = `${it.title}\n` + it.lines.join('\n') + `\nfree critical point here: ${ft}` +
+      `\n(clicked ${bd.toFixed(4)} from the marker; "Open in the 2-D explorer" goes to the marker itself)`;
+  }
+  document.getElementById('open').disabled = false; try { parent.postMessage({ e96: 'param', x: pick.x, y: pick.y }, '*'); } catch (e) {} /* E96 hook */
+  showCard(document.getElementById('info').textContent);
+}
+function showCard(text) {
+  const esc = t => t.replace(/&/g, '&amp;').replace(/</g, '&lt;'), L = text.split('\n');
+  document.getElementById('cardt').innerHTML = '<b>' + esc(L[0]) + '</b>\n' + esc(L.slice(1).join('\n'));
+  document.getElementById('card').style.display = 'block';
+}
+document.getElementById('cardx').onclick = () => { document.getElementById('card').style.display = 'none'; };
+function buildList() {
+  if (!MI) return;
+  const q = document.getElementById('mfilter').value.trim().toLowerCase(), box = document.getElementById('mlist');
+  box.innerHTML = '';
+  MI.items.forEach((it, i) => {
+    const sum = it.kind === 'centre' ? (it.lines[2] || '') : (it.lines[0] || '').split(': ').slice(1).join(': ');
+    const all = (it.title + ' ' + it.lines.join(' ')).toLowerCase();
+    if (q && !all.includes(q)) return;
+    const d = document.createElement('div'); d.textContent = it.title + ' \u2014 ' + sum; d.title = it.lines.join('\n');
+    d.onclick = () => gotoIndex(i); box.appendChild(d);
+  });
+}
+document.getElementById('mfilter').addEventListener('input', buildList);
+function gotoIndex(i) {
+  const mk = T.markers[i]; V = Mq(mk.p); anim = null; reduceView(); dirty = true;
+  inspect(mk.p, Infinity);
+  document.getElementById('gomsg').textContent = `centred on ${MI.items[i].title}`;
+}
+document.getElementById('open').onclick = () => { if (pick) window.open(`per8_explorer.html#y=${pick.y[0]},${pick.y[1]}&x=${pick.x[0]},${pick.x[1]}`, '_blank'); };
+const mini = document.getElementById('mini'), mx = mini.getContext('2d'), MS = mini.width;
+const m2s = z => [MS/2 + z[0]*MS*0.47, MS/2 - z[1]*MS*0.47];
+function faceArc(a, move) {
+  const f = T.faces[a], t = f.t, rm = t/(1 + Math.sqrt(1 - t*t)), Dc = (1 + rm*rm)/(2*rm), rho = (1 - rm*rm)/(2*rm);
+  const C = [Dc*f.u[0], Dc*f.u[1]], t0 = Math.atan2(f.P[1] - C[1], f.P[0] - C[0]); let t1 = Math.atan2(f.Q[1] - C[1], f.Q[0] - C[0]);
+  if (t1 - t0 > Math.PI) t1 -= TAU; if (t0 - t1 > Math.PI) t1 += TAU;
+  for (let i = 0; i <= 24; i++) { const th = t0 + (t1 - t0)*i/24, q = m2s([C[0] + rho*Math.cos(th), C[1] + rho*Math.sin(th)]);
+    if (i === 0 && move) mx.moveTo(q[0], q[1]); else mx.lineTo(q[0], q[1]); }
+}
+function drawMini() {
+  if (!texImg.complete) return;
+  mx.clearRect(0, 0, MS, MS); mx.save(); mx.beginPath();
+  for (let a = 0; a < NF; a++) faceArc(a, a === 0); mx.closePath(); mx.clip();
+  mx.drawImage(texImg, MS/2 - MS*0.47, MS/2 - MS*0.47, MS*0.94, MS*0.94); mx.restore();
+  for (let a = 0; a < NF; a++) { mx.beginPath(); faceArc(a, true); mx.strokeStyle = css(PAIRC[T.faces[a].pair]); mx.lineWidth = 6; mx.stroke(); }
+  for (let a = 0; a < NF; a++) { const q = m2s(T.faces[a].P); mx.fillStyle = css(CYCC[T.vcls[a]]); mx.strokeStyle = '#141414'; mx.lineWidth = 2;
+    mx.beginPath(); mx.arc(q[0], q[1], 6, 0, TAU); mx.fill(); mx.stroke(); }
+  const c = m2s(ap(V, cx(0)));
+  const cross = (w, colr) => { mx.strokeStyle = colr; mx.lineWidth = w; mx.beginPath(); mx.moveTo(c[0] - 20, c[1]); mx.lineTo(c[0] + 20, c[1]); mx.moveTo(c[0], c[1] - 20); mx.lineTo(c[0], c[1] + 20); mx.stroke(); };
+  cross(11, '#ffffff'); cross(5, '#e8173a');
+}
+mini.addEventListener('click', e => {
+  const r = mini.getBoundingClientRect(), k = MS/r.width;
+  const z = [((e.clientX - r.left)*k - MS/2)/(MS*0.47), -((e.clientY - r.top)*k - MS/2)/(MS*0.47)];
+  if (cabs2(z) >= 1) return; const f = fold(z); V = Mq(f); anim = null; reduceView(); inspect(f); dirty = true;
+});
+</script>
+
+<style>#e96tog{position:absolute;top:6px;right:346px;z-index:9;font:12px system-ui;padding:1px 7px;border:1px solid #bbb;background:#fff;border-radius:4px;cursor:pointer}
+body.e96min #side{display:none} body.e96min #view{right:0 !important} body.e96min #e96tog{right:6px}</style>
+<button id="e96tog" title="hide / show the side panel">panel ▸</button>
+<script>(function(){var b=document.getElementById('e96tog');b.onclick=function(){document.body.classList.toggle('e96min');
+b.textContent=document.body.classList.contains('e96min')?'◂ panel':'panel ▸';window.dispatchEvent(new Event('resize'));};
+if(window.innerWidth<900){b.onclick();}})();</script>
+</body>
+</html>

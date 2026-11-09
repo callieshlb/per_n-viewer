@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Per_8(0) explorer</title>
+<style>
+  :root { --ink:#2b2b2b; --muted:#6b6b6b; --faint:#d9d9d9; --bg:#fafaf8; }
+  body { margin:0; font:13px/1.4 -apple-system, system-ui, sans-serif; color:var(--ink); background:var(--bg); }
+  header { padding:8px 14px; border-bottom:1px solid var(--faint); display:flex; gap:18px; align-items:baseline; flex-wrap:wrap; }
+  header h1 { font-size:15px; margin:0; font-weight:600; }
+  header .sub { color:var(--muted); }
+  main { display:flex; gap:14px; padding:10px 14px; flex-wrap:wrap; }
+  .panel { display:flex; flex-direction:column; gap:6px; }
+  .wrap { position:relative; border:1px solid var(--faint); background:#111; align-self:flex-start; }
+  canvas { display:block; }
+  canvas.ov { position:absolute; left:0; top:0; pointer-events:none; }
+  .row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .ctrl { display:grid; grid-template-columns:auto 1fr auto; gap:4px 8px; align-items:center; }
+  button { font:inherit; padding:2px 8px; border:1px solid #bbb; background:#fff; border-radius:4px; cursor:pointer; }
+  button.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+  select, input[type=number] { font:inherit; }
+  .info { font-family:ui-monospace, Menlo, monospace; font-size:12px; white-space:pre-wrap; background:#fff; border:1px solid var(--faint); padding:6px 8px; min-height:150px; max-width:428px; }
+  .legend { display:grid; grid-template-columns:14px 1fr; gap:3px 6px; font-size:12px; color:var(--ink); }
+  .sw { width:14px; height:14px; border-radius:2px; }
+  .status { color:var(--muted); font-size:12px; }
+  details summary { cursor:pointer; color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Per<sub>8</sub>(0) explorer</h1>
+  <span class="sub">Chart: f(z) = (z−x)(z−w)/z², w = (x+y−1)/(x−1); y = a<sub>3</sub>, x = a<sub>7</sub>. Drag to pan, wheel to zoom, click to pick a map.</span>
+</header>
+<main>
+  <section class="panel">
+    <div class="row"><b>Parameter space</b> <span class="status" id="pstat"></span></div>
+    <div class="wrap" id="pwrap"><canvas id="pc" width="640" height="640"></canvas><canvas id="po" class="ov" width="640" height="640"></canvas></div>
+    <div class="row">Sheet at view centre:
+      <span id="sheetbtns"></span>
+      <span class="status" id="sheetnote"></span>
+    </div>
+    <div class="row">
+      <button id="reset">Reset view</button>
+      Jump to: <select id="jump"><option value="">(choose)</option></select>
+      <label><input type="checkbox" id="showMarks" checked> markers</label>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="row"><b>Dynamical plane</b> <span class="status" id="dstat"></span></div>
+    <div class="wrap"><canvas id="dc" width="440" height="440"></canvas><canvas id="do" class="ov" width="440" height="440"></canvas></div>
+    <div class="row"><button id="dfit">Fit marked points</button><button id="dinv">z ↦ 1/z chart</button></div>
+    <div class="info" id="info">Click a parameter.</div>
+  </section>
+  <section class="panel" style="max-width:330px">
+    <b>Settings</b>
+    <div class="ctrl">
+      <span>Parameter iterates</span><input type="range" id="pit" min="50" max="5000" step="50" value="600"><span id="pitv"></span>
+      <span>Dynamics iterates</span><input type="range" id="dit" min="50" max="5000" step="50" value="400"><span id="ditv"></span>
+      <span>Capture radius δ</span><input type="range" id="del" min="-7" max="-1" step="0.25" value="-3"><span id="delv"></span>
+      <span>Radius is relative</span><input type="checkbox" id="rel" checked><span></span>
+      <span>Period tolerance</span><input type="range" id="tol" min="-12" max="-3" step="0.5" value="-7"><span id="tolv"></span>
+      <span>Resolution</span><select id="res"><option value="1">full</option><option value="2" selected>1/2</option><option value="3">1/3</option></select><span></span>
+    </div>
+    <b>Colours</b>
+    <div class="legend" id="legend"></div>
+    <details><summary>What is drawn</summary>
+      <p>Each view of parameter space is one branch of x(y) continued from the view centre along straight
+      segments (rounding the node at y = 0), so a view is a chart of Per<sub>8</sub>(0). Within |y| &lt; ~0.5 of the node, the branches are tangent to order ~6 and double precision cannot follow them: such pixels are drawn dark red rather than risk the wrong branch. Branch cuts appear as rays from
+      branch points (×) pointing away from the view centre. "Sheet" is the atlas label (continuation from the fixed
+      base point y<sub>0</sub>), shown for the view centre; panning keeps you on the same local branch.</p>
+      <p>Colour = fate of the free critical point ω = 2xw/(x+w): captured by the marked cycle (hue = phase: the
+      component U<sub>j</sub> of the marked cycle whose basin contains ω), attracted to another cycle (greys), or
+      undecided (black: bifurcation locus). Dark red: the branch could not be continued (at a branch point).</p>
+      <p>Markers: white dots = the 120 polynomial centres (even numerator /255); red squares = the 74 punctures; × = branch points;
+      ○ = the nodes (y = 0 and the roots of y² + y − 1). A marker is drawn only when it lies on the branch being shown. Punctures over y = 1 sit at
+      x = ∞ where two sheets meet, so their sheet is a convention.</p>
+    </details>
+  </section>
+</main>
+<script id="core">
+// Per_n(0) explorer core, n = D.n (E93: generalized from E92's per6_core.js to n = 7). Double precision. Shared by the pages,
+// their web workers, and node tests.
+// Curve: P(x, y) = sum_k x^k sum_j coef[k][j] y^j = 0 in Caroline's chart
+//   f(z) = (z - x)(z - w)/z^2,  w = (x + y - 1)/(x - 1);  y = a_3, x = a_{n-1}; marked orbit 0 -> inf -> 1 -> a_3 -> ... -> a_{n-1} = x -> 0.
+// Sheets: the roots x(y), labelled by continuation from the base point y0 along the straight segment, with detours round each
+// node (trivial monodromy) on the segment's own side (D.nodes = [[re, im, radius], ...]).
+// n = 7 caveat: over the node y = 0 ten branches meet in two clusters tangent to order 4; in double precision their roots are
+// not separable for |y| < ~0.2 (E93 REGISTRATION). The step test below (correction <= 0.1 x distance to the nearest other root)
+// makes continuation there FAIL (return null) instead of silently swapping sheets.
+'use strict';
+var CORE = (function () {
+  var D = null;            // data: n, coef, leadQ, leadPow, y0, x0, bps, nodes, centers, punctures
+  var NODES = [];          // [[cx, cy, R], ...]
+  var NM = 7;              // number of marked points = period n
+  var specials = [];       // all candidate points (branch points, nodes, pole points) for step-size control
+
+  function init(data) {
+    D = data;
+    NM = data.n;
+    NODES = (data.nodes || []).map(function (q) { return [q[0], q[1], q[2]]; });
+    specials = data.bps.map(function (b) { return [b[0], b[1]]; });
+  }
+
+  // ---- complex helpers on [re, im]
+  function cmul(a, b) { return [a[0]*b[0]-a[1]*b[1], a[0]*b[1]+a[1]*b[0]]; }
+  function cdiv(a, b) { var d = b[0]*b[0]+b[1]*b[1]; return [(a[0]*b[0]+a[1]*b[1])/d, (a[1]*b[0]-a[0]*b[1])/d]; }
+  function cabs(a) { return Math.hypot(a[0], a[1]); }
+  function csub(a, b) { return [a[0]-b[0], a[1]-b[1]]; }
+  function cadd(a, b) { return [a[0]+b[0], a[1]+b[1]]; }
+  function chord(a, b) {     // chordal distance; b may be null = infinity
+    if (b === null) return 1/Math.sqrt(1+a[0]*a[0]+a[1]*a[1]);
+    var dr = a[0]-b[0], di = a[1]-b[1];
+    return Math.sqrt(dr*dr+di*di)/Math.sqrt((1+a[0]*a[0]+a[1]*a[1])*(1+b[0]*b[0]+b[1]*b[1]));
+  }
+
+  // ---- coefficients c_k(y) and dc_k/dy
+  function coeffs(y) {
+    var n = D.coef.length, c = [], dc = [];
+    for (var k = 0; k < n; k++) {
+      var row = D.coef[k], m = row.length;
+      var pr = 0, pi = 0, qr = 0, qi = 0;     // Horner for value and derivative
+      for (var j = m-1; j >= 0; j--) {
+        var tr = qr*y[0]-qi*y[1]+pr, ti = qr*y[1]+qi*y[0]+pi;   // q = q*y + p
+        qr = tr; qi = ti;
+        var ur = pr*y[0]-pi*y[1]+row[j], ui = pr*y[1]+pi*y[0];   // p = p*y + a_j
+        pr = ur; pi = ui;
+      }
+      c.push([pr, pi]); dc.push([qr, qi]);
+    }
+    // leading coefficient exactly (y-1)^leadPow * q(y) (q = D.leadQ, low to high); avoids cancellation near y = 1
+    if (D.leadQ) {
+      var q = [0, 0], dq = [0, 0], L = D.leadQ;
+      for (var jj = L.length-1; jj >= 0; jj--) { dq = cadd(cmul(dq, y), q); q = cadd(cmul(q, y), [L[jj], 0]); }
+      var e = [y[0]-1, y[1]], ep = [1, 0], dep = [0, 0];
+      for (var m = 0; m < D.leadPow; m++) { dep = cadd(cmul(dep, e), ep); ep = cmul(ep, e); }
+      c[n-1] = cmul(ep, q); dc[n-1] = cadd(cmul(dep, q), cmul(ep, dq));
+    }
+    return [c, dc];
+  }
+  // P, dP/dx, dP/dy at (x, y) given coefficients
+  function pEval(x, cc) {
+    var c = cc[0], dc = cc[1], n = c.length;
+    var p = [0, 0], px = [0, 0], py = [0, 0];
+    for (var k = n-1; k >= 0; k--) {
+      px = cadd(cmul(px, x), p);
+      p = cadd(cmul(p, x), c[k]);
+      py = cadd(cmul(py, x), dc[k]);
+    }
+    return [p, px, py];
+  }
+  function newton(x, cc, maxit) {
+    for (var it = 0; it < maxit; it++) {
+      var e = pEval(x, cc);
+      var dx = cdiv(e[0], e[1]);
+      x = csub(x, dx);
+      if (cabs(dx) <= 1e-11*(1+cabs(x))) return [x, it+1];   // 1e-13 is unreachable next to the near-double roots at the node y = 0
+    }
+    return [x, -1];
+  }
+  function distSpecial(y) {
+    var m = Infinity;
+    for (var i = 0; i < specials.length; i++) { var d = Math.hypot(y[0]-specials[i][0], y[1]-specials[i][1]); if (d < m) m = d; }
+    return m;
+  }
+  // waypoints from a to b, homotopic to the straight segment in the complement of the branch points, keeping away from each
+  // node (c, R): a chord through |y - c| < R becomes its minor arc; an endpoint inside the disk is joined along the circle
+  // through the farther endpoint radius (capped at R). Port of trackmp.waypoints (E93).
+  function arcPts(c, r, f1, f2, n) {
+    var df = ((f2-f1+Math.PI) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI) - Math.PI, out = [];
+    for (var i = 1; i <= n; i++) { var f = f1+df*i/n; out.push([c[0]+r*Math.cos(f), c[1]+r*Math.sin(f)]); }
+    return out;
+  }
+  function waypoints(a, b, depth) {
+    depth = depth || 0;
+    if (depth > 8) return [a, b];
+    var v = csub(b, a), L2 = v[0]*v[0]+v[1]*v[1];
+    if (L2 === 0) return [a, b];
+    for (var k = 0; k < NODES.length; k++) {
+      var c = [NODES[k][0], NODES[k][1]], R = NODES[k][2];
+      var ac = csub(a, c), ra = cabs(ac), rb = cabs(csub(b, c));
+      var t = Math.min(1, Math.max(0, -(ac[0]*v[0]+ac[1]*v[1])/L2));
+      var cl = cabs([ac[0]+t*v[0], ac[1]+t*v[1]]);
+      if (ra < R || rb < R) {
+        if (cl >= 0.5*Math.min(ra, rb)) continue;
+        var r = Math.max(Math.min(Math.max(ra, rb), R), 1e-12);
+        var A = [c[0]+r*(a[0]-c[0])/ra, c[1]+r*(a[1]-c[1])/ra], Bp = [c[0]+r*(b[0]-c[0])/rb, c[1]+r*(b[1]-c[1])/rb];
+        var path = ra > r ? waypoints(a, A, depth+1) : [a, A];
+        path = path.concat(arcPts(c, r, Math.atan2(a[1]-c[1], a[0]-c[0]), Math.atan2(b[1]-c[1], b[0]-c[0]), 24));
+        if (rb > r) path = path.slice(0, -1).concat(waypoints(Bp, b, depth+1));
+        else if (rb < r) path.push(b);
+        return path;
+      }
+      if (t > 0 && t < 1 && cl < R) {
+        var Aq = L2, Bq = 2*(ac[0]*v[0]+ac[1]*v[1]), Cq = ra*ra-R*R;
+        var disc = Math.sqrt(Math.max(Bq*Bq-4*Aq*Cq, 0));
+        var t1 = (-Bq-disc)/(2*Aq), t2 = (-Bq+disc)/(2*Aq);
+        var p1 = [a[0]+t1*v[0], a[1]+t1*v[1]], p2 = [a[0]+t2*v[0], a[1]+t2*v[1]];
+        var arc = arcPts(c, R, Math.atan2(p1[1]-c[1], p1[0]-c[0]), Math.atan2(p2[1]-c[1], p2[0]-c[0]), 24).slice(0, -1);
+        return waypoints(a, p1, depth+1).concat(arc, waypoints(p2, b, depth+1));
+      }
+    }
+    return [a, b];
+  }
+  // track the roots xs (array) along the straight segment a -> b with adaptive steps;
+  // a step is accepted when every root's Newton converges from its tangent predictor and roots stay distinct.
+  function trackSegment(xs, a, b) {
+    var v = csub(b, a), L = cabs(v);
+    if (L === 0) return xs;
+    var t = 0, cur = xs.slice(), cc = coeffs(a);
+    var dxdy = cur.map(function (x) { var e = pEval(x, cc); return cdiv([-e[2][0], -e[2][1]], e[1]); });
+    var guard = 0;
+    while (t < 1 && guard < 200000) {
+      guard++;
+      var ycur = [a[0]+t*v[0], a[1]+t*v[1]];
+      var h = Math.min(0.5, Math.max(1e-7, 0.15*distSpecial(ycur)));
+      var dt = Math.min(1-t, h/L);
+      var ok = false;
+      for (var tries = 0; tries < 40 && !ok; tries++) {
+        var t2 = t+dt, y2 = [a[0]+t2*v[0], a[1]+t2*v[1]], dy = [v[0]*dt, v[1]*dt];
+        var cc2 = coeffs(y2), nx = [], good = true;
+        for (var r = 0; r < cur.length && good; r++) {
+          var pred = cadd(cur[r], cmul(dxdy[r], dy));
+          var res = newton(pred, cc2, 12);
+          if (res[1] < 0 || cabs(csub(res[0], pred)) > 0.3*(cabs(cmul(dxdy[r], dy))+1e-9*(1+cabs(cur[r])))+1e-12) good = false;
+          nx.push(res[0]);
+        }
+        if (good && nx.length > 1) {
+          for (var i = 0; i < nx.length && good; i++) for (var j = i+1; j < nx.length; j++)
+            if (chord(nx[i], nx[j]) < 1e-10) { good = false; break; }
+        }
+        if (good) {                    // E93: refuse ill-conditioned roots (estimated error 2.2e-16 sum|c_k x^k| / |P'| > 1e-9 (1 + |x|)):
+          for (var i3 = 0; i3 < nx.length && good; i3++) {   // next to the order-4 tangent branches over y = 0 double precision
+            var ax = cabs(nx[i3]), pw = 1, Sab = 0;           // cannot tell the branches apart, even when tracking one root
+            for (var kk = 0; kk < cc2[0].length; kk++) { Sab += cabs(cc2[0][kk])*pw; pw *= ax; }
+            var ee = pEval(nx[i3], cc2);
+            if (2.2e-16*Sab > 1e-9*(1 + ax)*cabs(ee[1])) good = false;
+          }
+        }
+        if (good) {                    // E93: each correction <= 0.1 x distance to the nearest other root (no silent sheet swaps)
+          for (var i2 = 0; i2 < nx.length && good; i2++) {
+            var sp = Infinity;
+            for (var j2 = 0; j2 < nx.length; j2++) if (j2 !== i2) sp = Math.min(sp, cabs(csub(nx[i2], nx[j2])));
+            var pr = cadd(cur[i2], cmul(dxdy[i2], dy));
+            if (cabs(csub(nx[i2], pr)) > 0.1*sp) good = false;
+          }
+        }
+        if (good) {
+          ok = true; t = t2; cur = nx; cc = cc2;
+          dxdy = cur.map(function (x) { var e = pEval(x, cc); return cdiv([-e[2][0], -e[2][1]], e[1]); });
+        } else dt /= 2;
+      }
+      if (!ok) return null;          // could not continue (very close to a branch point)
+    }
+    return cur;
+  }
+  function track(xs, a, b) {
+    var w = waypoints(a, b), cur = xs;
+    for (var i = 1; i < w.length && cur; i++) cur = trackSegment(cur, w[i-1], w[i]);
+    return cur;
+  }
+  // the globally labelled roots at y (atlas sheets)
+  function globalRoots(y) { return track(D.x0.slice(), D.y0, y); }
+  function sheetOf(y, x) {
+    var g = globalRoots(y);
+    if (!g) return -1;
+    var best = 0, bd = Infinity;
+    for (var k = 0; k < g.length; k++) { var d = chord(g[k], x); if (d < bd) { bd = d; best = k; } }
+    return best;
+  }
+
+  // ---- dynamics: f(z) = 1 - s/z + p/z^2 with s = x + w, p = x w.  z = null means infinity.
+  function mapData(x, y) {
+    var w = cdiv([x[0]+y[0]-1, x[1]+y[1]], [x[0]-1, x[1]]);
+    var s = cadd(x, w), p = cmul(x, w);
+    var om = cdiv([2*p[0], 2*p[1]], s);
+    var M = { x: x, y: y, w: w, s: s, p: p, omega: om };
+    // marked cycle a_0 = 0, a_1 = inf, a_2 = 1, a_3 = y, a_{k+1} = f(a_k) (k = 3 .. n-3), a_{n-1} = x
+    M.marked = [[0, 0], null, [1, 0], y];
+    for (var k = 4; k < NM-1; k++) M.marked.push(fz(M, M.marked[k-1]));
+    M.marked.push(x);
+    M.a4 = M.marked[4];
+    // local scale of each marked point: chordal distance to the nearest other marked point
+    M.scale = M.marked.map(function (a, j) {
+      var m = 1;
+      for (var i = 0; i < NM; i++) if (i !== j) m = Math.min(m, chordN(a, M.marked[i]));
+      return m;
+    });
+    // chart of the census: F = 1 + b/z + c/z^2 with b = -s, c = p
+    M.b = [-s[0], -s[1]]; M.c = p;
+    return M;
+  }
+  function fz(M, z) {
+    if (z === null) return [1, 0];
+    var r2 = z[0]*z[0]+z[1]*z[1];
+    if (r2 < 1e-300) return null;
+    if (r2 > 1e300) return [1, 0];
+    var iz = [z[0]/r2, -z[1]/r2];
+    var t1 = cmul(M.s, iz), iz2 = cmul(iz, iz), t2 = cmul(M.p, iz2);
+    return [1-t1[0]+t2[0], -t1[1]+t2[1]];
+  }
+  function chordN(a, b) {   // chordal distance allowing nulls (infinity)
+    if (a === null && b === null) return 0;
+    if (a === null) return chord(b, null);
+    return chord(a, b);
+  }
+  // fate of a starting point z under f.
+  // returns {kind: 'capture', j, t, phase} | {kind: 'cycle', period, t, index} | {kind: 'undecided'}
+  // rel = true: capture radius at a_j is delta * (distance from a_j to the nearest other marked point)
+  function fate(M, z, maxIt, delta, tolP, cycle, rel) {
+    var ring = new Array(32);
+    var th = M.scale.map(function (s) { return rel ? delta*s : delta; });
+    for (var it = 0; it < maxIt; it++) {
+      z = fz(M, z);
+      for (var j = 0; j < NM; j++) {
+        if (chordN(z, M.marked[j]) < th[j]) return { kind: 'capture', j: j, t: it+1, phase: ((j-(it+1)) % NM + NM) % NM };
+      }
+      if (cycle) {
+        for (var q = 0; q < cycle.pts.length; q++)
+          if (chordN(z, cycle.pts[q]) < delta) return { kind: 'cycle', period: cycle.pts.length, t: it+1, index: ((q-(it+1)) % cycle.pts.length + cycle.pts.length) % cycle.pts.length };
+      }
+      ring[it % 32] = z;
+    }
+    if (!cycle) {
+      for (var per = 1; per <= 24; per++) {
+        var zp = ring[(maxIt-1-per+3200) % 32], zl = ring[(maxIt-1) % 32];
+        if (zp !== undefined && chordN(zl, zp) < tolP) return { kind: 'cycle', period: per, t: maxIt };
+      }
+    }
+    return { kind: 'undecided' };
+  }
+  // attracting cycle of the free critical point, if any (for the dynamical plane)
+  function freeCycle(M, maxIt, tolP) {
+    var z = M.omega, seq = [];
+    var n = Math.max(maxIt, 200);
+    for (var it = 0; it < n; it++) {
+      z = fz(M, z);
+      for (var j = 0; j < NM; j++) if (chordN(z, M.marked[j]) < 1e-9) return null;     // captured: no free cycle
+    }
+    var z0 = z;
+    for (var per = 1; per <= 48; per++) {
+      z = fz(M, z);
+      seq.push(z);
+      if (chordN(z, z0) < tolP) return { pts: seq };
+    }
+    return null;
+  }
+
+  return { init: init, coeffs: coeffs, pEval: pEval, newton: newton, track: track, waypoints: waypoints,
+           globalRoots: globalRoots, sheetOf: sheetOf, mapData: mapData, fz: fz, fate: fate, freeCycle: freeCycle,
+           chord: chord, chordN: chordN, cabs: cabs, cmul: cmul, cdiv: cdiv, csub: csub, cadd: cadd,
+           get D() { return D; } };
+})();
+
+
+</script>
+<script>
+const DATA = {"n": 8, "coef": [[0, 0, 0, 0, 0, 0, 0, 0, -2, 31, -206, 756, -1621, 1874, -559, -1259, 1379, -96, -456, 112, 48], [0, 0, 0, 0, 0, 0, 0, 14, -201, 1199, -3706, 5606, -862, -10616, 14673, -2943, -7966, 4520, 1440, -944, -224], [0, 0, 0, 0, 0, 0, -43, 551, -2738, 5743, 598, -26887, 47954, -15698, -44062, 43731, 5913, -18847, 210, 3100, 520], [0, 0, 0, 0, 0, 76, -813, 2749, 713, -27568, 65884, -28708, -112663, 167317, -10560, -115453, 41437, 32667, -8554, -5868, -776], [0, 0, 0, 0, -85, 655, -185, -12567, 44018, -26891, -139099, 290082, -66184, -327789, 260032, 98058, -126239, -22637, 20853, 7368, 820], [0, 0, 0, 62, -201, -2410, 14948, -15157, -85840, 254329, -101296, -483377, 624966, 102484, -520132, 92611, 166972, -12947, -28100, -6524, -640], [0, 0, -29, -119, 2455, -5106, -26343, 120050, -78583, -381923, 728777, 11027, -1005296, 556701, 426074, -310291, -112274, 45324, 25221, 4171, 374], [0, 8, 149, -903, -3575, 30591, -34652, -164167, 457289, -59299, -1034600, 996707, 528901, -1009836, 2497, 344311, 15397, -50826, -16033, -1917, -162], [-1, -62, -105, 3885, -8316, -38596, 162855, -55035, -594537, 861412, 371676, -1469861, 453555, 767783, -339418, -200883, 42921, 34743, 7368, 611, 50], [10, 189, -980, -4720, 32647, -21579, -197179, 409652, 154601, -1143561, 699075, 863483, -941104, -176814, 343306, 46947, -45430, -15980, -2440, -123, -10], [-45, -231, 3278, -3442, -39434, 113461, 37872, -508203, 470924, 577049, -1088695, 71430, 659943, -174256, -169683, 19674, 24799, 4979, 568, 12, 1], [120, -156, -4545, 17181, 8448, -136089, 168616, 244491, -663615, 169341, 646412, -456047, -179301, 179814, 36711, -21691, -8608, -995, -87, 0, 0], [-210, 1008, 2358, -22506, 32302, 68852, -227337, 77700, 383649, -429835, -85244, 304400, -48190, -74106, 6076, 9020, 1947, 109, 7, 0, 0], [252, -1722, 1800, 14322, -44659, 9305, 139630, -191003, -49368, 264989, -124149, -79023, 56110, 12609, -6727, -2092, -270, -4, 0, 0, 0], [-210, 1686, -4041, -2975, 29629, -38207, -35306, 127382, -78634, -61242, 84700, -8127, -18500, 1481, 2082, 264, 18, 0, 0, 0, 0], [120, -1044, 3227, -2065, -11571, 28320, -11214, -40668, 57861, -13791, -20826, 11055, 2088, -1161, -317, -14, 0, 0, 0, 0, 0], [-45, 406, -1421, 1773, 2682, -12105, 13948, 1548, -17334, 13110, -442, -2669, 306, 223, 20, 0, 0, 0, 0, 0, 0], [10, -91, 348, -576, -347, 3412, -6147, 4040, 1342, -3386, 1412, 109, -110, -16, 0, 0, 0, 0, 0, 0, 0], [-1, 9, -40, 88, 30, -660, 1564, -1646, 620, 263, -286, 50, 9, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, -5, -6, 86, -229, 289, -180, 36, 14, -6, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 1, -6, 15, -20, 15, -6, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]], "leadQ": [0, 0, 0, 0, 1], "leadPow": 6, "y0": [0.31, -0.47], "x0": [[-2.9392897658905546, -1.2377141272210388], [-0.30019814320835264, -0.9488485095970144], [0.05446762307239606, -0.525357539024217], [0.11577425851488878, -0.5471349333651072], [0.21789379627901814, -0.4073158805521706], [0.22411769753933658, -0.3602733261108416], [0.22583629946091152, -0.37465655979277784], [0.30414582890137093, -0.43689721313040336], [0.4622283862512665, -0.3745566384906408], [0.9059694830970079, 0.6509610590266212], [0.9142788916826591, 0.655185664338424], [0.9364760235019097, 0.6579163285498892], [0.9419539628195798, 0.6360306365931494], [0.9451053630132561, 0.3526850874315297], [0.9581709237145071, 0.08099313539733717], [0.974683880298836, 0.5410003118289083], [0.9847764954203475, 0.5110806218977749], [1.0917823711138275, 0.48946711048828767], [1.1995735079258267, 0.9704891953676049], [8.976563403749681, -2.815294591452851]], "bps": [[0.5, 0.0], [1.0, 0.0], [0.0, 0.0], [-1.618033988749895, 0.0], [0.6180339887498949, 0.0], [-4.065217985729984, 0.0], [-1.8532080036562335, 0.0], [-1.8359550262449753, 0.0], [-1.25968372346527, 0.0], [-1.1990060153026278, 0.0], [-0.6386441726758004, 0.0], [-0.5414812441756741, 0.0], [-0.41817404941645653, 0.0], [-0.4068792990097175, 0.0], [0.19088916340657205, 0.0], [0.24271981208802298, 0.0], [0.25309643314571106, 0.0], [0.29258688003444794, 0.0], [0.2935722921905895, 0.0], [0.2956845709601838, 0.0], [0.3037315337369215, 0.0], [0.47726925576802787, 0.0], [0.49940049781604834, 0.0], [0.5117032117137906, 0.0], [0.5141830403717801, 0.0], [0.5248667089734518, 0.0], [0.5903329811424339, 0.0], [0.5964557804921621, 0.0], [0.6369964222697732, 0.0], [0.6372650255548482, 0.0], [0.6654785567329278, 0.0], [1.0041449226526553, 0.0], [1.01071577864687, 0.0], [1.4525800467411358, 0.0], [-16.663725067817893, -9.032912114706662], [-16.663725067817893, 9.032912114706662], [-11.573371719704385, -7.1647625889280775], [-11.573371719704385, 7.1647625889280775], [-6.79196650077555, -0.573164001855896], [-6.79196650077555, 0.573164001855896], [-5.859228023647853, -2.4216693002412257], [-5.859228023647853, 2.4216693002412257], [-5.717172277482022, -1.5266221151733301], [-5.717172277482022, 1.5266221151733301], [-4.380016095919127, -3.1995561284962575], [-4.380016095919127, 3.1995561284962575], [-2.8692443075309084, -3.9516685289570956], [-2.8692443075309084, 3.9516685289570956], [-1.85233764121852, -0.6958902964694672], [-1.85233764121852, 0.6958902964694672], [-1.8138714572387584, -0.007722270312662237], [-1.8138714572387584, 0.007722270312662237], [-1.3111414849289977, -0.5142224241814991], [-1.3111414849289977, 0.5142224241814991], [-1.2626591187575005, -0.2690533129013184], [-1.2626591187575005, 0.2690533129013184], [-0.9241527129745553, -1.3479561023697302], [-0.9241527129745553, 1.3479561023697302], [-0.9105628364237056, -1.4187020600754032], [-0.9105628364237056, 1.4187020600754032], [-0.8559093886309684, -0.7863317573037906], [-0.8559093886309684, 0.7863317573037906], [-0.813461353871031, -0.6906992857714773], [-0.813461353871031, 0.6906992857714773], [-0.812887786278337, -0.25701761281748353], [-0.812887786278337, 0.25701761281748353], [-0.6134405442737941, -0.46780258572673916], [-0.6134405442737941, 0.46780258572673916], [-0.5378988131354457, -0.038136674266335824], [-0.5378988131354457, 0.038136674266335824], [-0.5257333159421244, -0.4436267487578194], [-0.5257333159421244, 0.4436267487578194], [-0.521452290100017, -0.6330868524352018], [-0.521452290100017, 0.6330868524352018], [-0.4761432749974493, -0.2292355373733152], [-0.4761432749974493, 0.2292355373733152], [-0.40841626393824065, -0.2971961153607016], [-0.40841626393824065, 0.2971961153607016], [-0.2080140904346504, -0.8383013255262559], [-0.2080140904346504, 0.8383013255262559], [0.11759277009077265, -0.8704521544252153], [0.11759277009077265, 0.8704521544252153], [0.21011807085200887, -0.11180003218418877], [0.21011807085200887, 0.11180003218418877], [0.2873763665738099, -0.11581968449667214], [0.2873763665738099, 0.11581968449667214], [0.2903924517825995, -0.112722160713852], [0.2903924517825995, 0.112722160713852], [0.30262590209666923, -0.040902280819858944], [0.30262590209666923, 0.040902280819858944], [0.3071832118127335, -0.04326667379696245], [0.3071832118127335, 0.04326667379696245], [0.32459314108430326, -0.027811354792413524], [0.32459314108430326, 0.027811354792413524], [0.32712612416246495, -0.03250390487827911], [0.32712612416246495, 0.03250390487827911], [0.35793060451827075, -0.08628342505746822], [0.35793060451827075, 0.08628342505746822], [0.3646737903539986, -0.03336915652941801], [0.3646737903539986, 0.03336915652941801], [0.3921498317142115, -0.24154958104144764], [0.3921498317142115, 0.24154958104144764], [0.39528261362398237, -0.22583741673730354], [0.39528261362398237, 0.22583741673730354], [0.4001674881811115, -0.15170565071826672], [0.4001674881811115, 0.15170565071826672], [0.40082204975650937, -0.12295140853029358], [0.40082204975650937, 0.12295140853029358], [0.41290918490847117, -0.19114792716294954], [0.41290918490847117, 0.19114792716294954], [0.424370118056466, -0.0808097139416141], [0.424370118056466, 0.0808097139416141], [0.4360941271759548, -0.6122743092846261], [0.4360941271759548, 0.6122743092846261], [0.43990808779941193, -0.07250652328781994], [0.43990808779941193, 0.07250652328781994], [0.4772761369375829, -0.04863926003755719], [0.4772761369375829, 0.04863926003755719], [0.4992587686372133, -0.012029017887675762], [0.4992587686372133, 0.012029017887675762], [0.49997023828783743, -0.222814556193461], [0.49997023828783743, 0.222814556193461], [0.512841613741857, -0.02015668883955979], [0.512841613741857, 0.02015668883955979], [0.5161859367998358, -0.02225712428439906], [0.5161859367998358, 0.02225712428439906], [0.5191929108610792, -0.0058454055007673925], [0.5191929108610792, 0.0058454055007673925], [0.5784942539887737, -0.14063996981442098], [0.5784942539887737, 0.14063996981442098], [0.5836506458644374, -0.2907567241531698], [0.5836506458644374, 0.2907567241531698], [0.5878582168878275, -0.01095397447995336], [0.5878582168878275, 0.01095397447995336], [0.5915827361826637, -0.007037500640909602], [0.5915827361826637, 0.007037500640909602], [0.5950084442144064, -0.0015621700752882772], [0.5950084442144064, 0.0015621700752882772], [0.6347115834013087, -0.007861737181670877], [0.6347115834013087, 0.007861737181670877], [0.7255448600857429, -0.022219610588698112], [0.7255448600857429, 0.022219610588698112], [0.968683523915918, -0.08076458531343393], [0.968683523915918, 0.08076458531343393], [1.0013248085186068, -0.3682315450694892], [1.0013248085186068, 0.3682315450694892], [1.0680237859205528, -2.0589793509872925], [1.0680237859205528, 2.0589793509872925], [1.1554696297892932, -0.0752332318177805], [1.1554696297892932, 0.0752332318177805], [1.3686044525125718, -5.643340819343056], [1.3686044525125718, 5.643340819343056], [1.5308400385251226, -4.727463656569453], [1.5308400385251226, 4.727463656569453], [1.664766349110903, -2.9538486313528005], [1.664766349110903, 2.9538486313528005], [2.601851681206932, -2.830971922717172], [2.601851681206932, 2.830971922717172]], "kinds": ["branch", "branch", "node", "node", "node", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch", "branch"], "perms": [[11, 13, 1, 3, 15, 17, 18, 2, 9, 8, 14, 0, 7, 12, 10, 16, 19, 5, 6, 4], [9, 10, 13, 6, 2, 4, 19, 3, 8, 15, 16, 11, 12, 14, 5, 0, 1, 17, 18, 7], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 18, 9, 10, 11, 12, 13, 14, 15, 16, 17, 8, 19], [0, 1, 2, 14, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 3, 15, 16, 17, 18, 19], [13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 19, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 8], [0, 1, 7, 3, 4, 5, 6, 2, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 15, 17, 18, 19], [0, 1, 2, 3, 19, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 4], [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 11, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 17, 12, 13, 14, 15, 16, 11, 18, 19], [0, 1, 2, 15, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 3, 16, 17, 18, 19], [0, 1, 16, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 2, 17, 18, 19], [14, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 10, 7, 8, 9, 6, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 9, 6, 7, 8, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 12, 5, 6, 7, 8, 9, 10, 11, 4, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 11, 8, 9, 10, 7, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 15, 8, 9, 10, 11, 12, 13, 14, 7, 16, 17, 18, 19], [0, 1, 2, 3, 4, 9, 6, 7, 8, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 10, 7, 8, 9, 6, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 14, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 3, 15, 16, 17, 18, 19], [0, 1, 2, 3, 10, 5, 6, 7, 8, 9, 4, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 11, 8, 9, 10, 7, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 9, 7, 8, 6, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 8, 2, 3, 4, 5, 6, 7, 1, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 9, 6, 7, 8, 5, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 15, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 2, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 16, 12, 13, 14, 15, 11, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 12, 9, 10, 11, 8, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 19, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 4], [0, 1, 2, 3, 17, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 4, 18, 19], [0, 1, 16, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 2, 17, 18, 19], [0, 1, 16, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 2, 17, 18, 19], [0, 1, 2, 15, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 3, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 19, 15, 16, 17, 18, 14], [0, 1, 2, 3, 4, 5, 12, 7, 8, 9, 10, 11, 6, 13, 14, 15, 16, 17, 18, 19], [0, 1, 13, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 2, 14, 15, 16, 17, 18, 19], [10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 14, 9, 10, 11, 12, 13, 8, 15, 16, 17, 18, 19], [0, 1, 2, 3, 11, 5, 6, 7, 8, 9, 10, 4, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 11, 5, 6, 7, 8, 9, 10, 4, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 10, 11, 9, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 12, 14, 15, 16, 17, 18, 19], [0, 1, 8, 3, 4, 5, 6, 7, 2, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 16, 14, 15, 13, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 14, 13, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 14, 11, 12, 13, 10, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 11, 10, 9, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 14, 15, 16, 17, 13, 19], [0, 1, 2, 3, 4, 5, 6, 7, 11, 9, 10, 8, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 19, 11, 12, 13, 14, 15, 16, 17, 18, 10], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 19, 11, 12, 13, 14, 15, 16, 17, 18, 10], [0, 1, 2, 3, 4, 19, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 5], [0, 1, 2, 3, 4, 19, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 5], [7, 1, 2, 3, 4, 5, 6, 0, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 8, 7, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [1, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 19, 14, 15, 16, 17, 18, 13], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 19, 18, 17], [18, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 0, 19], [14, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 0, 15, 16, 17, 18, 19], [0, 19, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 1], [0, 1, 2, 3, 4, 5, 6, 7, 19, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 8], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 18, 15, 16, 17, 14, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 13, 15, 16, 17, 18, 19], [6, 1, 2, 3, 4, 5, 0, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [6, 1, 2, 3, 4, 5, 0, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 18, 13, 14, 15, 16, 17, 12, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 12, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 17, 14, 15, 16, 13, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 17, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 18, 10, 11, 12, 13, 14, 15, 16, 17, 9, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 13, 10, 11, 12, 9, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 8, 6, 7, 5, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 13, 6, 7, 8, 9, 10, 11, 12, 5, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 18, 9, 10, 11, 12, 13, 14, 15, 16, 17, 8, 19], [0, 13, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 14, 15, 16, 17, 18, 19], [0, 3, 2, 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 18, 16, 17, 15, 19], [0, 2, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 15, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 14, 13, 16, 17, 18, 19], [0, 1, 8, 3, 4, 5, 6, 7, 2, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 17, 8, 9, 10, 11, 12, 13, 14, 15, 16, 7, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 17, 12, 13, 14, 15, 16, 11, 18, 19], [13, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 14, 15, 16, 17, 18, 19], [0, 1, 14, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 2, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 17, 19], [0, 1, 2, 17, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 3, 18, 19], [18, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 0, 19], [0, 1, 18, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 2, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 16, 11, 12, 13, 14, 15, 10, 17, 18, 19], [0, 6, 2, 3, 4, 5, 1, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 4, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 17, 13, 14, 15, 16, 12, 18, 19], [0, 1, 2, 5, 4, 3, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 17, 10, 11, 12, 13, 14, 15, 16, 9, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 15, 10, 11, 12, 13, 14, 9, 16, 17, 18, 19], [0, 1, 2, 3, 4, 8, 6, 7, 5, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 6, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 16, 10, 11, 12, 13, 14, 15, 9, 17, 18, 19], [0, 1, 2, 7, 4, 5, 6, 3, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 11, 13, 14, 15, 16, 17, 18, 19], [0, 1, 6, 3, 4, 5, 2, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 18, 10, 11, 12, 13, 14, 15, 16, 17, 9, 19], [0, 1, 2, 3, 4, 5, 6, 8, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 12, 13, 14, 11, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 15, 13, 14, 12, 16, 17, 18, 19], [0, 1, 2, 3, 5, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 14, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 1, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 11, 12, 10, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 12, 13, 14, 11, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 11, 8, 9, 10, 7, 12, 13, 14, 15, 16, 17, 18, 19], [0, 19, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 1], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 19, 11, 12, 13, 14, 15, 16, 17, 18, 10], [0, 1, 2, 3, 5, 4, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 11, 6, 7, 8, 9, 10, 5, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 6, 5, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 6, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 10, 11, 9, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 7, 6, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 8, 4, 5, 6, 7, 3, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 8, 4, 5, 6, 7, 3, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 19, 18, 17], [0, 1, 2, 3, 4, 13, 6, 7, 8, 9, 10, 11, 12, 5, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 11, 10, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 6, 5, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 10, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 6, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 7, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 12, 10, 11, 9, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 6, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 8, 5, 6, 7, 4, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 14, 5, 6, 7, 8, 9, 10, 11, 12, 13, 4, 15, 16, 17, 18, 19], [0, 1, 2, 16, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 3, 17, 18, 19], [0, 19, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 1], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 15, 13, 14, 12, 16, 17, 18, 19], [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 18, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 7, 19], [0, 1, 2, 3, 4, 5, 9, 7, 8, 6, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 6, 5, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 13, 4, 5, 6, 7, 8, 9, 10, 11, 12, 3, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 6, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 17, 10, 11, 12, 13, 14, 15, 16, 9, 18, 19], [0, 1, 2, 3, 6, 5, 4, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 18, 17, 16, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 17, 15, 16, 14, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 11, 12, 10, 14, 15, 16, 17, 18, 19], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 17, 16, 15, 18, 19], [1, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]], "nodes": [[0.0, 0.0, 0.18], [-1.618033988749895, 0.0, 0.02], [0.6180339887498949, 0.0, 0.02]], "centers": [{"x": [0.2310929575188799, -0.09323294838094265], "y": [0.6536060524134572, -0.03280304002099741], "sheet": 5, "label": 2, "angles": [1, 2]}, {"x": [0.17024643608972345, 0.16454837970136219], "y": [0.6337282503471495, -0.03525875190377081], "sheet": 9, "label": 4, "angles": [3, 4]}, {"x": [0.2868332357567377, -0.11253325170722703], "y": [0.6145705883160054, -0.03808778806145288], "sheet": 6, "label": 6, "angles": [5, 6]}, {"x": [0.1646490441157264, 0.19180326591710764], "y": [0.6070739281445193, -0.039628131902445164], "sheet": 10, "label": 8, "angles": [7, 8]}, {"x": [0.3394779500943392, -0.1191836914597986], "y": [0.5818740490586612, -0.039724833575121486], "sheet": 4, "label": 10, "angles": [9, 10]}, {"x": [0.1592135630400233, 0.21726066871030658], "y": [0.5770943812931691, -0.03443444043933816], "sheet": 12, "label": 12, "angles": [11, 12]}, {"x": [0.36375186225767236, -0.12981801536461712], "y": [0.5661758978135469, -0.03315939073624958], "sheet": 7, "label": 14, "angles": [13, 14]}, {"x": [0.15312923226522684, 0.226976856888922], "y": [0.5604910732427978, -0.03450974612528948], "sheet": 11, "label": 16, "angles": [15, 16]}, {"x": [0.48042659985395286, -0.10656719468973339], "y": [0.48011516283567657, -0.04114174430614218], "sheet": 3, "label": 18, "angles": [18, 33]}, {"x": [0.14299740532485739, 0.2555055327786852], "y": [0.5050550438827945, -0.01652146843606267], "sheet": 15, "label": 20, "angles": [19, 20]}, {"x": [0.4660702099866373, -0.1633191898337908], "y": [0.49864950235389416, -0.0004405468492044953], "sheet": 2, "label": 22, "angles": [21, 22]}, {"x": [0.14645371602661897, 0.2641071588281389], "y": [0.4952613873810692, 0.00368646790776811], "sheet": 16, "label": 24, "angles": [23, 24]}, {"x": [0.5039464184411416, -0.17206721896677207], "y": [0.47213822564448477, 0.012296521099083578], "sheet": 1, "label": 26, "angles": [25, 26]}, {"x": [0.1441742897019914, 0.2748103059879109], "y": [0.4703630568003924, 0.019646873630045743], "sheet": 18, "label": 28, "angles": [27, 28]}, {"x": [0.523650274422973, -0.18039187618211674], "y": [0.4588632177172594, 0.022230287229137297], "sheet": 8, "label": 30, "angles": [29, 30]}, {"x": [0.14054505802000042, 0.2793335967959537], "y": [0.45326400197081795, 0.021176853201177803], "sheet": 17, "label": 32, "angles": [31, 32]}, {"x": [0.10331574568020176, 0.29643688731470413], "y": [0.3343045426031975, -0.049938653231949556], "sheet": 18, "label": 36, "angles": [35, 36]}, {"x": [0.8217516285417575, -0.14890767976889788], "y": [0.2083918844467598, 0.07207879064059632], "sheet": 8, "label": 38, "angles": [37, 38]}, {"x": [0.12280303549928982, 0.341239296598454], "y": [0.22079558828212872, 0.12314521423016207], "sheet": 18, "label": 40, "angles": [39, 40]}, {"x": [0.9431185613391649, -0.3355290251426946], "y": [0.1721343881689873, 0.2680665636198229], "sheet": 11, "label": 50, "angles": [41, 50]}, {"x": [0.8781991848224755, -0.3569436851090712], "y": [0.23174953863099865, 0.2613977085894387], "sheet": 2, "label": 42, "angles": [42, 49]}, {"x": [0.1472537013869682, 0.3536053225819046], "y": [0.25260441472069595, 0.2531215826505431], "sheet": 16, "label": 44, "angles": [43, 44]}, {"x": [0.85740684821267, -0.385813716057824], "y": [0.25836463816115873, 0.2766396110803577], "sheet": 3, "label": 46, "angles": [45, 46]}, {"x": [0.1524996649153648, 0.3571475010330418], "y": [0.2582652114468791, 0.2846956109634237], "sheet": 15, "label": 48, "angles": [47, 48]}, {"x": [0.1529798073232658, 0.3854928734572133], "y": [0.1516990260563966, 0.3940120379605849], "sheet": 7, "label": 52, "angles": [52, 67]}, {"x": [0.977774030747219, -0.5254945361891221], "y": [0.2191524527682402, 0.4297502326602198], "sheet": 12, "label": 54, "angles": [53, 54]}, {"x": [0.16769939401010014, 0.38208209612924815], "y": [0.22475329803735786, 0.4372400644844098], "sheet": 4, "label": 56, "angles": [55, 56]}, {"x": [1.0177130020374585, -0.5299937559888958], "y": [0.1907248712571005, 0.449560040724692], "sheet": 17, "label": 66, "angles": [57, 66]}, {"x": [1.0329115898932777, -0.567578663085952], "y": [0.1950244248154686, 0.48434124183031496], "sheet": 10, "label": 58, "angles": [58, 65]}, {"x": [0.17164868989090934, 0.39082753757407285], "y": [0.20840427795823138, 0.4889674707256626], "sheet": 6, "label": 60, "angles": [59, 60]}, {"x": [1.0413699115709387, -0.5889640019193099], "y": [0.1977971407614346, 0.5039697801187837], "sheet": 9, "label": 62, "angles": [61, 62]}, {"x": [0.17181768689043836, 0.3951433196345513], "y": [0.19268834955110622, 0.5083036380115624], "sheet": 5, "label": 64, "angles": [63, 64]}, {"x": [1.229505318446531, -0.22771240725227532], "y": [-0.11098143819337698, 0.29592056109135956], "sheet": 13, "label": 70, "angles": [69, 70]}, {"x": [0.1042291264410233, 0.42656376687699155], "y": [-0.23723998973057814, 0.3304181553963937], "sheet": 1, "label": 72, "angles": [71, 72]}, {"x": [1.523622966092633, 0.5145493996262005], "y": [-0.7549279921582127, -0.2785634699231421], "sheet": 13, "label": 74, "angles": [73, 74]}, {"x": [0.05706739671276563, 0.5471522802922495], "y": [-1.296596745730114, 0.6148596297974822], "sheet": 1, "label": 76, "angles": [75, 76]}, {"x": [2.805720884583797, -0.021020786053054765], "y": [-1.6657881532278285, 1.1054231077029872], "sheet": 0, "label": 78, "angles": [77, 78]}, {"x": [0.08067836538750568, 0.6181813722560059], "y": [-1.7300898278090613, 1.3307142548379893], "sheet": 14, "label": 80, "angles": [79, 80]}, {"x": [2.898345733922996, 0.45981172044051644], "y": [-2.139923346824121, 0.7112597254645988], "sheet": 17, "label": 82, "angles": [81, 82]}, {"x": [-0.10601386006730226, 0.7810952656017861], "y": [-5.625595868635314, 0.4193525592121542], "sheet": 13, "label": 84, "angles": [83, 84]}, {"x": [28.042772347621202, -9.317195293750588], "y": [0.654853357878777, 57.26721587751289], "sheet": 4, "label": 86, "angles": [86, 89]}, {"x": [0.4665048574119625, 1.3100831137460227], "y": [5.022939564793057, 19.342428352087737], "sheet": 16, "label": 88, "angles": [87, 88]}, {"x": [3.159229545249896, -20.123361100858183], "y": [24.685100137827593, 0.6661514193182241], "sheet": 3, "label": 90, "angles": [90, 101]}, {"x": [0.8865572269943807, 0.9212572095170272], "y": [11.143993202216398, 1.6025222235292453], "sheet": 13, "label": 92, "angles": [91, 92]}, {"x": [-0.1628578623287238, -11.421808205984679], "y": [9.742103863274217, 0.04704387913130999], "sheet": 1, "label": 98, "angles": [93, 98]}, {"x": [-0.09836801694065757, -10.83630820621613], "y": [9.057829605828895, 0.33364813555885564], "sheet": 0, "label": 94, "angles": [94, 97]}, {"x": [0.8795736812103077, 0.8050552914180757], "y": [8.609563850110243, 0.2428408632661288], "sheet": 14, "label": 96, "angles": [95, 96]}, {"x": [1.0502290554578309, 0.8739022106298713], "y": [11.913931788112238, -3.1460611588229175], "sheet": 17, "label": 100, "angles": [99, 100]}, {"x": [1.3906470810033236, 0.3912337119334389], "y": [-2.2202794038181755, -8.723760583327923], "sheet": 14, "label": 104, "angles": [103, 104]}, {"x": [-20.64458943670179, 0.0], "y": [-14.382481203323593, 0.0], "sheet": 6, "label": 150, "angles": [105, 150]}, {"x": [-12.483456997302575, 0.0], "y": [-4.121547086723543, 0.0], "sheet": 5, "label": 106, "angles": [106, 149]}, {"x": [1.138129692326477, 0.0289870683998762], "y": [-1.4183406841243724, -0.36947277631495534], "sheet": 18, "label": 108, "angles": [107, 108]}, {"x": [-7.810614492886334, 0.0], "y": [-0.3749729781850928, 0.0], "sheet": 19, "label": 146, "angles": [109, 146]}, {"x": [-6.963178528662992, -0.5471298795054935], "y": [0.11937154790876264, -0.2882855310559376], "sheet": 0, "label": 110, "angles": [110, 113]}, {"x": [0.981294266377246, 0.055947346186535275], "y": [0.1928689420406301, -0.42422801172406355], "sheet": 14, "label": 112, "angles": [111, 112]}, {"x": [-6.470196021774713, 0.0], "y": [0.35289902335469153, 0.0], "sheet": 19, "label": 114, "angles": [114, 141]}, {"x": [0.9209152342764967, 0.0], "y": [0.5556502826690788, 0.0], "sheet": 1, "label": 140, "angles": [115, 140]}, {"x": [0.9078933661556502, 0.0], "y": [0.6308445151241587, 0.0], "sheet": 8, "label": 116, "angles": [116, 139]}, {"x": [-5.6056321950934125, 0.0], "y": [0.7289975587110795, 0.0], "sheet": 17, "label": 138, "angles": [117, 138]}, {"x": [-5.435342547248216, 0.0], "y": [0.7939558443544544, 0.0], "sheet": 18, "label": 118, "angles": [118, 137]}, {"x": [0.8614311036529555, 0.0], "y": [0.8646663430832701, 0.0], "sheet": 8, "label": 120, "angles": [120, 135]}, {"x": [-5.0986545523968525, 0.0], "y": [0.9132396979710284, 0.0], "sheet": 12, "label": 134, "angles": [121, 134]}, {"x": [-5.016924630623762, 0.0], "y": [0.9403333566936656, 0.0], "sheet": 11, "label": 122, "angles": [122, 133]}, {"x": [0.8384251126564812, 0.0], "y": [0.9615718365879052, 0.0], "sheet": 7, "label": 132, "angles": [123, 132]}, {"x": [0.8344931967831725, 0.0], "y": [0.9769457035587501, 0.0], "sheet": 6, "label": 124, "angles": [124, 131]}, {"x": [-4.865739367725202, 0.0], "y": [0.9885037045580248, 0.0], "sheet": 10, "label": 130, "angles": [125, 130]}, {"x": [-4.841775952871408, 0.0], "y": [0.9959050063094952, 0.0], "sheet": 9, "label": 126, "angles": [126, 129]}, {"x": [0.8285481552630932, 0.0], "y": [0.9995478420136327, 0.0], "sheet": 5, "label": 128, "angles": [127, 128]}, {"x": [-6.963178528662992, 0.5471298795054935], "y": [0.11937154790876264, 0.2882855310559376], "sheet": 0, "label": 142, "angles": [142, 145]}, {"x": [0.981294266377246, -0.055947346186535275], "y": [0.1928689420406301, 0.42422801172406355], "sheet": 14, "label": 144, "angles": [143, 144]}, {"x": [1.138129692326477, -0.0289870683998762], "y": [-1.4183406841243724, 0.36947277631495534], "sheet": 11, "label": 148, "angles": [147, 148]}, {"x": [1.3906470810033236, -0.3912337119334389], "y": [-2.2202794038181755, 8.723760583327923], "sheet": 14, "label": 152, "angles": [151, 152]}, {"x": [3.159229545249896, 20.123361100858183], "y": [24.685100137827593, -0.6661514193182241], "sheet": 11, "label": 154, "angles": [154, 165]}, {"x": [1.0502290554578309, -0.8739022106298713], "y": [11.913931788112238, 3.1460611588229175], "sheet": 7, "label": 156, "angles": [155, 156]}, {"x": [-0.1628578623287238, 11.421808205984679], "y": [9.742103863274217, -0.04704387913130999], "sheet": 10, "label": 162, "angles": [157, 162]}, {"x": [-0.09836801694065757, 10.83630820621613], "y": [9.057829605828895, -0.33364813555885564], "sheet": 9, "label": 158, "angles": [158, 161]}, {"x": [0.8795736812103077, -0.8050552914180757], "y": [8.609563850110243, -0.2428408632661288], "sheet": 5, "label": 160, "angles": [159, 160]}, {"x": [0.8865572269943807, -0.9212572095170272], "y": [11.143993202216398, -1.6025222235292453], "sheet": 6, "label": 164, "angles": [163, 164]}, {"x": [28.042772347621202, 9.317195293750588], "y": [0.654853357878777, -57.26721587751289], "sheet": 12, "label": 166, "angles": [166, 169]}, {"x": [0.4665048574119625, -1.3100831137460227], "y": [5.022939564793057, -19.342428352087737], "sheet": 6, "label": 168, "angles": [167, 168]}, {"x": [-0.10601386006730226, -0.7810952656017861], "y": [-5.625595868635314, -0.4193525592121542], "sheet": 14, "label": 172, "angles": [171, 172]}, {"x": [2.898345733922996, -0.45981172044051644], "y": [-2.139923346824121, -0.7112597254645988], "sheet": 19, "label": 174, "angles": [173, 174]}, {"x": [0.08067836538750568, -0.6181813722560059], "y": [-1.7300898278090613, -1.3307142548379893], "sheet": 8, "label": 176, "angles": [175, 176]}, {"x": [2.805720884583797, 0.021020786053054765], "y": [-1.6657881532278285, -1.1054231077029872], "sheet": 18, "label": 178, "angles": [177, 178]}, {"x": [0.05706739671276563, -0.5471522802922495], "y": [-1.296596745730114, -0.6148596297974822], "sheet": 8, "label": 180, "angles": [179, 180]}, {"x": [1.523622966092633, -0.5145493996262005], "y": [-0.7549279921582127, 0.2785634699231421], "sheet": 17, "label": 182, "angles": [181, 182]}, {"x": [0.1042291264410233, -0.42656376687699155], "y": [-0.23723998973057814, -0.3304181553963937], "sheet": 8, "label": 184, "angles": [183, 184]}, {"x": [1.229505318446531, 0.22771240725227532], "y": [-0.11098143819337698, -0.29592056109135956], "sheet": 18, "label": 186, "angles": [185, 186]}, {"x": [0.1529798073232658, -0.3854928734572133], "y": [0.1516990260563966, -0.3940120379605849], "sheet": 7, "label": 188, "angles": [188, 203]}, {"x": [1.0177130020374585, 0.5299937559888958], "y": [0.1907248712571005, -0.449560040724692], "sheet": 11, "label": 198, "angles": [189, 198]}, {"x": [1.0329115898932777, 0.567578663085952], "y": [0.1950244248154686, -0.48434124183031496], "sheet": 10, "label": 190, "angles": [190, 197]}, {"x": [0.17181768689043836, -0.3951433196345513], "y": [0.19268834955110622, -0.5083036380115624], "sheet": 5, "label": 192, "angles": [191, 192]}, {"x": [1.0413699115709387, 0.5889640019193099], "y": [0.1977971407614346, -0.5039697801187837], "sheet": 9, "label": 194, "angles": [193, 194]}, {"x": [0.17164868989090934, -0.39082753757407285], "y": [0.20840427795823138, -0.4889674707256626], "sheet": 6, "label": 196, "angles": [195, 196]}, {"x": [0.16769939401010014, -0.38208209612924815], "y": [0.22475329803735786, -0.4372400644844098], "sheet": 4, "label": 200, "angles": [199, 200]}, {"x": [0.977774030747219, 0.5254945361891221], "y": [0.2191524527682402, -0.4297502326602198], "sheet": 12, "label": 202, "angles": [201, 202]}, {"x": [0.9431185613391649, 0.3355290251426946], "y": [0.1721343881689873, -0.2680665636198229], "sheet": 17, "label": 214, "angles": [205, 214]}, {"x": [0.8781991848224755, 0.3569436851090712], "y": [0.23174953863099865, -0.2613977085894387], "sheet": 16, "label": 206, "angles": [206, 213]}, {"x": [0.1524996649153648, -0.3571475010330418], "y": [0.2582652114468791, -0.2846956109634237], "sheet": 3, "label": 208, "angles": [207, 208]}, {"x": [0.85740684821267, 0.385813716057824], "y": [0.25836463816115873, -0.2766396110803577], "sheet": 15, "label": 210, "angles": [209, 210]}, {"x": [0.1472537013869682, -0.3536053225819046], "y": [0.25260441472069595, -0.2531215826505431], "sheet": 2, "label": 212, "angles": [211, 212]}, {"x": [0.12280303549928982, -0.341239296598454], "y": [0.22079558828212872, -0.12314521423016207], "sheet": 1, "label": 216, "angles": [215, 216]}, {"x": [0.8217516285417575, 0.14890767976889788], "y": [0.2083918844467598, -0.07207879064059632], "sheet": 13, "label": 218, "angles": [217, 218]}, {"x": [0.10331574568020176, -0.29643688731470413], "y": [0.3343045426031975, 0.049938653231949556], "sheet": 18, "label": 220, "angles": [219, 220]}, {"x": [0.48042659985395286, 0.10656719468973339], "y": [0.48011516283567657, 0.04114174430614218], "sheet": 11, "label": 222, "angles": [222, 237]}, {"x": [0.14054505802000042, -0.2793335967959537], "y": [0.45326400197081795, -0.021176853201177803], "sheet": 3, "label": 224, "angles": [223, 224]}, {"x": [0.523650274422973, 0.18039187618211674], "y": [0.4588632177172594, -0.022230287229137297], "sheet": 9, "label": 226, "angles": [225, 226]}, {"x": [0.1441742897019914, -0.2748103059879109], "y": [0.4703630568003924, -0.019646873630045743], "sheet": 6, "label": 228, "angles": [227, 228]}, {"x": [0.5039464184411416, 0.17206721896677207], "y": [0.47213822564448477, -0.012296521099083578], "sheet": 10, "label": 230, "angles": [229, 230]}, {"x": [0.14645371602661897, -0.2641071588281389], "y": [0.4952613873810692, -0.00368646790776811], "sheet": 4, "label": 232, "angles": [231, 232]}, {"x": [0.4660702099866373, 0.1633191898337908], "y": [0.49864950235389416, 0.0004405468492044953], "sheet": 12, "label": 234, "angles": [233, 234]}, {"x": [0.14299740532485739, -0.2555055327786852], "y": [0.5050550438827945, 0.01652146843606267], "sheet": 11, "label": 236, "angles": [235, 236]}, {"x": [0.15312923226522684, -0.226976856888922], "y": [0.5604910732427978, 0.03450974612528948], "sheet": 5, "label": 240, "angles": [239, 240]}, {"x": [0.36375186225767236, 0.12981801536461712], "y": [0.5661758978135469, 0.03315939073624958], "sheet": 9, "label": 242, "angles": [241, 242]}, {"x": [0.1592135630400233, -0.21726066871030658], "y": [0.5770943812931691, 0.03443444043933816], "sheet": 6, "label": 244, "angles": [243, 244]}, {"x": [0.3394779500943392, 0.1191836914597986], "y": [0.5818740490586612, 0.039724833575121486], "sheet": 10, "label": 246, "angles": [245, 246]}, {"x": [0.1646490441157264, -0.19180326591710764], "y": [0.6070739281445193, 0.039628131902445164], "sheet": 6, "label": 248, "angles": [247, 248]}, {"x": [0.2868332357567377, 0.11253325170722703], "y": [0.6145705883160054, 0.03808778806145288], "sheet": 12, "label": 250, "angles": [249, 250]}, {"x": [0.17024643608972345, -0.16454837970136219], "y": [0.6337282503471495, 0.03525875190377081], "sheet": 6, "label": 252, "angles": [251, 252]}, {"x": [0.2310929575188799, 0.09323294838094265], "y": [0.6536060524134572, 0.03280304002099741], "sheet": 10, "label": 254, "angles": [253, 254]}], "punctures": [{"x": [-2786.322000424831, 0.0], "y": [-1857.4604535689427, 0.0], "sheet": 6, "name": "150", "real": true, "q": 2}, {"x": [-1486.8030743154145, 0.0], "y": [-323.4651017780644, 0.0], "sheet": 5, "name": "106", "real": true, "q": 2}, {"x": [-1003.0816819328481, 0.0], "y": [-0.040362461000818306, 0.0], "sheet": 19, "name": "146/114", "real": true, "q": 2}, {"x": [0.9993880540088297, 0.0], "y": [0.6136430397428252, 0.0], "sheet": 1, "name": "140/116", "real": true, "q": 2}, {"x": [-1001.0076861785772, 0.0], "y": [0.995668716830664, 0.0], "sheet": 17, "name": "138", "real": true, "q": 2}, {"x": [-1001.0026698741698, 0.0], "y": [0.9981706324618358, 0.0], "sheet": 18, "name": "118", "real": true, "q": 2}, {"x": [0.9990029920209451, 0.0], "y": [0.999002993012987, 0.0], "sheet": 8, "name": "120", "real": true, "q": 2}, {"x": [-1001.0000906276554, 0.0], "y": [0.9994570417182957, 0.0], "sheet": 12, "name": "134", "real": true, "q": 2}, {"x": [-1000.9994597762447, 0.0], "y": [0.9997716805619543, 0.0], "sheet": 11, "name": "122", "real": true, "q": 2}, {"x": [0.9990019960428973, 0.0], "y": [0.9999989710629321, 0.0], "sheet": 7, "name": "132/124", "real": true, "q": 2}, {"x": [-1000.9990020002259, 0.0], "y": [0.9999999974005127, 0.0], "sheet": 10, "name": "130", "real": true, "q": 2}, {"x": [-1000.9990019957792, 0.0], "y": [0.9999999996183672, 0.0], "sheet": 9, "name": "126", "real": true, "q": 2}, {"x": [0.9999697002253138, -9.35289279971645e-06], "y": [0.9999999991735193, -5.629650954621893e-10], "sheet": 6, "name": "128", "real": true, "q": 2}, {"x": [0.2927275445631459, -0.0074433885700711045], "y": [0.7068929835201906, -0.004634537801492605], "sheet": 5, "name": "2/254", "real": true, "q": 8}, {"x": [0.0007234477867683536, 0.017504604907335977], "y": [0.6918001748972545, -0.004232567705275503], "sheet": 9, "name": "4/252", "real": true, "q": 7}, {"x": [0.33319451963687036, -0.008101105895797895], "y": [0.6664725629040655, -0.004048394650203937], "sheet": 6, "name": "6/250", "real": true, "q": 6}, {"x": [0.00072053776850555, 0.01821221000394764], "y": [0.6664540530857682, -0.004047833508758311], "sheet": 10, "name": "8/248", "real": true, "q": 6}, {"x": [0.3818194764371452, -0.008725489362383772], "y": [0.6179043821832468, -0.0033329172385600466], "sheet": 4, "name": "10/246", "real": true, "q": 5}, {"x": [0.0007219197316674815, 0.019496733035442228], "y": [0.6178795555032858, -0.0033311273220532275], "sheet": 12, "name": "12/244", "real": true, "q": 5}, {"x": [0.3818846279649898, -0.00872796510513017], "y": [0.617839313159423, -0.0033302024195123454], "sheet": 7, "name": "14/242", "real": true, "q": 5}, {"x": [0.0007219278174494476, 0.01949776327562865], "y": [0.6178392728831907, -0.003330200709827876], "sheet": 11, "name": "16/240", "real": true, "q": 5}, {"x": [0.4999141234403501, -0.008368801868455272], "y": [0.4999296124519559, -0.002793525585602576], "sheet": 3, "name": "18/222", "real": true, "q": 4}, {"x": [0.0007480667037982158, 0.02230630656148095], "y": [0.5001238214618512, -1.1084002342499302e-05], "sheet": 11, "name": "20/236", "real": true, "q": 4}, {"x": [0.49987487633850497, -0.011165683961512476], "y": [0.49999999989116334, -1.3866556722404642e-09], "sheet": 2, "name": "22/234", "real": true, "q": 4}, {"x": [0.0007482526237218676, 0.02230907979728788], "y": [0.4999999377651798, 4.178759079228944e-09], "sheet": 16, "name": "24/232", "real": true, "q": 4}, {"x": [0.49999962736022047, -0.011169861496415932], "y": [0.49987543545963287, 5.562736441920411e-06], "sheet": 14, "name": "26/230", "real": true, "q": 4}, {"x": [0.0007483149676320961, 0.02231186651223095], "y": [0.49987531213291825, 5.579345105776901e-06], "sheet": 18, "name": "28/228", "real": true, "q": 4}, {"x": [0.49999987580806815, -0.011169880932480345], "y": [0.4998751875074419, 5.584922356275803e-06], "sheet": 8, "name": "30/226", "real": true, "q": 4}, {"x": [0.000748315030131625, 0.02231186930155813], "y": [0.49987518738278536, 5.584930718326137e-06], "sheet": 17, "name": "32/224", "real": true, "q": 4}, {"x": [0.0005803924001277801, 0.02530512122905648], "y": [0.356741720173282, -0.004896632492957257], "sheet": 18, "name": "36/220", "real": true, "q": 7}, {"x": [0.9843425596925212, -0.015409536753929186], "y": [0.016128240611316843, 0.014907857674620148], "sheet": 18, "name": "38/186", "real": false, "q": 3}, {"x": [0.9843425596925212, 0.015409536753929186], "y": [0.016128240611316843, -0.014907857674620148], "sheet": 13, "name": "70/218", "real": false, "q": 3}, {"x": [0.0007481613107973612, 0.031312180069869376], "y": [0.015913947445199594, 0.015170974059313133], "sheet": 8, "name": "40/184", "real": false, "q": 3}, {"x": [0.0007481613107973612, -0.031312180069869376], "y": [0.015913947445199594, -0.015170974059313133], "sheet": 1, "name": "72/216", "real": false, "q": 3}, {"x": [0.9990163020697491, -0.03146347060249678], "y": [0.0019752056320440944, 0.03140111148266794], "sheet": 17, "name": "50/214", "real": true, "q": 3}, {"x": [0.9990047965741623, -0.03153204914623521], "y": [0.0019888566521667605, 0.03146922475216875], "sheet": 16, "name": "42/206", "real": true, "q": 3}, {"x": [0.000997006988467662, 0.03154392077999127], "y": [0.0019910309323275103, 0.031481021947332925], "sheet": 2, "name": "44/212", "real": true, "q": 3}, {"x": [0.9990039761819732, -0.03154406133576511], "y": [0.001990054635330218, 0.03148119311209909], "sheet": 15, "name": "46/210", "real": true, "q": 3}, {"x": [0.0009970089622288257, 0.031543936333069275], "y": [0.0019900536653564326, 0.03148119331370971], "sheet": 3, "name": "48/208", "real": true, "q": 3}, {"x": [0.000997504988546678, 0.03155965731452102], "y": [0.000997504992969576, 0.03155968862342427], "sheet": 7, "name": "52/188", "real": true, "q": 3}, {"x": [0.9999980050093775, -0.03162269748348953], "y": [0.0009999939966962457, 0.031591075006982224], "sheet": 12, "name": "54/202", "real": true, "q": 3}, {"x": [0.000998002001979594, 0.031559641554616026], "y": [0.0009999930229575244, 0.031591075209797585], "sheet": 4, "name": "56/200", "real": true, "q": 3}, {"x": [0.9999990014309595, -0.031622694180527794], "y": [0.000998998962370379, 0.03159110316351657], "sheet": 11, "name": "66/198", "real": true, "q": 3}, {"x": [0.9999990020817983, -0.03162276443649171], "y": [0.0009990005303130516, 0.03159117333486114], "sheet": 10, "name": "58/190", "real": true, "q": 3}, {"x": [0.0009980029969935652, 0.03155965727143965], "y": [0.00099900199102246, 0.031591185306029626], "sheet": 6, "name": "60/196", "real": true, "q": 3}, {"x": [0.9999990019940264, -0.031622776538643003], "y": [0.000999000999988574, 0.03159118541612621], "sheet": 9, "name": "62/194", "real": true, "q": 3}, {"x": [0.000998002997990072, 0.031559657287172194], "y": [0.0009990009990009975, 0.031591185416267493], "sheet": 5, "name": "64/192", "real": true, "q": 3}, {"x": [1.7042259368864634, 0.06901560206726239], "y": [-0.7073057469589955, -0.04002087995813832], "sheet": 17, "name": "74/182", "real": true, "q": 8}, {"x": [0.0002770757531051852, 0.05102520558947992], "y": [-1.614907215595683, 0.05963272353227216], "sheet": 8, "name": "76/180", "real": true, "q": 5}, {"x": [2.619112390099257, 0.02265903300005452], "y": [-1.6198194552697138, 0.06004048581837398], "sheet": 0, "name": "78/178", "real": true, "q": 5}, {"x": [0.0002780592838505311, 0.051073227757167036], "y": [-1.6198243444705347, 0.06004114346513921], "sheet": 14, "name": "80/176", "real": true, "q": 5}, {"x": [2.62211545860088, 0.023220192423121244], "y": [-1.622859694531367, 0.059680258460625], "sheet": 17, "name": "82/174", "real": true, "q": 5}, {"x": [-0.0012934895326523303, 0.07087319065929845], "y": [-4.063445718374474, 0.03091162048612763], "sheet": 18, "name": "84/172", "real": true, "q": 7}, {"x": [3762.3758298070293, -1774.490304061664], "y": [1438.595718086639, 8455.277061159508], "sheet": 4, "name": "86", "real": false, "q": 2}, {"x": [3762.3758298070293, 1774.490304061664], "y": [1438.595718086639, -8455.277061159508], "sheet": 12, "name": "166", "real": false, "q": 2}, {"x": [0.5243642488623528, 1.5080838690191587], "y": [1437.8622138695325, 3781.0993350018207], "sheet": 16, "name": "88", "real": false, "q": 2}, {"x": [0.5243642488623528, -1.5080838690191587], "y": [1437.8622138695325, -3781.0993350018207], "sheet": 4, "name": "168", "real": false, "q": 2}, {"x": [380.87148017707085, -2839.116103747169], "y": [3652.2032852171133, 163.09951069645268], "sheet": 3, "name": "90", "real": false, "q": 2}, {"x": [380.87148017707085, 2839.116103747169], "y": [3652.2032852171133, -163.09951069645268], "sheet": 11, "name": "154", "real": false, "q": 2}, {"x": [0.9992520323277826, 0.9995013908068574], "y": [2003.5022762548458, 2.0007004341301644], "sheet": 13, "name": "92", "real": false, "q": 2}, {"x": [0.9992520323277826, -0.9995013908068574], "y": [2003.5022762548458, -2.0007004341301644], "sheet": 6, "name": "164", "real": false, "q": 2}, {"x": [0.4987349562574755, -2003.5036731825664], "y": [2001.5056516455388, 0.9958073601210841], "sheet": 1, "name": "98", "real": false, "q": 2}, {"x": [0.4987349562574755, 2003.5036731825664], "y": [2001.5056516455388, -0.9958073601210841], "sheet": 10, "name": "162", "real": false, "q": 2}, {"x": [0.5002739854139788, -2003.5004532762766], "y": [2001.501595195529, 0.9997195585910551], "sheet": 0, "name": "94", "real": false, "q": 2}, {"x": [0.5002739854139788, 2003.5004532762766], "y": [2001.501595195529, -0.9997195585910551], "sheet": 9, "name": "158", "real": false, "q": 2}, {"x": [0.999251682982315, 0.999001840023713], "y": [2001.5001248156168, 0.999750030370771], "sheet": 14, "name": "96", "real": false, "q": 2}, {"x": [0.999251682982315, -0.999001840023713], "y": [2001.5001248156168, -0.999750030370771], "sheet": 5, "name": "160", "real": false, "q": 2}, {"x": [1.0002500815401951, 0.9990037824213089], "y": [2003.5077066615925, -2.998446034072752], "sheet": 17, "name": "100", "real": false, "q": 2}, {"x": [1.0002500815401951, -0.9990037824213089], "y": [2003.5077066615925, 2.998446034072752], "sheet": 7, "name": "156", "real": false, "q": 2}, {"x": [1.474666146552558, 0.4164776201721875], "y": [-440.0249228514695, -1421.7697766465574], "sheet": 14, "name": "104", "real": false, "q": 2}, {"x": [1.474666146552558, -0.4164776201721875], "y": [-440.0249228514695, 1421.7697766465574], "sheet": 14, "name": "152", "real": false, "q": 2}, {"x": [1.0016038244489864, 4.630848191716134e-05], "y": [-1.615403703214445, -0.046792244013351705], "sheet": 19, "name": "108/148", "real": true, "q": 2}, {"x": [-1002.9993917292817, -0.04960555493278743], "y": [0.0008064505034316612, -0.024815051238042743], "sheet": 0, "name": "110/142", "real": true, "q": 2}, {"x": [0.9999990079439011, 3.1465511225578124e-05], "y": [0.0009980104304730911, -0.03159127946804163], "sheet": 14, "name": "112/144", "real": true, "q": 2}]};
+CORE.init(DATA);
+// ---------------------------------------------------------------- worker pool
+const workerSrc = document.getElementById('core').textContent + `
+let inited = false;
+const CAP = [[42,120,214],[235,104,52],[27,175,122],[237,161,0],[232,123,164],[127,63,191],[160,82,45],[0,150,160]];
+function shade(rgb, t) { const s = Math.max(0.3, Math.min(1, 1 - 0.6*Math.log1p(t)/Math.log1p(80))); return rgb.map(v => v*s + 20*(1-s)); }
+function colourFate(f) {
+  if (f.kind === 'capture') return shade(CAP[f.phase], f.t);
+  if (f.kind === 'cycle') { if (f.index !== undefined) { const g = 90 + 25*(f.index % 6); return [g,g,g]; } return f.period === 1 ? [85,85,85] : [163,163,163]; }
+  return [18,18,18];
+}
+onmessage = function (ev) {
+  const m = ev.data;
+  if (m.type === 'init') { CORE.init(m.data); inited = true; return; }
+  const { W, rows, step, view, s } = m;
+  const out = new Uint8ClampedArray(W*(rows[1]-rows[0])*4);
+  let M = null, cyc = null;
+  if (m.type === 'dyn') { M = CORE.mapData(m.x, m.y); cyc = m.cycle; }
+  for (let r = rows[0]; r < rows[1]; r += step) {
+    for (let c = 0; c < W; c += step) {
+      const u = view.cx + (c + step/2 - W/2) * view.px, v = view.cy - (r + step/2 - W/2) * view.px;
+      let rgb;
+      if (m.type === 'param') {
+        const y = [u, v];
+        const tr = CORE.track([m.xc], [view.cx, view.cy], y);
+        if (!tr) rgb = [85,20,20];
+        else { const MM = CORE.mapData(tr[0], y); rgb = colourFate(CORE.fate(MM, MM.omega, s.pit, s.delta, s.tol, null, s.rel)); }
+      } else {
+        let z = [u, v];
+        if (m.inv) { const r2 = u*u+v*v; z = r2 === 0 ? null : [u/r2, -v/r2]; }
+        rgb = colourFate(CORE.fate(M, z, s.dit, s.delta, s.tol, cyc, s.rel));
+      }
+      for (let dr = 0; dr < step && r+dr < rows[1]; dr++) for (let dc = 0; dc < step && c+dc < W; dc++) {
+        const o = ((r+dr-rows[0])*W + c+dc)*4; out[o] = rgb[0]; out[o+1] = rgb[1]; out[o+2] = rgb[2]; out[o+3] = 255;
+      }
+    }
+  }
+  postMessage({ job: m.job, rows, out }, [out.buffer]);
+};`;
+const NW = Math.max(2, Math.min(8, (navigator.hardwareConcurrency || 4) - 1));
+const blobURL = URL.createObjectURL(new Blob([workerSrc], { type: 'text/javascript' }));
+const pool = Array.from({ length: NW }, () => { const w = new Worker(blobURL); w.postMessage({ type: 'init', data: DATA }); return w; });
+let jobId = 0;
+function render(canvas, msgBase, statEl, label) {
+  const job = ++jobId; canvas._job = job;
+  const ctx = canvas.getContext('2d'), W = canvas.width;
+  const steps = [8, +document.getElementById('res').value];
+  const t0 = performance.now();
+  let passIdx = 0;
+  function pass() {
+    const step = steps[passIdx], band = Math.ceil(W / (NW*4) / step) * step;
+    let pending = 0;
+    for (let r0 = 0, wi = 0; r0 < W; r0 += band, wi++) {
+      pending++;
+      const w = pool[wi % NW];
+      const handler = ev => {
+        if (ev.data.job !== job || ev.data.rows[0] !== r0) return;
+        w.removeEventListener('message', handler);
+        if (canvas._job !== job) return;
+        const img = new ImageData(ev.data.out, W, ev.data.rows[1]-ev.data.rows[0]);
+        ctx.putImageData(img, 0, r0);
+        if (--pending === 0) {
+          passIdx++;
+          statEl.textContent = label + (passIdx < steps.length ? ' (refining...)' : ` ${((performance.now()-t0)/1000).toFixed(1)} s`);
+          if (passIdx < steps.length && steps[passIdx] < step) pass();
+        }
+      };
+      w.addEventListener('message', handler);
+      w.postMessage(Object.assign({}, msgBase, { job, W, rows: [r0, Math.min(W, r0+band)], step }));
+    }
+  }
+  statEl.textContent = label + ' rendering...';
+  pass();
+}
+// ---------------------------------------------------------------- state
+const S = { cx: 0.25, cy: 0.0, width: 2.6, sheet: 1, xc: null };
+const Dv = { cx: 0.5, cy: 0, width: 4, inv: false, map: null, cycle: null };
+function settings() {
+  return { pit: +pit.value, dit: +dit.value, delta: Math.pow(10, +del.value), rel: rel.checked, tol: Math.pow(10, +tol.value) };
+}
+const pc = document.getElementById('pc'), po = document.getElementById('po');
+const dc = document.getElementById('dc'), dov = document.getElementById('do');
+const pit = document.getElementById('pit'), dit = document.getElementById('dit'), del = document.getElementById('del');
+const rel = document.getElementById('rel'), tol = document.getElementById('tol');
+function labelsUpdate() {
+  pitv.textContent = pit.value; ditv.textContent = dit.value;
+  delv.textContent = '1e' + (+del.value).toFixed(2).replace(/\.?0+$/, ''); tolv.textContent = '1e' + tol.value;
+}
+function globalAtCentre() { return CORE.globalRoots([S.cx, S.cy]); }
+function setSheet(k) {
+  const g = globalAtCentre(); if (!g) return;
+  S.sheet = k; S.xc = g[k]; refreshSheetButtons(); drawParam();
+}
+function currentSheet() {
+  const g = globalAtCentre(); if (!g || !S.xc) return -1;
+  let b = 0, bd = Infinity; g.forEach((r, k) => { const d = CORE.chord(r, S.xc); if (d < bd) { bd = d; b = k; } }); return b;
+}
+function refreshSheetButtons() {
+  const k = currentSheet();
+  sheetbtns.innerHTML = '';
+  for (let i = 0; i < 20; i++) {
+    const b = document.createElement('button'); b.textContent = i; if (i === k) b.className = 'on';
+    b.onclick = () => setSheet(i); sheetbtns.appendChild(b);
+  }
+  sheetnote.textContent = `centre y = ${fmt([S.cx, S.cy])}, x = ${fmt(S.xc)}`;
+}
+function fmt(z) { if (!z) return '∞'; const r = z[0], i = z[1]; const p = v => (Math.abs(v) < 1e-12 ? 0 : v).toPrecision(6); return `${p(r)}${i < 0 ? '−' : '+'}${p(Math.abs(i))}i`; }
+function moveCentre(nx, ny) {
+  const nxc = S.xc ? CORE.track([S.xc], [S.cx, S.cy], [nx, ny]) : null;
+  S.cx = nx; S.cy = ny;
+  if (nxc) S.xc = nxc[0]; else { const g = globalAtCentre(); S.xc = g ? g[Math.max(0, S.sheet)] : null; }
+}
+function drawParam() {
+  render(pc, { type: 'param', view: { cx: S.cx, cy: S.cy, px: S.width / pc.width }, xc: S.xc, s: settings() }, pstat,
+         `width ${S.width.toPrecision(3)}`);
+  drawParamOverlay(); refreshSheetButtons();
+}
+function toPix(y) { return [pc.width/2 + (y[0]-S.cx)/(S.width/pc.width), pc.height/2 - (y[1]-S.cy)/(S.width/pc.width)]; }
+function drawParamOverlay() {
+  const ctx = po.getContext('2d'); ctx.clearRect(0, 0, po.width, po.height);
+  if (!document.getElementById('showMarks').checked) return;
+  ctx.font = '11px system-ui';
+  DATA.bps.forEach((b, i) => {
+    const [u, v] = toPix(b); if (u < -20 || v < -20 || u > po.width+20 || v > po.height+20) return;
+    const triv = DATA.perms[i].every((p, k) => p === k);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+    if (triv) { ctx.beginPath(); ctx.arc(u, v, 5, 0, 7); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.moveTo(u-5, v-5); ctx.lineTo(u+5, v+5); ctx.moveTo(u+5, v-5); ctx.lineTo(u-5, v+5); ctx.stroke(); }
+  });
+  const onBranch = (ym, xm) => {
+    let r = CORE.track([S.xc], [S.cx, S.cy], ym), tolc = 1e-4;
+    if (!r) { const d = [S.cx-ym[0], S.cy-ym[1]], L = Math.hypot(d[0], d[1]) || 1; r = CORE.track([S.xc], [S.cx, S.cy], [ym[0]+1e-3*d[0]/L, ym[1]+1e-3*d[1]/L]); tolc = 2e-2; }
+    return r && CORE.chord(r[0], xm) < tolc;
+  };
+  DATA.centers.forEach(c => {
+    const [u, v] = toPix(c.y); if (u < 0 || v < 0 || u > po.width || v > po.height) return;
+    if (!onBranch(c.y, c.x)) return;
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2b2b2b'; ctx.beginPath(); ctx.arc(u, v, 4, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.fillText(c.label, u+6, v-5);
+  });
+  DATA.punctures.forEach(p => {
+    const [u, v] = toPix(p.y); if (u < 0 || v < 0 || u > po.width || v > po.height) return;
+    if (!onBranch(p.y, p.x)) return;
+    ctx.strokeStyle = '#e8173a'; ctx.lineWidth = 2; ctx.strokeRect(u-4, v-4, 8, 8);
+    ctx.fillStyle = '#ffd0d8'; ctx.fillText(p.name, u+6, v+12);
+  });
+  if (Dv.map) { const [u, v] = toPix(Dv.map.y); ctx.strokeStyle = '#7fd6ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(u, v, 7, 0, 7); ctx.stroke(); }
+}
+// ---------------------------------------------------------------- dynamical plane
+function pickMap(y) {
+  const tr = CORE.track([S.xc], [S.cx, S.cy], y);
+  if (!tr) { info.textContent = 'Could not continue the branch to this point (branch point).'; return; }
+  const x = tr[0], M = CORE.mapData(x, y), s = settings();
+  Dv.map = { x, y }; Dv.cycle = CORE.freeCycle(M, s.dit, s.tol);
+  const f = CORE.fate(M, M.omega, s.pit, s.delta, s.tol, null, s.rel);
+  const fs = f.kind === 'capture' ? `captured, phase ${f.phase} (omega in basin of U_${f.phase}), capture time ${f.t}`
+           : f.kind === 'cycle' ? `attracted to a cycle of period ${f.period}` : 'undecided (bifurcation locus?)';
+  info.textContent =
+`y = a3   ${fmt(y)}\nx = a7   ${fmt(x)}\nw        ${fmt(M.w)}\nomega    ${fmt(M.omega)}\n` +
+`a4=f(y)  ${fmt(M.a4)}\na5=f(a4) ${fmt(M.marked[5])}\na6=f(a5) ${fmt(M.marked[6])}\ncensus chart F = 1 + b/z + c/z^2:\n b = ${fmt(M.b)}\n c = ${fmt(M.c)}\n` +
+`atlas sheet ${CORE.sheetOf(y, x)}\nfree critical point: ${fs}\nfree attracting cycle in dyn. plane: ${Dv.cycle ? 'period ' + Dv.cycle.pts.length : 'none found'}`;
+  drawParamOverlay(); dfit(); drawDyn();
+}
+function dfit() {
+  if (!Dv.map) return;
+  const M = CORE.mapData(Dv.map.x, Dv.map.y);
+  const pts = M.marked.filter(a => a && Math.hypot(a[0], a[1]) < 1e3).concat([M.omega]);
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  pts.forEach(a => { x0 = Math.min(x0, a[0]); x1 = Math.max(x1, a[0]); y0 = Math.min(y0, a[1]); y1 = Math.max(y1, a[1]); });
+  Dv.cx = (x0+x1)/2; Dv.cy = (y0+y1)/2; Dv.width = Math.max(x1-x0, y1-y0, 0.5)*1.4; Dv.inv = false;
+}
+function drawDyn() {
+  if (!Dv.map) return;
+  render(dc, { type: 'dyn', x: Dv.map.x, y: Dv.map.y, cycle: Dv.cycle, inv: Dv.inv,
+               view: { cx: Dv.cx, cy: Dv.cy, px: Dv.width / dc.width }, s: settings() }, dstat,
+         (Dv.inv ? '1/z chart, ' : '') + `width ${Dv.width.toPrecision(3)}`);
+  const ctx = dov.getContext('2d'); ctx.clearRect(0, 0, dov.width, dov.height);
+  const M = CORE.mapData(Dv.map.x, Dv.map.y);
+  const toD = z => { let p = z; if (Dv.inv) { if (!z) p = [0, 0]; else { const r2 = z[0]*z[0]+z[1]*z[1]; p = [z[0]/r2, -z[1]/r2]; } } if (!p) return null;
+    return [dov.width/2 + (p[0]-Dv.cx)/(Dv.width/dov.width), dov.height/2 - (p[1]-Dv.cy)/(Dv.width/dov.width)]; };
+  ctx.font = '11px system-ui';
+  M.marked.forEach((a, j) => { const q = toD(a); if (!q) return; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(q[0], q[1], 4, 0, 7); ctx.stroke(); ctx.fillStyle = '#fff'; ctx.fillText('a' + j, q[0]+6, q[1]-5); });
+  const q = toD(M.omega); if (q) { ctx.fillStyle = '#7fd6ff'; ctx.beginPath(); ctx.arc(q[0], q[1], 4, 0, 7); ctx.fill(); ctx.fillText('ω', q[0]+6, q[1]+12); }
+}
+// ---------------------------------------------------------------- interaction
+function attachPanZoom(canvas, getV, setV, onClick, redraw) {
+  let drag = null;
+  canvas.parentElement.addEventListener('mousedown', e => { drag = { x: e.offsetX, y: e.offsetY, moved: false, v: Object.assign({}, getV()) }; });
+  window.addEventListener('mousemove', e => {
+    if (!drag) return; const r = canvas.getBoundingClientRect(); const dx = e.clientX - r.left - drag.x, dy = e.clientY - r.top - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+    if (drag.moved) { const v = drag.v, px = v.width / canvas.width; canvas.style.transform = `translate(${dx}px, ${dy}px)`; drag.pend = [v.cx - dx*px, v.cy + dy*px]; }
+  });
+  window.addEventListener('mouseup', e => {
+    if (!drag) return; canvas.style.transform = '';
+    const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    if (drag.moved && drag.pend) setV(drag.pend[0], drag.pend[1], getV().width);
+    else if (!drag.moved) { const v = getV(), px = v.width / canvas.width; onClick([v.cx + (x - canvas.width/2)*px, v.cy - (y - canvas.height/2)*px]); }
+    const moved = drag.moved; drag = null; if (moved) redraw();
+  });
+  canvas.parentElement.addEventListener('wheel', e => {
+    e.preventDefault(); const v = getV(), px = v.width / canvas.width;
+    const at = [v.cx + (e.offsetX - canvas.width/2)*px, v.cy - (e.offsetY - canvas.height/2)*px];
+    const f = Math.exp(e.deltaY * 0.0015), w = v.width * f;
+    setV(at[0] + (v.cx - at[0])*f, at[1] + (v.cy - at[1])*f, w); clearTimeout(canvas._wt); canvas._wt = setTimeout(redraw, 180);
+  }, { passive: false });
+}
+attachPanZoom(pc, () => S, (x, y, w) => { moveCentre(x, y); S.width = w; }, pickMap, drawParam);
+attachPanZoom(dc, () => Dv, (x, y, w) => { Dv.cx = x; Dv.cy = y; Dv.width = w; }, () => {}, drawDyn);
+document.getElementById('reset').onclick = () => { const k = Math.max(0, currentSheet()); S.cx = 0.25; S.cy = 0; S.width = 2.6; const g = globalAtCentre(); S.xc = g[k]; drawParam(); };
+document.getElementById('dfit').onclick = () => { dfit(); drawDyn(); };
+document.getElementById('dinv').onclick = () => { Dv.inv = !Dv.inv; Dv.cx = 0; Dv.cy = 0; Dv.width = 4; drawDyn(); };
+document.getElementById('showMarks').onchange = drawParamOverlay;
+[pit, del, rel, tol, document.getElementById('res')].forEach(el => el.addEventListener('change', () => { labelsUpdate(); drawParam(); drawDyn(); }));
+dit.addEventListener('change', () => { labelsUpdate(); if (Dv.map) { Dv.cycle = CORE.freeCycle(CORE.mapData(Dv.map.x, Dv.map.y), +dit.value, settings().tol); } drawDyn(); });
+[pit, dit, del, tol].forEach(el => el.addEventListener('input', labelsUpdate));
+const jump = document.getElementById('jump');
+DATA.centers.forEach((c, i) => { const o = document.createElement('option'); o.value = 'c' + i; o.textContent = `centre ${c.label} (sheet ${c.sheet})`; jump.appendChild(o); });
+DATA.punctures.forEach((p, i) => { const o = document.createElement('option'); o.value = 'p' + i; o.textContent = `puncture ${p.name} (sheet ${p.sheet})`; jump.appendChild(o); });
+jump.onchange = () => {
+  const v = jump.value; if (!v) return;
+  const m = v[0] === 'c' ? DATA.centers[+v.slice(1)] : DATA.punctures[+v.slice(1)];
+  let y = m.y.slice();
+  if (v[0] === 'p') { const d = [0.31 - y[0], -0.47 - y[1]], L = Math.hypot(d[0], d[1]) || 1; y = [y[0] + 0.01*d[0]/L, y[1] + 0.01*d[1]/L]; }
+  S.cx = y[0]; S.cy = y[1]; S.width = v[0] === 'c' ? 0.2*(1 + Math.hypot(y[0], y[1])) : 0.05*(1 + Math.hypot(y[0], y[1]));
+  const g = globalAtCentre(); if (!g) return;
+  let b = 0, bd = Infinity; g.forEach((r, k) => { const d = CORE.chord(r, m.x); if (d < bd) { bd = d; b = k; } });
+  S.xc = g[b]; drawParam(); if (v[0] === 'c') pickMap(m.y);
+};
+// legend
+const LEG = [['#2a78d6', 'captured, phase 0 (ω in the basin of U₀)'], ['#eb6834', 'captured, phase 1'], ['#1baf7a', 'captured, phase 2'],
+  ['#eda100', 'captured, phase 3'], ['#e87ba4', 'captured, phase 4'], ['#7f3fbf', 'captured, phase 5'], ['#a0522d', 'captured, phase 6'], ['#00969f', 'captured, phase 7'],
+  ['#555555', 'attracting fixed point (polynomial components)'], ['#a3a3a3', 'other attracting cycle'],
+  ['#121212', 'undecided: bifurcation locus / Julia set'], ['#551414', 'branch not continued (branch point, or the y = 0 cluster zone)']];
+legend.innerHTML = LEG.map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('') +
+  '<span></span><span class="status">Darker shade = later capture. In the dynamical plane greys are basins of the free cycle by component.</span>';
+labelsUpdate();
+{ const g0 = globalAtCentre(); S.xc = g0 ? g0[S.sheet] : null; }
+(function () {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('y') && h.get('x')) {             // deep link from the 3-D surface: #y=re,im&x=re,im
+    const y = h.get('y').split(',').map(Number), x = h.get('x').split(',').map(Number);
+    S.cx = y[0]; S.cy = y[1]; S.width = 0.15*(1 + Math.hypot(y[0], y[1]));
+    S.xc = x; drawParam(); pickMap(y); return;            // E93: the given point is on the curve; no global continuation needed
+  }
+  const i0 = DATA.centers.findIndex(c => c.label === 2); jump.value = 'c' + Math.max(0, i0); jump.onchange();
+})();
+</script>
+</body>
+</html>
