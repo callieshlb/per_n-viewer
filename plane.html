@@ -50,6 +50,12 @@
   </div>
   <div class="legend" id="legend"></div>
   <p style="margin:4px 0"><button id="home">Reset view</button></p>
+  <details open id="raybox" style="display:none"><summary><b>External rays</b></summary>
+    <div class="sub">Angles as p/q or decimals, separated by commas, e.g. <code>1/3, 2/3, 1/7, 1/6</code>. Parameter rays are drawn
+      here; the dynamic rays of the same angles are drawn in the dynamical plane (for the selected c). Rational angles get their
+      exact landing point (a root, or a Misiurewicz point).</div>
+    <input id="rayin" size="24" value="1/3, 2/3, 1/7, 2/7, 1/6" style="margin:4px 0"> <button id="raygo">Draw</button> <button id="rayclr">Clear</button>
+    <div id="rayout" class="sub" style="font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap"></div></details>
   <details open><summary><b>Polynomial centres and punctures</b></summary>
     <input id="mfilter" size="28" placeholder="filter: 1/3, puncture, rabbit …" style="margin:4px 0">
     <div id="mlist"></div></details>

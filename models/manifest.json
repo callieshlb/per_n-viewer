@@ -1,5 +1,5 @@
 {
- "built_from": "448a3ca",
+ "built_from": "b2b59ef",
  "models": [
   {
    "id": "per1",
@@ -20,6 +20,7 @@
     ],
     "upp": 0.006
    },
+   "rays": true,
    "normal": "f(z) = z<sup>2</sup> + c. Marked cycle {\u221e} (critical, fixed); capture = escape to \u221e. Free critical point 0.",
    "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py."
   },

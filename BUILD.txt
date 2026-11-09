@@ -1,4 +1,4 @@
-Per_n(0) atlas, built by runs/2026-11-09-E96-pern-site/make_site.py at commit 448a3ca
+Per_n(0) atlas, built by runs/2026-11-09-E96-pern-site/make_site.py at commit b2b59ef
 n 3 puncture 0 loop0 param -10003.0001 + 0i -> inf (distance 1e+04)
 n 3 puncture 1 loop0 param 4.99900005e-05 + 0.009997875474i -> 0 (distance 0.01)
 n 4 puncture 0 loop0 param -40013.00078 + 0i -> inf (distance 4e+04)

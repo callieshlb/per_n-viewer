@@ -61,6 +61,84 @@ var PM = (function () {
     if (cabs(Bp) >= cabs(Bm)) x = cabs(A) === 0 ? null : cdiv(Bp, cscale(A, 2)); else x = cdiv(cscale(C, 2), Bm);
     return { x: x, y: y, X: X, r: r };
   }
+
+  // ---- external rays for z^2 + c (Per_1). Angle theta = p/q (BigInt, exact doubling).
+  // Parameter ray: points c with Phi_M(c) = rho e^(2 pi i theta), Phi_M(c) ~ (f_c^n(c))^(1/2^n): Newton on f_c^n(c) = w.
+  // Dynamic ray of f_c: points z with phi_c(z) = rho e^(2 pi i theta): Newton on f_c^n(z) = w.
+  // Potential levels log rho_k = log(rho0) 2^(-k/S); n = ceil(k/S) keeps |w| in [rho0, rho0^2]. Stops when consecutive points
+  // are closer than 1e-10 (landed, to the precision of the ray's approach) or at depth 50.
+  function parseAngle(s) {
+    s = String(s).trim(); var m;
+    if ((m = s.match(/^(\d+)\s*\/\s*(\d+)$/))) { var p = BigInt(m[1]), q = BigInt(m[2]); if (q === 0n) return null; return { p: p % q, q: q, text: s }; }
+    if ((m = s.match(/^0?\.(\d+)$/))) { var q2 = 10n ** BigInt(m[1].length); return { p: BigInt(m[1]) % q2, q: q2, text: s }; }
+    return null;
+  }
+  function angAt(a, n) { var t = (a.p * (2n ** BigInt(n))) % a.q; return Number(t)/Number(a.q); }
+  function traceRay(kind, a, c, S, kmax) {
+    S = S || 8; kmax = kmax || 50*S;
+    var rho0 = 100, L0 = Math.log(rho0), t0 = 2*Math.PI*angAt(a, 0);
+    var v = [rho0*Math.cos(t0), rho0*Math.sin(t0)], out = [v], landed = false;
+    for (var k = 1; k <= kmax; k++) {
+      var logr = L0*Math.pow(2, -k/S), n = Math.ceil(k/S), th = 2*Math.PI*angAt(a, n), mod = Math.exp(Math.pow(2, n)*logr);
+      var w = [mod*Math.cos(th), mod*Math.sin(th)], ok = false;
+      for (var it = 0; it < 30; it++) {
+        var z = v, dz = [1, 0];
+        for (var j = 0; j < n; j++) {
+          dz = kind === 'param' ? cadd(cscale(cmul(z, dz), 2), [1, 0]) : cscale(cmul(z, dz), 2);
+          z = cadd(cmul(z, z), kind === 'param' ? v : c);
+        }
+        var step = cdiv(csub(z, w), dz); v = csub(v, step);
+        if (!isFinite(v[0]) || !isFinite(v[1])) return { pts: out, landed: false, failed: true };
+        if (cabs(step) < 1e-14*(1 + cabs(v))) { ok = true; break; }
+      }
+      out.push(v);
+      if (!ok) return { pts: out, landed: false, failed: true };
+      if (k > 4*S && cabs(csub(v, out[out.length - 2])) < 1e-10) { landed = true; break; }
+    }
+    return { pts: out, landed: landed, end: out[out.length - 1], depth: Math.ceil(out.length/S) };
+  }
+
+  // exact landing points for rational angles (the traced ray reaches a parabolic point only very slowly).
+  // period of the angle under doubling: p >= 1 with 2^p p == p (mod q); preperiodic part -> null period.
+  function anglePeriod(a) { var q = a.q; if (q % 2n === 0n) return null; var t = (a.p*2n) % q, p = 1; while (t !== a.p % q && p < 4096) { t = (t*2n) % q; p++; } return p; }
+  function fpDerivs(z, c, p) {     // f_c^p(z) and d/dz, d/dc, d2/dz2, d2/dzdc
+    var a = [1, 0], b = [0, 0], s2 = [0, 0], m = [0, 0];
+    for (var j = 0; j < p; j++) {
+      var z2 = cscale(z, 2);
+      s2 = cadd(cscale(cmul(a, a), 2), cmul(z2, s2)); m = cadd(cscale(cmul(b, a), 2), cmul(z2, m));
+      a = cmul(z2, a); b = cadd(cmul(z2, b), [1, 0]); z = cadd(cmul(z, z), c);
+    }
+    return { z: z, a: a, b: b, s: s2, m: m };
+  }
+  function dynLanding(c, z0, p) {                 // periodic point of period dividing p near z0 (Newton on f^p(z) = z)
+    var z = z0;
+    for (var it = 0; it < 100; it++) { var d = fpDerivs(z, c, p), st = cdiv(csub(d.z, z), csub(d.a, [1, 0])); z = csub(z, st); if (cabs(st) < 1e-15*(1 + cabs(z))) break; }
+    var d2 = fpDerivs(z, c, p); return { z: z, res: cabs(csub(d2.z, z)), mult: d2.a };
+  }
+  function paramLanding(cE, a, p) {               // root: the p-cycle met by the dynamic ray, multiplier continued to 1
+    var zr = traceRay('dyn', a, cE).pts, z = dynLanding(cE, zr[zr.length - 1], p).z, c = cE;
+    var lam0 = fpDerivs(z, c, p).a, N = 200;
+    for (var i = 1; i <= N; i++) {
+      var t = i/N, tt = 1 - (1 - t)*(1 - t)*(1 - t), lam = cadd(cscale(lam0, 1 - tt), [tt*(1 - 1e-12), 0]);
+      for (var it = 0; it < 60; it++) {
+        var d = fpDerivs(z, c, p), F1 = csub(d.z, z), F2 = csub(d.a, lam);
+        var J11 = csub(d.a, [1, 0]), J12 = d.b, J21 = d.s, J22 = d.m, det = csub(cmul(J11, J22), cmul(J12, J21));
+        var dz = cdiv(csub(cmul(J22, F1), cmul(J12, F2)), det), dc = cdiv(csub(cmul(J11, F2), cmul(J21, F1)), det);
+        z = csub(z, dz); c = csub(c, dc);
+        if (cabs(dz) + cabs(dc) < 1e-15) break;
+      }
+    }
+    var e = fpDerivs(z, c, p); return { c: c, z: z, res: cabs(csub(e.z, z)), mult: e.a };
+  }
+  function rayWithLanding(kind, a, c) {
+    var r = traceRay(kind, a, c), p = anglePeriod(a), end = r.pts[r.pts.length - 1];
+    if (p !== null && !r.landed) {
+      if (kind === 'dyn') { var L = dynLanding(c, end, p); r.landing = L.z; r.how = 'Newton on f^' + p + '(z) = z, multiplier ' + fmt(L.mult, 4); }
+      else { var P = paramLanding(end, a, p); r.landing = P.c; r.how = 'root: period-' + p + ' cycle with multiplier continued to 1 (' + fmt(P.mult, 6) + ')'; }
+      r.jump = cabs(csub(r.landing, end));
+    } else { r.landing = end; r.how = r.landed ? 'ray converged (|step| < 1e-10)' : 'end of traced ray (depth 50)'; }
+    r.period = p; return r;
+  }
   // ---- maps
   function corMap(x, y, n) {
     var w = cdiv([x[0]+y[0]-1, x[1]+y[1]], [x[0]-1, x[1]]);
@@ -121,6 +199,6 @@ var PM = (function () {
   function fateText(f) { return f.kind === 'capture' ? 'captured by the marked cycle, phase ' + f.phase + ', time ' + f.t
     : f.kind === 'cycle' ? 'attracting cycle, period ' + f.period : 'undecided (bifurcation locus)'; }
   return { cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY,
-           corMap: corMap, mapFrom: mapFrom, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
+           corMap: corMap, mapFrom: mapFrom, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
 })();
 if (typeof module !== 'undefined') module.exports = PM;

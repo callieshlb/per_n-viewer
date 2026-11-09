@@ -49,8 +49,27 @@
           g.fillStyle = m.kind === 'centre' ? '#fff' : '#ffd0d8'; g.fillText(m.label, s[0] + 8, s[1]); }
       }
     }
+    if (RAYS.length) drawRays(g, W, H);
     if (picked) { const s = pv.toScreen(picked); g.strokeStyle = '#fff'; g.lineWidth = 2;
       g.beginPath(); g.moveTo(s[0] - 9, s[1]); g.lineTo(s[0] + 9, s[1]); g.moveTo(s[0], s[1] - 9); g.lineTo(s[0], s[1] + 9); g.stroke(); }
+  }
+  // ---- external rays (manifest rays: true; z^2 + c only)
+  let RAYS = [];
+  const RAYC = ['#ffe650', '#7cf', '#f9a', '#9f9', '#fc6', '#c9f', '#6ff', '#f66'];
+  function drawRays(g, W, H) {
+    RAYS.forEach((r, i) => { const col = RAYC[i % RAYC.length];
+      g.beginPath(); r.pts.forEach((q, j) => { const s = pv.toScreen(q); j ? g.lineTo(...s) : g.moveTo(...s); });
+      g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = 3.5; g.stroke(); g.strokeStyle = col; g.lineWidth = 1.8; g.stroke();
+      if (r.jump !== undefined) { const a = pv.toScreen(r.pts[r.pts.length - 1]), b = pv.toScreen(r.landing);
+        g.setLineDash([3, 3]); g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.stroke(); g.setLineDash([]); }
+      const s = pv.toScreen(r.landing); g.beginPath(); g.arc(s[0], s[1], 4, 0, 2*Math.PI); g.fillStyle = col; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1; g.stroke();
+      if (opt.ml) { g.font = '600 12px system-ui'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(r.a.text, s[0] + 6, s[1] - 8); g.fillStyle = col; g.fillText(r.a.text, s[0] + 6, s[1] - 8); } });
+  }
+  function setRays(text) {
+    const angs = text.split(',').map(t => PM.parseAngle(t)).filter(Boolean);
+    RAYS = angs.map(a => ({ a, ...PM.rayWithLanding('param', a, null) }));
+    $('rayout').textContent = RAYS.map(r => `${r.a.text}: lands at c = ${PM.fmt(r.landing, 10)}\n  (${r.how}${r.period ? ', angle period ' + r.period : ', preperiodic angle'})`).join('\n');
+    parent.postMessage({ e96: 'rays', angles: angs.map(a => a.text) }, '*'); pv.redraw();
   }
   function showCard(title, lines) {
     const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
@@ -97,6 +116,9 @@
   }
   $('mfilter').oninput = buildList; buildList();
   window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'goto' && d.p) { pv.ctr = d.p.slice(); pv.redraw(); pick(d.p, null); } });
+  if (E.rays) { setTimeout(() => setRays($('rayin').value), 300); $('raybox').style.display = ''; $('raygo').onclick = () => setRays($('rayin').value);
+    $('rayin').addEventListener('keydown', e => { if (e.key === 'Enter') setRays(e.target.value); });
+    $('rayclr').onclick = () => { RAYS = []; $('rayout').textContent = ''; parent.postMessage({ e96: 'rays', angles: [] }, '*'); pv.redraw(); }; }
   if (window.innerWidth < 650) $('minb').onclick();
   window.E96READY = true;
 })().catch(e => { document.body.innerHTML = '<pre style="color:#fff;padding:20px">' + e.stack + '</pre>'; console.error(e); });

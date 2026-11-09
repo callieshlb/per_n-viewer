@@ -24,7 +24,7 @@
     for (const m of man.models) $('b_' + m.id).classList.toggle('on', m.id === id);
     $('kind').textContent = { plane: 'parameter plane', torus: 'flat torus (genus 1)', hyperbolic: 'hyperbolic model (uniformized compact curve)' }[cur.kind] || '';
     $('frame').src = cur.page; history.replaceState(null, '', '#' + id);
-    M = null; sel = null; $('dhint').style.display = ''; dv.redraw();
+    M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     $('status').textContent = `${cur.titleText}: ${cur.kind === 'hyperbolic' ? 'loading the model (tens of MB; the first load can take a while)…' : 'click a parameter'}`;
   }
   // ---- dynamical plane
@@ -47,6 +47,12 @@
         g.stroke(); g.fillStyle = '#ffe650';
         for (const z of o) if (z) { const s = dv.toScreen(z); g.fillRect(s[0] - 1.5, s[1] - 1.5, 3, 3); }
       }
+      const RC = ['#ffe650', '#7cf', '#f9a', '#9f9', '#fc6', '#c9f', '#6ff', '#f66'];
+      DRAYS.forEach((r, i) => { const col = RC[i % RC.length];
+        g.beginPath(); r.pts.forEach((q, j) => { const s = dv.toScreen(q); j ? g.lineTo(...s) : g.moveTo(...s); });
+        g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = 3.5; g.stroke(); g.strokeStyle = col; g.lineWidth = 1.8; g.stroke();
+        const s = dv.toScreen(r.landing); g.beginPath(); g.arc(s[0], s[1], 4, 0, 2*Math.PI); g.fillStyle = col; g.fill();
+        g.font = '600 12px system-ui'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(r.a.text, s[0] + 6, s[1] - 8); g.fillStyle = col; g.fillText(r.a.text, s[0] + 6, s[1] - 8); });
       g.font = '600 12px system-ui'; g.textBaseline = 'middle';
       const dot = (z, fill, lab) => { const s = dv.toScreen(z); if (s[0] < -20 || s[1] < -20 || s[0] > W + 20 || s[1] > H + 20) return;
         g.beginPath(); g.arc(s[0], s[1], 5, 0, 2*Math.PI); g.fillStyle = fill; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
@@ -74,7 +80,10 @@
       `marked cycle: ${M.marked.map((a, j) => 'a' + j + ' = ' + PM.fmt(a, 5)).join(',  ')}   (closes to ${PM.closure(M).toExponential(1)})\n` +
       `free critical point ω = ${PM.fmt(M.omega, 6)}: ${PM.fateText(f)}   |   iterates ${dv.maxIt}, δ ${dv.delta.toExponential(0)}`;
   }
+  let RAYA = [], DRAYS = [];
+  function dynRays() { DRAYS = (M && cur && cur.family === 'quad') ? RAYA.map(t => { const a = PM.parseAngle(t); return { a, ...PM.rayWithLanding('dyn', a, M.C) }; }) : []; }
   window.addEventListener('message', ev => {
+    const d0 = ev.data; if (d0 && d0.e96 === 'rays') { RAYA = d0.angles || []; dynRays(); dv.redraw(); return; }
     const d = ev.data; if (!d || d.e96 !== 'param' || !cur) return;
     const q = { p: d.p, x: d.x, y: d.y };
     const fam = cur.kind === 'hyperbolic' ? 'cor' : cur.family;
@@ -82,7 +91,7 @@
     if (!m) { $('status').textContent = `${cur.titleText}: degenerate map at this point (puncture)`; return; }
     M = m; sel = { p: d.p || null, x: d.x || (m.x || null), y: d.y || (m.y || null), label: d.label };
     if (cur.family === 'quad' || cur.family === 'per2') { sel.x = null; sel.y = null; }
-    $('dhint').style.display = 'none'; fit(); $('status').textContent = statusText();
+    $('dhint').style.display = 'none'; dynRays(); fit(); $('status').textContent = statusText();
   });
   window.SHELL = { get M() { return M; }, get sel() { return sel; }, dv, choose };
   // ---- controls
