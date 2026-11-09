@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Per_6(0) explorer</title>
+<style>
+  :root { --ink:#2b2b2b; --muted:#6b6b6b; --faint:#d9d9d9; --bg:#fafaf8; }
+  body { margin:0; font:13px/1.4 -apple-system, system-ui, sans-serif; color:var(--ink); background:var(--bg); }
+  header { padding:8px 14px; border-bottom:1px solid var(--faint); display:flex; gap:18px; align-items:baseline; flex-wrap:wrap; }
+  header h1 { font-size:15px; margin:0; font-weight:600; }
+  header .sub { color:var(--muted); }
+  main { display:flex; gap:14px; padding:10px 14px; flex-wrap:wrap; }
+  .panel { display:flex; flex-direction:column; gap:6px; }
+  .wrap { position:relative; border:1px solid var(--faint); background:#111; align-self:flex-start; }
+  canvas { display:block; }
+  canvas.ov { position:absolute; left:0; top:0; pointer-events:none; }
+  .row { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .ctrl { display:grid; grid-template-columns:auto 1fr auto; gap:4px 8px; align-items:center; }
+  button { font:inherit; padding:2px 8px; border:1px solid #bbb; background:#fff; border-radius:4px; cursor:pointer; }
+  button.on { background:var(--ink); color:#fff; border-color:var(--ink); }
+  select, input[type=number] { font:inherit; }
+  .info { font-family:ui-monospace, Menlo, monospace; font-size:12px; white-space:pre-wrap; background:#fff; border:1px solid var(--faint); padding:6px 8px; min-height:150px; max-width:428px; }
+  .legend { display:grid; grid-template-columns:14px 1fr; gap:3px 6px; font-size:12px; color:var(--ink); }
+  .sw { width:14px; height:14px; border-radius:2px; }
+  .status { color:var(--muted); font-size:12px; }
+  details summary { cursor:pointer; color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Per<sub>6</sub>(0) explorer</h1>
+  <span class="sub">Chart: f(z) = (z−x)(z−w)/z², w = (x+y−1)/(x−1); y = a<sub>3</sub>, x = a<sub>5</sub>. Drag to pan, wheel to zoom, click to pick a map.</span>
+</header>
+<main>
+  <section class="panel">
+    <div class="row"><b>Parameter space</b> <span class="status" id="pstat"></span></div>
+    <div class="wrap" id="pwrap"><canvas id="pc" width="640" height="640"></canvas><canvas id="po" class="ov" width="640" height="640"></canvas></div>
+    <div class="row">Sheet at view centre:
+      <span id="sheetbtns"></span>
+      <span class="status" id="sheetnote"></span>
+    </div>
+    <div class="row">
+      <button id="reset">Reset view</button>
+      Jump to: <select id="jump"><option value="">(choose)</option></select>
+      <label><input type="checkbox" id="showMarks" checked> markers</label>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="row"><b>Dynamical plane</b> <span class="status" id="dstat"></span></div>
+    <div class="wrap"><canvas id="dc" width="440" height="440"></canvas><canvas id="do" class="ov" width="440" height="440"></canvas></div>
+    <div class="row"><button id="dfit">Fit marked points</button><button id="dinv">z ↦ 1/z chart</button></div>
+    <div class="info" id="info">Click a parameter.</div>
+  </section>
+  <section class="panel" style="max-width:330px">
+    <b>Settings</b>
+    <div class="ctrl">
+      <span>Parameter iterates</span><input type="range" id="pit" min="50" max="5000" step="50" value="600"><span id="pitv"></span>
+      <span>Dynamics iterates</span><input type="range" id="dit" min="50" max="5000" step="50" value="400"><span id="ditv"></span>
+      <span>Capture radius δ</span><input type="range" id="del" min="-7" max="-1" step="0.25" value="-3"><span id="delv"></span>
+      <span>Radius is relative</span><input type="checkbox" id="rel" checked><span></span>
+      <span>Period tolerance</span><input type="range" id="tol" min="-12" max="-3" step="0.5" value="-7"><span id="tolv"></span>
+      <span>Resolution</span><select id="res"><option value="1">full</option><option value="2" selected>1/2</option><option value="3">1/3</option></select><span></span>
+    </div>
+    <b>Colours</b>
+    <div class="legend" id="legend"></div>
+    <details><summary>What is drawn</summary>
+      <p>Each view of parameter space is one branch of x(y) continued from the view centre along straight
+      segments (rounding the node at y = 0), so a view is a chart of Per<sub>6</sub>(0). Branch cuts appear as rays from
+      branch points (×) pointing away from the view centre. "Sheet" is the atlas label (continuation from the fixed
+      base point y<sub>0</sub>), shown for the view centre; panning keeps you on the same local branch.</p>
+      <p>Colour = fate of the free critical point ω = 2xw/(x+w): captured by the marked cycle (hue = phase: the
+      component U<sub>j</sub> of the marked cycle whose basin contains ω), attracted to another cycle (greys), or
+      undecided (black: bifurcation locus). Dark red: the branch could not be continued (at a branch point).</p>
+      <p>Markers: white dots = the 27 polynomial centres (even numerator /63); red squares = the 18 punctures; × = branch points;
+      ○ = the node at y = 0. A marker is drawn only when it lies on the branch being shown. Punctures over y = 1 sit at
+      x = ∞ where two sheets meet, so their sheet is a convention.</p>
+    </details>
+  </section>
+</main>
+<script id="core">
+// Per_6(0) explorer core (E92). Double precision. Shared by the page, its web workers, and node tests.
+// Curve: P7(x, y) = sum_k x^k sum_j coef[k][j] y^j = 0 in Caroline's chart
+//   f(z) = (z - x)(z - w)/z^2,  w = (x + y - 1)/(x - 1);  y = a_3, x = a_5; marked orbit 0 -> inf -> 1 -> y -> f(y) -> x -> 0.
+// Sheets: the 5 roots x(y), labelled by continuation from the base point y0 along the straight segment,
+// with a detour around the node at y = 0 (trivial monodromy) on the segment's own side.
+'use strict';
+var CORE = (function () {
+  var D = null;            // data: coef, y0, x0, bps, perms, centers, punctures
+  var NODE_R = 0.12;
+  var specials = [];       // branch points (incl. the node) for step-size control
+
+  function init(data) {
+    D = data;
+    specials = data.bps.map(function (b) { return [b[0], b[1]]; });
+  }
+
+  // ---- complex helpers on [re, im]
+  function cmul(a, b) { return [a[0]*b[0]-a[1]*b[1], a[0]*b[1]+a[1]*b[0]]; }
+  function cdiv(a, b) { var d = b[0]*b[0]+b[1]*b[1]; return [(a[0]*b[0]+a[1]*b[1])/d, (a[1]*b[0]-a[0]*b[1])/d]; }
+  function cabs(a) { return Math.hypot(a[0], a[1]); }
+  function csub(a, b) { return [a[0]-b[0], a[1]-b[1]]; }
+  function cadd(a, b) { return [a[0]+b[0], a[1]+b[1]]; }
+  function chord(a, b) {     // chordal distance; b may be null = infinity
+    if (b === null) return 1/Math.sqrt(1+a[0]*a[0]+a[1]*a[1]);
+    var dr = a[0]-b[0], di = a[1]-b[1];
+    return Math.sqrt(dr*dr+di*di)/Math.sqrt((1+a[0]*a[0]+a[1]*a[1])*(1+b[0]*b[0]+b[1]*b[1]));
+  }
+
+  // ---- coefficients c_k(y) and dc_k/dy
+  function coeffs(y) {
+    var n = D.coef.length, c = [], dc = [];
+    for (var k = 0; k < n; k++) {
+      var row = D.coef[k], m = row.length;
+      var pr = 0, pi = 0, qr = 0, qi = 0;     // Horner for value and derivative
+      for (var j = m-1; j >= 0; j--) {
+        var tr = qr*y[0]-qi*y[1]+pr, ti = qr*y[1]+qi*y[0]+pi;   // q = q*y + p
+        qr = tr; qi = ti;
+        var ur = pr*y[0]-pi*y[1]+row[j], ui = pr*y[1]+pi*y[0];   // p = p*y + a_j
+        pr = ur; pi = ui;
+      }
+      c.push([pr, pi]); dc.push([qr, qi]);
+    }
+    // leading coefficient is exactly (y-1)^2; avoid cancellation near y = 1
+    var e = [y[0]-1, y[1]];
+    c[n-1] = cmul(e, e); dc[n-1] = [2*e[0], 2*e[1]];
+    return [c, dc];
+  }
+  // P, dP/dx, dP/dy at (x, y) given coefficients
+  function pEval(x, cc) {
+    var c = cc[0], dc = cc[1], n = c.length;
+    var p = [0, 0], px = [0, 0], py = [0, 0];
+    for (var k = n-1; k >= 0; k--) {
+      px = cadd(cmul(px, x), p);
+      p = cadd(cmul(p, x), c[k]);
+      py = cadd(cmul(py, x), dc[k]);
+    }
+    return [p, px, py];
+  }
+  function newton(x, cc, maxit) {
+    for (var it = 0; it < maxit; it++) {
+      var e = pEval(x, cc);
+      var dx = cdiv(e[0], e[1]);
+      x = csub(x, dx);
+      if (cabs(dx) <= 1e-11*(1+cabs(x))) return [x, it+1];   // 1e-13 is unreachable next to the near-double roots at the node y = 0
+    }
+    return [x, -1];
+  }
+  function distSpecial(y) {
+    var m = Infinity;
+    for (var i = 0; i < specials.length; i++) { var d = Math.hypot(y[0]-specials[i][0], y[1]-specials[i][1]); if (d < m) m = d; }
+    return m;
+  }
+  // waypoints from a to b, detouring around the node at 0 on the segment's own side
+  function arcTo(r, f1, f2, n) {        // points on |y| = r from angle f1 to f2 (shorter way); excludes f1
+    var df = ((f2-f1+Math.PI) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI) - Math.PI, out = [];
+    for (var i = 1; i <= n; i++) { var f = f1+df*i/n; out.push([r*Math.cos(f), r*Math.sin(f)]); }
+    return out;
+  }
+  function waypoints(a, b) {
+    var v = csub(b, a), L2 = v[0]*v[0]+v[1]*v[1];
+    if (L2 === 0) return [a, b];
+    var ra = cabs(a), rb = cabs(b);
+    // endpoints inside the node disk: the only special point there is the node (trivial monodromy),
+    // so any path in the disk is equivalent; never approach 0 closer than the endpoints do.
+    if (rb < NODE_R || ra < NODE_R) {
+      var tt = Math.min(1, Math.max(0, -(a[0]*v[0]+a[1]*v[1])/L2));
+      var cl = cabs([a[0]+tt*v[0], a[1]+tt*v[1]]);
+      if (cl >= 0.5*Math.min(ra, rb)) return [a, b];
+      var r = Math.max(Math.min(Math.max(ra, rb), NODE_R), 1e-12);
+      var A = [r*a[0]/ra, r*a[1]/ra], Bp = [r*b[0]/rb, r*b[1]/rb];
+      var path = [a];
+      if (ra > r) path = waypoints(a, A); else if (ra < r) path.push(A);
+      path = path.concat(arcTo(r, Math.atan2(a[1], a[0]), Math.atan2(b[1], b[0]), 24));
+      if (rb !== r) path.push(b);
+      return path;
+    }
+    var t = -(a[0]*v[0]+a[1]*v[1])/L2;
+    var cl = [a[0]+t*v[0], a[1]+t*v[1]];
+    if (!(t > 0 && t < 1 && cabs(cl) < NODE_R && cabs(a) > NODE_R && cabs(b) > NODE_R)) return [a, b];
+    var A = L2, Bq = 2*(a[0]*v[0]+a[1]*v[1]), C = a[0]*a[0]+a[1]*a[1]-NODE_R*NODE_R;
+    var disc = Math.sqrt(Math.max(Bq*Bq-4*A*C, 0));
+    var t1 = (-Bq-disc)/(2*A), t2 = (-Bq+disc)/(2*A);
+    var p1 = [a[0]+t1*v[0], a[1]+t1*v[1]], p2 = [a[0]+t2*v[0], a[1]+t2*v[1]];
+    var f1 = Math.atan2(p1[1], p1[0]), f2 = Math.atan2(p2[1], p2[0]);
+    var df = ((f2-f1+Math.PI) % (2*Math.PI) + 2*Math.PI) % (2*Math.PI) - Math.PI;
+    var out = [a, p1];
+    for (var i = 1; i <= 24; i++) { var f = f1+df*i/24; out.push([NODE_R*Math.cos(f), NODE_R*Math.sin(f)]); }
+    out.push(b);
+    return out;
+  }
+  // track the roots xs (array) along the straight segment a -> b with adaptive steps;
+  // a step is accepted when every root's Newton converges from its tangent predictor and roots stay distinct.
+  function trackSegment(xs, a, b) {
+    var v = csub(b, a), L = cabs(v);
+    if (L === 0) return xs;
+    var t = 0, cur = xs.slice(), cc = coeffs(a);
+    var dxdy = cur.map(function (x) { var e = pEval(x, cc); return cdiv([-e[2][0], -e[2][1]], e[1]); });
+    var guard = 0;
+    while (t < 1 && guard < 200000) {
+      guard++;
+      var ycur = [a[0]+t*v[0], a[1]+t*v[1]];
+      var h = Math.min(0.5, Math.max(1e-7, 0.15*distSpecial(ycur)));
+      var dt = Math.min(1-t, h/L);
+      var ok = false;
+      for (var tries = 0; tries < 40 && !ok; tries++) {
+        var t2 = t+dt, y2 = [a[0]+t2*v[0], a[1]+t2*v[1]], dy = [v[0]*dt, v[1]*dt];
+        var cc2 = coeffs(y2), nx = [], good = true;
+        for (var r = 0; r < cur.length && good; r++) {
+          var pred = cadd(cur[r], cmul(dxdy[r], dy));
+          var res = newton(pred, cc2, 12);
+          if (res[1] < 0 || cabs(csub(res[0], pred)) > 0.3*(cabs(cmul(dxdy[r], dy))+1e-9*(1+cabs(cur[r])))+1e-12) good = false;
+          nx.push(res[0]);
+        }
+        if (good && nx.length > 1) {
+          for (var i = 0; i < nx.length && good; i++) for (var j = i+1; j < nx.length; j++)
+            if (chord(nx[i], nx[j]) < 1e-10) { good = false; break; }
+        }
+        if (good) {
+          ok = true; t = t2; cur = nx; cc = cc2;
+          dxdy = cur.map(function (x) { var e = pEval(x, cc); return cdiv([-e[2][0], -e[2][1]], e[1]); });
+        } else dt /= 2;
+      }
+      if (!ok) return null;          // could not continue (very close to a branch point)
+    }
+    return cur;
+  }
+  function track(xs, a, b) {
+    var w = waypoints(a, b), cur = xs;
+    for (var i = 1; i < w.length && cur; i++) cur = trackSegment(cur, w[i-1], w[i]);
+    return cur;
+  }
+  // the 5 globally labelled roots at y (atlas sheets)
+  function globalRoots(y) { return track(D.x0.slice(), D.y0, y); }
+  function sheetOf(y, x) {
+    var g = globalRoots(y);
+    if (!g) return -1;
+    var best = 0, bd = Infinity;
+    for (var k = 0; k < g.length; k++) { var d = chord(g[k], x); if (d < bd) { bd = d; best = k; } }
+    return best;
+  }
+
+  // ---- dynamics: f(z) = 1 - s/z + p/z^2 with s = x + w, p = x w.  z = null means infinity.
+  function mapData(x, y) {
+    var w = cdiv([x[0]+y[0]-1, x[1]+y[1]], [x[0]-1, x[1]]);
+    var s = cadd(x, w), p = cmul(x, w);
+    var om = cdiv([2*p[0], 2*p[1]], s);
+    var M = { x: x, y: y, w: w, s: s, p: p, omega: om };
+    M.a4 = fz(M, y);
+    M.marked = [[0, 0], null, [1, 0], y, M.a4, x];
+    // local scale of each marked point: chordal distance to the nearest other marked point
+    M.scale = M.marked.map(function (a, j) {
+      var m = 1;
+      for (var i = 0; i < 6; i++) if (i !== j) m = Math.min(m, chordN(a, M.marked[i]));
+      return m;
+    });
+    // chart of the census: F = 1 + b/z + c/z^2 with b = -s, c = p
+    M.b = [-s[0], -s[1]]; M.c = p;
+    return M;
+  }
+  function fz(M, z) {
+    if (z === null) return [1, 0];
+    var r2 = z[0]*z[0]+z[1]*z[1];
+    if (r2 < 1e-300) return null;
+    if (r2 > 1e300) return [1, 0];
+    var iz = [z[0]/r2, -z[1]/r2];
+    var t1 = cmul(M.s, iz), iz2 = cmul(iz, iz), t2 = cmul(M.p, iz2);
+    return [1-t1[0]+t2[0], -t1[1]+t2[1]];
+  }
+  function chordN(a, b) {   // chordal distance allowing nulls (infinity)
+    if (a === null && b === null) return 0;
+    if (a === null) return chord(b, null);
+    return chord(a, b);
+  }
+  // fate of a starting point z under f.
+  // returns {kind: 'capture', j, t, phase} | {kind: 'cycle', period, t, index} | {kind: 'undecided'}
+  // rel = true: capture radius at a_j is delta * (distance from a_j to the nearest other marked point)
+  function fate(M, z, maxIt, delta, tolP, cycle, rel) {
+    var ring = new Array(32);
+    var th = M.scale.map(function (s) { return rel ? delta*s : delta; });
+    for (var it = 0; it < maxIt; it++) {
+      z = fz(M, z);
+      for (var j = 0; j < 6; j++) {
+        if (chordN(z, M.marked[j]) < th[j]) return { kind: 'capture', j: j, t: it+1, phase: ((j-(it+1)) % 6 + 6) % 6 };
+      }
+      if (cycle) {
+        for (var q = 0; q < cycle.pts.length; q++)
+          if (chordN(z, cycle.pts[q]) < delta) return { kind: 'cycle', period: cycle.pts.length, t: it+1, index: ((q-(it+1)) % cycle.pts.length + cycle.pts.length) % cycle.pts.length };
+      }
+      ring[it % 32] = z;
+    }
+    if (!cycle) {
+      for (var per = 1; per <= 24; per++) {
+        var zp = ring[(maxIt-1-per+3200) % 32], zl = ring[(maxIt-1) % 32];
+        if (zp !== undefined && chordN(zl, zp) < tolP) return { kind: 'cycle', period: per, t: maxIt };
+      }
+    }
+    return { kind: 'undecided' };
+  }
+  // attracting cycle of the free critical point, if any (for the dynamical plane)
+  function freeCycle(M, maxIt, tolP) {
+    var z = M.omega, seq = [];
+    var n = Math.max(maxIt, 200);
+    for (var it = 0; it < n; it++) {
+      z = fz(M, z);
+      for (var j = 0; j < 6; j++) if (chordN(z, M.marked[j]) < 1e-9) return null;     // captured: no free cycle
+    }
+    var z0 = z;
+    for (var per = 1; per <= 48; per++) {
+      z = fz(M, z);
+      seq.push(z);
+      if (chordN(z, z0) < tolP) return { pts: seq };
+    }
+    return null;
+  }
+
+  return { init: init, coeffs: coeffs, pEval: pEval, newton: newton, track: track, waypoints: waypoints,
+           globalRoots: globalRoots, sheetOf: sheetOf, mapData: mapData, fz: fz, fate: fate, freeCycle: freeCycle,
+           chord: chord, chordN: chordN, cabs: cabs, cmul: cmul, cdiv: cdiv, csub: csub, cadd: cadd,
+           get D() { return D; } };
+})();
+
+
+</script>
+<script>
+const DATA = {"coef": [[0, 0, -1, 3, -1, -2, 0, 0], [0, 2, -4, -4, 7, 2, 0, 0], [-1, -2, 12, -5, -6, -1, 0, 0], [3, -4, -8, 9, 1, 0, 0, 0], [-3, 6, 0, -3, 0, 0, 0, 0], [1, -2, 1, 0, 0, 0, 0, 0]], "y0": [0.31, -0.47], "x0": [[0.09013384484196782, -0.5450964836240281], [0.22928952743293643, -0.36639921921491775], [0.9420271615453317, 0.644843737225386], [1.025405845715319, 0.21573624974943198], [1.6732727452851028, 0.6638712395370113]], "bps": [[0.5, 0.0], [1.0, 0.0], [0.0, 0.0], [-1.8843590460998318, 0.0], [-0.3659524461121294, 0.0], [0.22623522155644854, 0.0], [0.29842155222214767, 0.0], [0.5084879713155569, 0.0], [0.6018630281177185, 0.0], [1.0783675946854958, 0.0], [-7.452303584313667, -3.2640934010872154], [-7.452303584313667, 3.2640934010872154], [-0.462015914946609, -0.9796543894707559], [-0.462015914946609, 0.9796543894707559], [0.07169534419845876, -0.38465206188641815], [0.07169534419845876, 0.38465206188641815], [0.3610922172191149, -0.11695204870405901], [0.3610922172191149, 0.11695204870405901]], "perms": [[3, 4, 0, 2, 1], [3, 0, 2, 1, 4], [0, 1, 2, 3, 4], [4, 1, 2, 3, 0], [0, 1, 4, 3, 2], [4, 1, 2, 3, 0], [0, 2, 1, 3, 4], [0, 2, 1, 3, 4], [0, 2, 1, 3, 4], [2, 1, 0, 3, 4], [0, 1, 4, 3, 2], [0, 1, 2, 4, 3], [0, 4, 2, 3, 1], [0, 3, 2, 1, 4], [0, 1, 2, 4, 3], [0, 1, 2, 4, 3], [1, 0, 2, 3, 4], [0, 1, 4, 3, 2]], "centers": [{"x": [0.28626713060229414, -0.09077895375149343], "y": [0.619244951668055, -0.0514015224632499], "sheet": 1, "label": 2, "angles": [1, 2]}, {"x": [0.1532307832666009, 0.22002143332079455], "y": [0.5696056316622597, -0.03982457183964715], "sheet": 2, "label": 4, "angles": [3, 4]}, {"x": [0.471883781390955, -0.15441105722086143], "y": [0.49305687442034585, -0.006088027503938426], "sheet": 0, "label": 6, "angles": [5, 6]}, {"x": [0.14125912877431537, 0.2761389523343675], "y": [0.4616997413060954, 0.016217806491324826], "sheet": 4, "label": 8, "angles": [7, 8]}, {"x": [1.010338648266645, -0.1899261432354842], "y": [0.061475954771589424, 0.17246892753557125], "sheet": 4, "label": 10, "angles": [10, 17]}, {"x": [0.14967178486293917, 0.35683506823119415], "y": [0.24930137419049464, 0.27327822804899654], "sheet": 4, "label": 12, "angles": [11, 12]}, {"x": [0.9918241091407074, -0.5240756203221354], "y": [0.2079336931341357, 0.4343930720128135], "sheet": 2, "label": 14, "angles": [13, 14]}, {"x": [0.17094513070902895, 0.39332324224394216], "y": [0.1958660565463144, 0.4970512189625681], "sheet": 1, "label": 16, "angles": [15, 16]}, {"x": [0.05319893482671043, 0.6021253685669996], "y": [-1.8053403076912218, 0.9555528632149723], "sheet": 3, "label": 20, "angles": [19, 20]}, {"x": [8.268813306260189, -30.326323411215512], "y": [49.776970924588575, 3.4618369956025488], "sheet": 0, "label": 22, "angles": [22, 25]}, {"x": [0.8956297769384571, 0.8330108308671698], "y": [9.349682158552366, 0.2283947886105902], "sheet": 3, "label": 24, "angles": [23, 24]}, {"x": [-14.428022064585965, 0.0], "y": [-6.170490749113895, 0.0], "sheet": 1, "label": 26, "angles": [26, 37]}, {"x": [0.9838473415176634, 0.0], "y": [0.12792216632150336, 0.0], "sheet": 3, "label": 28, "angles": [28, 35]}, {"x": [-5.516949051329926, 0.0], "y": [0.7632100156606467, 0.0], "sheet": 4, "label": 34, "angles": [29, 34]}, {"x": [-5.055375774233589, 0.0], "y": [0.9276782780371412, 0.0], "sheet": 2, "label": 30, "angles": [30, 33]}, {"x": [0.8303745185541352, 0.0], "y": [0.9926861827965937, 0.0], "sheet": 1, "label": 32, "angles": [31, 32]}, {"x": [8.268813306260189, 30.326323411215512], "y": [49.776970924588575, -3.4618369956025488], "sheet": 2, "label": 38, "angles": [38, 41]}, {"x": [0.8956297769384571, -0.8330108308671698], "y": [9.349682158552366, -0.2283947886105902], "sheet": 1, "label": 40, "angles": [39, 40]}, {"x": [0.05319893482671043, -0.6021253685669996], "y": [-1.8053403076912218, -0.9555528632149723], "sheet": 4, "label": 44, "angles": [43, 44]}, {"x": [1.010338648266645, 0.1899261432354842], "y": [0.061475954771589424, -0.17246892753557125], "sheet": 4, "label": 46, "angles": [46, 53]}, {"x": [0.17094513070902895, -0.39332324224394216], "y": [0.1958660565463144, -0.4970512189625681], "sheet": 1, "label": 48, "angles": [47, 48]}, {"x": [0.9918241091407074, 0.5240756203221354], "y": [0.2079336931341357, -0.4343930720128135], "sheet": 2, "label": 50, "angles": [49, 50]}, {"x": [0.14967178486293917, -0.35683506823119415], "y": [0.24930137419049464, -0.27327822804899654], "sheet": 0, "label": 52, "angles": [51, 52]}, {"x": [0.14125912877431537, -0.2761389523343675], "y": [0.4616997413060954, -0.016217806491324826], "sheet": 1, "label": 56, "angles": [55, 56]}, {"x": [0.471883781390955, 0.15441105722086143], "y": [0.49305687442034585, 0.006088027503938426], "sheet": 2, "label": 58, "angles": [57, 58]}, {"x": [0.1532307832666009, -0.22002143332079455], "y": [0.5696056316622597, 0.03982457183964715], "sheet": 1, "label": 60, "angles": [59, 60]}, {"x": [0.28626713060229414, 0.09077895375149343], "y": [0.619244951668055, 0.0514015224632499], "sheet": 2, "label": 62, "angles": [61, 62]}], "punctures": [{"x": [-18533.173532394816, 0.0], "y": [-6693.501246844308, 0.0], "name": "26", "real": true, "q": 2, "sheet": 1}, {"x": [0.9999999900079949, 0.0], "y": [9.996001799e-05, 0.0], "name": "28", "real": true, "q": 2, "sheet": 3}, {"x": [-10001.000423401607, 0.0], "y": [0.999738383140445, 0.0], "name": "34", "real": true, "q": 2, "sheet": 4}, {"x": [-10000.99997642974, 0.0], "y": [0.999961806720666, 0.0], "name": "30", "real": true, "q": 2, "sheet": 2}, {"x": [0.9998999899969994, 0.0], "y": [0.999999999999, 0.0], "name": "32", "real": true, "q": 2, "sheet": 3}, {"x": [0.3333185197353737, -0.0022448565284024728], "y": [0.6666481511682866, -0.0016034089955353531], "name": "2/62", "real": true, "q": 6, "sheet": 1}, {"x": [7.2343339424098e-05, 0.006178876485728393], "y": [0.6180144908880539, -0.001055530448339474], "name": "4/60", "real": true, "q": 5, "sheet": 2}, {"x": [0.4999875000009606, -0.0035349815736846106], "y": [0.4999999984381327, -8.8341404799535e-08], "name": "6/58", "real": true, "q": 4, "sheet": 0}, {"x": [7.498312740622746e-05, 0.007069521343717292], "y": [0.4999875018749453, 1.767424487300694e-07], "name": "8/56", "real": true, "q": 4, "sheet": 4}, {"x": [1.0000000017939987, -0.004998953483398296], "y": [4.997727673390806e-05, 0.004998578679780447], "name": "10/46", "real": true, "q": 3, "sheet": 4}, {"x": [9.997000849685833e-05, 0.009997500687276974], "y": [0.00019990005047096896, 0.009995502186320103], "name": "12/52", "real": true, "q": 3, "sheet": 0}, {"x": [0.9999999800088619, -0.009999999650168925], "y": [9.999998850734559e-05, 0.009998999650304822], "name": "14/50", "real": true, "q": 3, "sheet": 2}, {"x": [9.99800039981498e-05, 0.00999800039991003], "y": [9.999000099975006e-05, 0.009999000099980004], "name": "16/48", "real": true, "q": 3, "sheet": 1}, {"x": [2.764665358209805e-05, 0.016177376773167777], "y": [-1.6182143659525186, 0.018945467777687405], "name": "20/44", "real": true, "q": 5, "sheet": 4}, {"x": [9267.753960000971, -43110.911813946725], "y": [73365.58567514035, 1363.810676561728], "name": "22", "real": false, "q": 2, "sheet": 0}, {"x": [9267.753960000971, 43110.911813946725], "y": [73365.58567514035, -1363.810676561728], "name": "38", "real": false, "q": 2, "sheet": 2}, {"x": [0.9999250218690955, 0.9999000234330165], "y": [20001.500312493125, 0.999875037804213], "name": "24", "real": false, "q": 2, "sheet": 3}, {"x": [0.9999250218690955, -0.9999000234330165], "y": [20001.500312493125, -0.999875037804213], "name": "40", "real": false, "q": 2, "sheet": 1}]};
+CORE.init(DATA);
+// ---------------------------------------------------------------- worker pool
+const workerSrc = document.getElementById('core').textContent + `
+let inited = false;
+const CAP = [[42,120,214],[235,104,52],[27,175,122],[237,161,0],[232,123,164],[127,63,191]];
+function shade(rgb, t) { const s = Math.max(0.3, Math.min(1, 1 - 0.6*Math.log1p(t)/Math.log1p(80))); return rgb.map(v => v*s + 20*(1-s)); }
+function colourFate(f) {
+  if (f.kind === 'capture') return shade(CAP[f.phase], f.t);
+  if (f.kind === 'cycle') { if (f.index !== undefined) { const g = 90 + 25*(f.index % 6); return [g,g,g]; } return f.period === 1 ? [85,85,85] : [163,163,163]; }
+  return [18,18,18];
+}
+onmessage = function (ev) {
+  const m = ev.data;
+  if (m.type === 'init') { CORE.init(m.data); inited = true; return; }
+  const { W, rows, step, view, s } = m;
+  const out = new Uint8ClampedArray(W*(rows[1]-rows[0])*4);
+  let M = null, cyc = null;
+  if (m.type === 'dyn') { M = CORE.mapData(m.x, m.y); cyc = m.cycle; }
+  for (let r = rows[0]; r < rows[1]; r += step) {
+    for (let c = 0; c < W; c += step) {
+      const u = view.cx + (c + step/2 - W/2) * view.px, v = view.cy - (r + step/2 - W/2) * view.px;
+      let rgb;
+      if (m.type === 'param') {
+        const y = [u, v];
+        const tr = CORE.track([m.xc], [view.cx, view.cy], y);
+        if (!tr) rgb = [85,20,20];
+        else { const MM = CORE.mapData(tr[0], y); rgb = colourFate(CORE.fate(MM, MM.omega, s.pit, s.delta, s.tol, null, s.rel)); }
+      } else {
+        let z = [u, v];
+        if (m.inv) { const r2 = u*u+v*v; z = r2 === 0 ? null : [u/r2, -v/r2]; }
+        rgb = colourFate(CORE.fate(M, z, s.dit, s.delta, s.tol, cyc, s.rel));
+      }
+      for (let dr = 0; dr < step && r+dr < rows[1]; dr++) for (let dc = 0; dc < step && c+dc < W; dc++) {
+        const o = ((r+dr-rows[0])*W + c+dc)*4; out[o] = rgb[0]; out[o+1] = rgb[1]; out[o+2] = rgb[2]; out[o+3] = 255;
+      }
+    }
+  }
+  postMessage({ job: m.job, rows, out }, [out.buffer]);
+};`;
+const NW = Math.max(2, Math.min(8, (navigator.hardwareConcurrency || 4) - 1));
+const blobURL = URL.createObjectURL(new Blob([workerSrc], { type: 'text/javascript' }));
+const pool = Array.from({ length: NW }, () => { const w = new Worker(blobURL); w.postMessage({ type: 'init', data: DATA }); return w; });
+let jobId = 0;
+function render(canvas, msgBase, statEl, label) {
+  const job = ++jobId; canvas._job = job;
+  const ctx = canvas.getContext('2d'), W = canvas.width;
+  const steps = [8, +document.getElementById('res').value];
+  const t0 = performance.now();
+  let passIdx = 0;
+  function pass() {
+    const step = steps[passIdx], band = Math.ceil(W / (NW*4) / step) * step;
+    let pending = 0;
+    for (let r0 = 0, wi = 0; r0 < W; r0 += band, wi++) {
+      pending++;
+      const w = pool[wi % NW];
+      const handler = ev => {
+        if (ev.data.job !== job || ev.data.rows[0] !== r0) return;
+        w.removeEventListener('message', handler);
+        if (canvas._job !== job) return;
+        const img = new ImageData(ev.data.out, W, ev.data.rows[1]-ev.data.rows[0]);
+        ctx.putImageData(img, 0, r0);
+        if (--pending === 0) {
+          passIdx++;
+          statEl.textContent = label + (passIdx < steps.length ? ' (refining...)' : ` ${((performance.now()-t0)/1000).toFixed(1)} s`);
+          if (passIdx < steps.length && steps[passIdx] < step) pass();
+        }
+      };
+      w.addEventListener('message', handler);
+      w.postMessage(Object.assign({}, msgBase, { job, W, rows: [r0, Math.min(W, r0+band)], step }));
+    }
+  }
+  statEl.textContent = label + ' rendering...';
+  pass();
+}
+// ---------------------------------------------------------------- state
+const S = { cx: 0.25, cy: 0.0, width: 2.6, sheet: 1, xc: null };
+const Dv = { cx: 0.5, cy: 0, width: 4, inv: false, map: null, cycle: null };
+function settings() {
+  return { pit: +pit.value, dit: +dit.value, delta: Math.pow(10, +del.value), rel: rel.checked, tol: Math.pow(10, +tol.value) };
+}
+const pc = document.getElementById('pc'), po = document.getElementById('po');
+const dc = document.getElementById('dc'), dov = document.getElementById('do');
+const pit = document.getElementById('pit'), dit = document.getElementById('dit'), del = document.getElementById('del');
+const rel = document.getElementById('rel'), tol = document.getElementById('tol');
+function labelsUpdate() {
+  pitv.textContent = pit.value; ditv.textContent = dit.value;
+  delv.textContent = '1e' + (+del.value).toFixed(2).replace(/\.?0+$/, ''); tolv.textContent = '1e' + tol.value;
+}
+function globalAtCentre() { return CORE.globalRoots([S.cx, S.cy]); }
+function setSheet(k) {
+  const g = globalAtCentre(); if (!g) return;
+  S.sheet = k; S.xc = g[k]; refreshSheetButtons(); drawParam();
+}
+function currentSheet() {
+  const g = globalAtCentre(); if (!g || !S.xc) return -1;
+  let b = 0, bd = Infinity; g.forEach((r, k) => { const d = CORE.chord(r, S.xc); if (d < bd) { bd = d; b = k; } }); return b;
+}
+function refreshSheetButtons() {
+  const k = currentSheet();
+  sheetbtns.innerHTML = '';
+  for (let i = 0; i < 5; i++) {
+    const b = document.createElement('button'); b.textContent = i; if (i === k) b.className = 'on';
+    b.onclick = () => setSheet(i); sheetbtns.appendChild(b);
+  }
+  sheetnote.textContent = `centre y = ${fmt([S.cx, S.cy])}, x = ${fmt(S.xc)}`;
+}
+function fmt(z) { if (!z) return '∞'; const r = z[0], i = z[1]; const p = v => (Math.abs(v) < 1e-12 ? 0 : v).toPrecision(6); return `${p(r)}${i < 0 ? '−' : '+'}${p(Math.abs(i))}i`; }
+function moveCentre(nx, ny) {
+  const nxc = S.xc ? CORE.track([S.xc], [S.cx, S.cy], [nx, ny]) : null;
+  S.cx = nx; S.cy = ny;
+  if (nxc) S.xc = nxc[0]; else { const g = globalAtCentre(); S.xc = g ? g[Math.max(0, S.sheet)] : null; }
+}
+function drawParam() {
+  render(pc, { type: 'param', view: { cx: S.cx, cy: S.cy, px: S.width / pc.width }, xc: S.xc, s: settings() }, pstat,
+         `width ${S.width.toPrecision(3)}`);
+  drawParamOverlay(); refreshSheetButtons();
+}
+function toPix(y) { return [pc.width/2 + (y[0]-S.cx)/(S.width/pc.width), pc.height/2 - (y[1]-S.cy)/(S.width/pc.width)]; }
+function drawParamOverlay() {
+  const ctx = po.getContext('2d'); ctx.clearRect(0, 0, po.width, po.height);
+  if (!document.getElementById('showMarks').checked) return;
+  ctx.font = '11px system-ui';
+  DATA.bps.forEach((b, i) => {
+    const [u, v] = toPix(b); if (u < -20 || v < -20 || u > po.width+20 || v > po.height+20) return;
+    const triv = DATA.perms[i].every((p, k) => p === k);
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+    if (triv) { ctx.beginPath(); ctx.arc(u, v, 5, 0, 7); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.moveTo(u-5, v-5); ctx.lineTo(u+5, v+5); ctx.moveTo(u+5, v-5); ctx.lineTo(u-5, v+5); ctx.stroke(); }
+  });
+  const onBranch = (ym, xm) => {
+    let r = CORE.track([S.xc], [S.cx, S.cy], ym), tolc = 1e-4;
+    if (!r) { const d = [S.cx-ym[0], S.cy-ym[1]], L = Math.hypot(d[0], d[1]) || 1; r = CORE.track([S.xc], [S.cx, S.cy], [ym[0]+1e-3*d[0]/L, ym[1]+1e-3*d[1]/L]); tolc = 2e-2; }
+    return r && CORE.chord(r[0], xm) < tolc;
+  };
+  DATA.centers.forEach(c => {
+    const [u, v] = toPix(c.y); if (u < 0 || v < 0 || u > po.width || v > po.height) return;
+    if (!onBranch(c.y, c.x)) return;
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = '#2b2b2b'; ctx.beginPath(); ctx.arc(u, v, 4, 0, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fff'; ctx.fillText(c.label, u+6, v-5);
+  });
+  DATA.punctures.forEach(p => {
+    const [u, v] = toPix(p.y); if (u < 0 || v < 0 || u > po.width || v > po.height) return;
+    if (!onBranch(p.y, p.x)) return;
+    ctx.strokeStyle = '#e8173a'; ctx.lineWidth = 2; ctx.strokeRect(u-4, v-4, 8, 8);
+    ctx.fillStyle = '#ffd0d8'; ctx.fillText(p.name, u+6, v+12);
+  });
+  if (Dv.map) { const [u, v] = toPix(Dv.map.y); ctx.strokeStyle = '#7fd6ff'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(u, v, 7, 0, 7); ctx.stroke(); }
+}
+// ---------------------------------------------------------------- dynamical plane
+function pickMap(y) {
+  const tr = CORE.track([S.xc], [S.cx, S.cy], y);
+  if (!tr) { info.textContent = 'Could not continue the branch to this point (branch point).'; return; }
+  const x = tr[0], M = CORE.mapData(x, y), s = settings();
+  Dv.map = { x, y }; Dv.cycle = CORE.freeCycle(M, s.dit, s.tol);
+  const f = CORE.fate(M, M.omega, s.pit, s.delta, s.tol, null, s.rel);
+  const fs = f.kind === 'capture' ? `captured, phase ${f.phase} (omega in basin of U_${f.phase}), capture time ${f.t}`
+           : f.kind === 'cycle' ? `attracted to a cycle of period ${f.period}` : 'undecided (bifurcation locus?)';
+  info.textContent =
+`y = a3   ${fmt(y)}\nx = a5   ${fmt(x)}\nw        ${fmt(M.w)}\nomega    ${fmt(M.omega)}\n` +
+`a4=f(y)  ${fmt(M.a4)}\ncensus chart F = 1 + b/z + c/z^2:\n b = ${fmt(M.b)}\n c = ${fmt(M.c)}\n` +
+`atlas sheet ${CORE.sheetOf(y, x)}\nfree critical point: ${fs}\nfree attracting cycle in dyn. plane: ${Dv.cycle ? 'period ' + Dv.cycle.pts.length : 'none found'}`;
+  drawParamOverlay(); dfit(); drawDyn();
+}
+function dfit() {
+  if (!Dv.map) return;
+  const M = CORE.mapData(Dv.map.x, Dv.map.y);
+  const pts = M.marked.filter(a => a && Math.hypot(a[0], a[1]) < 1e3).concat([M.omega]);
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+  pts.forEach(a => { x0 = Math.min(x0, a[0]); x1 = Math.max(x1, a[0]); y0 = Math.min(y0, a[1]); y1 = Math.max(y1, a[1]); });
+  Dv.cx = (x0+x1)/2; Dv.cy = (y0+y1)/2; Dv.width = Math.max(x1-x0, y1-y0, 0.5)*1.4; Dv.inv = false;
+}
+function drawDyn() {
+  if (!Dv.map) return;
+  render(dc, { type: 'dyn', x: Dv.map.x, y: Dv.map.y, cycle: Dv.cycle, inv: Dv.inv,
+               view: { cx: Dv.cx, cy: Dv.cy, px: Dv.width / dc.width }, s: settings() }, dstat,
+         (Dv.inv ? '1/z chart, ' : '') + `width ${Dv.width.toPrecision(3)}`);
+  const ctx = dov.getContext('2d'); ctx.clearRect(0, 0, dov.width, dov.height);
+  const M = CORE.mapData(Dv.map.x, Dv.map.y);
+  const toD = z => { let p = z; if (Dv.inv) { if (!z) p = [0, 0]; else { const r2 = z[0]*z[0]+z[1]*z[1]; p = [z[0]/r2, -z[1]/r2]; } } if (!p) return null;
+    return [dov.width/2 + (p[0]-Dv.cx)/(Dv.width/dov.width), dov.height/2 - (p[1]-Dv.cy)/(Dv.width/dov.width)]; };
+  ctx.font = '11px system-ui';
+  M.marked.forEach((a, j) => { const q = toD(a); if (!q) return; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(q[0], q[1], 4, 0, 7); ctx.stroke(); ctx.fillStyle = '#fff'; ctx.fillText('a' + j, q[0]+6, q[1]-5); });
+  const q = toD(M.omega); if (q) { ctx.fillStyle = '#7fd6ff'; ctx.beginPath(); ctx.arc(q[0], q[1], 4, 0, 7); ctx.fill(); ctx.fillText('ω', q[0]+6, q[1]+12); }
+}
+// ---------------------------------------------------------------- interaction
+function attachPanZoom(canvas, getV, setV, onClick, redraw) {
+  let drag = null;
+  canvas.parentElement.addEventListener('mousedown', e => { drag = { x: e.offsetX, y: e.offsetY, moved: false, v: Object.assign({}, getV()) }; });
+  window.addEventListener('mousemove', e => {
+    if (!drag) return; const r = canvas.getBoundingClientRect(); const dx = e.clientX - r.left - drag.x, dy = e.clientY - r.top - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+    if (drag.moved) { const v = drag.v, px = v.width / canvas.width; canvas.style.transform = `translate(${dx}px, ${dy}px)`; drag.pend = [v.cx - dx*px, v.cy + dy*px]; }
+  });
+  window.addEventListener('mouseup', e => {
+    if (!drag) return; canvas.style.transform = '';
+    const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    if (drag.moved && drag.pend) setV(drag.pend[0], drag.pend[1], getV().width);
+    else if (!drag.moved) { const v = getV(), px = v.width / canvas.width; onClick([v.cx + (x - canvas.width/2)*px, v.cy - (y - canvas.height/2)*px]); }
+    const moved = drag.moved; drag = null; if (moved) redraw();
+  });
+  canvas.parentElement.addEventListener('wheel', e => {
+    e.preventDefault(); const v = getV(), px = v.width / canvas.width;
+    const at = [v.cx + (e.offsetX - canvas.width/2)*px, v.cy - (e.offsetY - canvas.height/2)*px];
+    const f = Math.exp(e.deltaY * 0.0015), w = v.width * f;
+    setV(at[0] + (v.cx - at[0])*f, at[1] + (v.cy - at[1])*f, w); clearTimeout(canvas._wt); canvas._wt = setTimeout(redraw, 180);
+  }, { passive: false });
+}
+attachPanZoom(pc, () => S, (x, y, w) => { moveCentre(x, y); S.width = w; }, pickMap, drawParam);
+attachPanZoom(dc, () => Dv, (x, y, w) => { Dv.cx = x; Dv.cy = y; Dv.width = w; }, () => {}, drawDyn);
+document.getElementById('reset').onclick = () => { const k = Math.max(0, currentSheet()); S.cx = 0.25; S.cy = 0; S.width = 2.6; const g = globalAtCentre(); S.xc = g[k]; drawParam(); };
+document.getElementById('dfit').onclick = () => { dfit(); drawDyn(); };
+document.getElementById('dinv').onclick = () => { Dv.inv = !Dv.inv; Dv.cx = 0; Dv.cy = 0; Dv.width = 4; drawDyn(); };
+document.getElementById('showMarks').onchange = drawParamOverlay;
+[pit, del, rel, tol, document.getElementById('res')].forEach(el => el.addEventListener('change', () => { labelsUpdate(); drawParam(); drawDyn(); }));
+dit.addEventListener('change', () => { labelsUpdate(); if (Dv.map) { Dv.cycle = CORE.freeCycle(CORE.mapData(Dv.map.x, Dv.map.y), +dit.value, settings().tol); } drawDyn(); });
+[pit, dit, del, tol].forEach(el => el.addEventListener('input', labelsUpdate));
+const jump = document.getElementById('jump');
+DATA.centers.forEach((c, i) => { const o = document.createElement('option'); o.value = 'c' + i; o.textContent = `centre ${c.label} (sheet ${c.sheet})`; jump.appendChild(o); });
+DATA.punctures.forEach((p, i) => { const o = document.createElement('option'); o.value = 'p' + i; o.textContent = `puncture ${p.name} (sheet ${p.sheet})`; jump.appendChild(o); });
+jump.onchange = () => {
+  const v = jump.value; if (!v) return;
+  const m = v[0] === 'c' ? DATA.centers[+v.slice(1)] : DATA.punctures[+v.slice(1)];
+  let y = m.y.slice();
+  if (v[0] === 'p') { const d = [0.31 - y[0], -0.47 - y[1]], L = Math.hypot(d[0], d[1]) || 1; y = [y[0] + 0.01*d[0]/L, y[1] + 0.01*d[1]/L]; }
+  S.cx = y[0]; S.cy = y[1]; S.width = v[0] === 'c' ? 0.2*(1 + Math.hypot(y[0], y[1])) : 0.05*(1 + Math.hypot(y[0], y[1]));
+  const g = globalAtCentre(); if (!g) return;
+  let b = 0, bd = Infinity; g.forEach((r, k) => { const d = CORE.chord(r, m.x); if (d < bd) { bd = d; b = k; } });
+  S.xc = g[b]; drawParam(); if (v[0] === 'c') pickMap(m.y);
+};
+// legend
+const LEG = [['#2a78d6', 'captured, phase 0 (ω in the basin of U₀)'], ['#eb6834', 'captured, phase 1'], ['#1baf7a', 'captured, phase 2'],
+  ['#eda100', 'captured, phase 3'], ['#e87ba4', 'captured, phase 4'], ['#7f3fbf', 'captured, phase 5'],
+  ['#555555', 'attracting fixed point (polynomial components)'], ['#a3a3a3', 'other attracting cycle'],
+  ['#121212', 'undecided: bifurcation locus / Julia set'], ['#551414', 'branch not continued (branch point)']];
+legend.innerHTML = LEG.map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('') +
+  '<span></span><span class="status">Darker shade = later capture. In the dynamical plane greys are basins of the free cycle by component.</span>';
+labelsUpdate();
+S.xc = globalAtCentre()[S.sheet];
+(function () {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('y') && h.get('x')) {             // deep link from the 3-D surface: #y=re,im&x=re,im
+    const y = h.get('y').split(',').map(Number), x = h.get('x').split(',').map(Number);
+    S.cx = y[0]; S.cy = y[1]; S.width = 0.15*(1 + Math.hypot(y[0], y[1]));
+    const g = globalAtCentre();
+    if (g) { let b = 0, bd = Infinity; g.forEach((r, k) => { const d = CORE.chord(r, x); if (d < bd) { bd = d; b = k; } }); S.xc = g[b]; drawParam(); pickMap(y); return; }
+  }
+  const i0 = DATA.centers.findIndex(c => c.label === 2); jump.value = 'c' + Math.max(0, i0); jump.onchange();
+})();
+</script>
+</body>
+</html>
