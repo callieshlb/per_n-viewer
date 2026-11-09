@@ -62,8 +62,8 @@ bool torusXY(vec2 u, out vec2 x, out vec2 y){
   if (length(B + vv) >= length(B - vv)) { if (dot(A, A) < 1e-24) return false; x = cd(B + vv, 2.*A); } else x = cd(2.*C, B - vv);
   return true;
 }
-const vec3 CAP[8] = vec3[8](vec3(42., 120., 214.), vec3(235., 104., 52.), vec3(27., 175., 122.), vec3(237., 161., 0.), vec3(232., 123., 164.), vec3(127., 63., 191.), vec3(160., 82., 45.), vec3(0., 150., 160.));
-vec3 shadeT(vec3 c, float t){ float s = max(.3, min(1., 1. - .6*log(1. + t)/log(81.))); return (c*s + 20.*(1. - s))/255.; }
+uniform vec3 CAP[8]; uniform int flatPal;                       // phase palette (0..255), flat = no time shading
+vec3 shadeT(vec3 c, float t){ if (flatPal == 1) return c/255.; float s = max(.3, min(1., 1. - .6*log(1. + t)/log(81.))); return (c*s + 20.*(1. - s))/255.; }
 vec3 fateColour(vec2 z, bool zi){
   float th[12];
   for (int j = 0; j < 12; j++) { if (j >= nm) break; float m = 1.; for (int i = 0; i < 12; i++) { if (i >= nm) break; if (i != j) m = min(m, chN(mk[j], mi[j], mk[i], mi[i])); } th[j] = delta*m; }
@@ -92,10 +92,10 @@ void main(){
     z0 = p;
   } else {
     if (fam == 1) { A_ = vec2(1., 0.); B_ = vec2(0.); C_ = p; D_ = vec2(0.); E_ = vec2(0.); F_ = vec2(1., 0.); nm = 1; mk[0] = vec2(0.); mi[0] = true; om = vec2(0.); }
-    else if (fam == 2) { A_ = vec2(0.); B_ = .25*p; C_ = .125*p; D_ = vec2(1., 0.); E_ = vec2(0.); F_ = vec2(0.); nm = 2;
-      mk[0] = vec2(0.); mi[0] = false; mk[1] = vec2(0.); mi[1] = true; om = vec2(-1., 0.); }
-    else if (fam == 3) corMap(p, vec2(0.), 3, om);
-    else if (fam == 4) corMap(p, p, 4, om);
+    else if (fam == 2) { A_ = vec2(1., 0.); B_ = vec2(0.); C_ = -p; D_ = vec2(1., 0.); E_ = vec2(0.); F_ = vec2(-1., 0.); nm = 2;   // (z^2 - c)/(z^2 - 1)
+      mk[0] = vec2(0.); mi[0] = true; mk[1] = vec2(1., 0.); mi[1] = false; om = vec2(0.); }
+    else if (fam == 3) corMap(cd(p, vec2(2., 0.) - p), vec2(0.), 3, om);                 // x = c/(2 - c); om = c
+    else if (fam == 4) { vec2 y4 = cd(vec2(.1, 0.), p) + vec2(.6180339887498949, 0.); corMap(y4, y4, 4, om); }
     else if (fam == 5) { vec2 x, y; ok = torusXY(p, x, y); if (ok) corMap(x, y, 5, om); }
     z0 = om;
     if (!ok || dot(om, om) > 1e30 || dot(B_, B_) > 1e30 || dot(C_, C_) > 1e30 || !(dot(om, om) >= 0.)) { o = vec4(85., 20., 20., 255.)/255.; return; }
@@ -104,8 +104,11 @@ void main(){
 }`;
   return { fs: function () { return HEAD + MAIN; },
            vs: '#version 300 es\nin vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }',
-           LEGEND: function (n) {
-             var C = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#7f3fbf', '#a0522d', '#00969f'], L = [];
+           DEFPAL: [[42, 120, 214], [235, 104, 52], [27, 175, 122], [237, 161, 0], [232, 123, 164], [127, 63, 191], [160, 82, 45], [0, 150, 160]],
+           setPalette: function (gl, U, pal, flat) { var p = (pal || this.DEFPAL).concat(this.DEFPAL).slice(0, 8), a = new Float32Array(24);
+             p.forEach(function (c, i) { a.set(c, 3*i); }); gl.uniform3fv(U('CAP'), a); gl.uniform1i(U('flatPal'), flat ? 1 : 0); },
+           LEGEND: function (n, pal) {
+             var C = (pal || this.DEFPAL).map(function (c) { return 'rgb(' + c.join(',') + ')'; }), L = [];
              for (var j = 0; j < Math.min(n, 8); j++) L.push([C[j], 'captured, phase ' + j]);
              L.push(['#555555', 'attracting fixed point'], ['#a3a3a3', 'other attracting cycle'], ['#121212', 'undecided'], ['#551414', 'degenerate / overflow']);
              return L; } };

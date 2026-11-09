@@ -46,7 +46,7 @@
     <span>Markers</span><input type="checkbox" id="mk" checked>
     <span>Marker labels</span><input type="checkbox" id="ml" checked>
     <span>Real ovals</span><input type="checkbox" id="ov2" checked>
-    <span>G<sub>8</sub>: capture edges</span><input type="checkbox" id="gc" checked>
+    <span>G<sub>8</sub>: capture edges</span><input type="checkbox" id="gc">
     <span>G: violet arrow f &rarr; f&prime; when f&prime; has more factors of 2</span><input type="checkbox" id="g2" checked>
     <span style="display:none"></span><input type="checkbox" id="gm" style="display:none">
     <span style="display:none"></span><input type="checkbox" id="gp" style="display:none">
@@ -405,7 +405,7 @@ idImg.onload = () => { const c = document.createElement('canvas'); c.width = c.h
 idImg.src = T.ids;
 // ---------- view ----------
 let V = I2, zoom = 1, tiles = [], dirty = true, anim = null;
-const opt = { ed: true, lt: true, mk: true, ml: true, ov2: true, gc: true, gm: false, gp: false, g2: true };
+const opt = { ed: true, lt: true, mk: true, ml: true, ov2: true, gc: false, gm: false, gp: false, g2: true };
 ['ed', 'lt', 'mk', 'ml', 'ov2', 'gc', 'gm', 'gp', 'g2'].forEach(k => { document.getElementById(k).onchange = e => { opt[k] = e.target.checked; dirty = true; }; });
 let W_ = 0, H_ = 0, Rpx = 1, dpr = 1;
 function resize() { dpr = window.devicePixelRatio || 1; W_ = view.clientWidth*dpr; H_ = view.clientHeight*dpr;
@@ -560,7 +560,7 @@ cv.addEventListener('pointerup', e => {
   view.classList.remove('drag'); if (!down) return; down = null; if (moved > 4) return;
   const s = screenToDisk(e.clientX, e.clientY); if (cabs2(s) >= 0.999) return;
   inspect(fold(ap(V, s)), 12*dpr*2/((1 - cabs2(s))*Rpx*zoom));      // pick radius: 12 screen pixels
-  const r = Math.hypot(s[0], s[1]); if (r > 1e-9) anim = { t0: performance.now(), dur: 450, u: [s[0]/r, s[1]/r], d: 2*Math.atanh(r), done: 0 };
+  const r = Math.hypot(s[0], s[1]); if (r > 1e-9 && window.E96MOVE) anim = { t0: performance.now(), dur: 450, u: [s[0]/r, s[1]/r], d: 2*Math.atanh(r), done: 0 };
 });
 cv.addEventListener('wheel', e => { e.preventDefault(); zoom = Math.min(2000, Math.max(1, zoom*Math.exp(-e.deltaY*0.0015))); dirty = true; poke(); }, { passive: false });
 document.getElementById('home').onclick = () => { V = I2; anim = null; dirty = true; };
@@ -702,7 +702,7 @@ function inspect(p, rpick) {
     document.getElementById('info').textContent = `${it.title}\n` + it.lines.join('\n') + `\nfree critical point here: ${ft}` +
       `\n(clicked ${bd.toFixed(4)} from the marker; "Open in the 2-D explorer" goes to the marker itself)`;
   }
-  document.getElementById('open').disabled = false; try { parent.postMessage({ e96: 'param', x: pick.x, y: pick.y }, '*'); } catch (e) {} /* E96 hook */
+  document.getElementById('open').disabled = false; try { parent.postMessage({ e96: 'param', x: pick.x, y: pick.y, info: document.getElementById('info').textContent }, '*'); } catch (e) {} /* E96 hook */
   showCard(document.getElementById('info').textContent);
 }
 function showCard(text) {
@@ -761,6 +761,8 @@ mini.addEventListener('click', e => {
 <style>#e96tog{position:absolute;top:6px;right:346px;z-index:9;font:12px system-ui;padding:1px 7px;border:1px solid #bbb;background:#fff;border-radius:4px;cursor:pointer}
 body.e96min #side{display:none} body.e96min #view{right:0 !important} body.e96min #e96tog{right:6px}</style>
 <button id="e96tog" title="hide / show the side panel">panel ▸</button>
+<label id="e96mv" style="position:absolute;top:8px;left:8px;z-index:9;font:12px system-ui;background:rgba(255,255,255,.9);padding:1px 6px;border-radius:4px;border:1px solid #bbb">
+<input type="checkbox" onchange="window.E96MOVE=this.checked"> move to clicked point</label>
 <script>(function(){var b=document.getElementById('e96tog');b.onclick=function(){document.body.classList.toggle('e96min');
 b.textContent=document.body.classList.contains('e96min')?'◂ panel':'panel ▸';window.dispatchEvent(new Event('resize'));};
 if(window.innerWidth<900){b.onclick();}})();</script>

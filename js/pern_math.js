@@ -3,7 +3,10 @@
 // Every map is f(z) = (A z^2 + B z + C)/(D z^2 + E z + F) with complex coefficients; z = null is infinity.
 // Families (normal forms; see REGISTRATION.md):
 //   quad  (n = 1): z^2 + c, parameter c, marked cycle {inf}, free critical point 0.
-//   per2  (n = 2): f_t(z) = t(2z + 1)/(8 z^2), marked 0 -> inf -> 0, free critical point -1 (Milnor a/(z^2+2z): a = 8/t).
+//   per2c (n = 2, Caroline 2026-11-09): f(z) = (z^2 - c)/(z^2 - 1), marked inf -> 1 -> inf (inf critical), free critical point 0.
+//   cor3c (n = 3, Caroline): f(z) = (z - 1)(z - c/(2 - c))/z^2, parameter c = the free critical point (x = c/(2 - c)).
+//   cor4c (n = 4, Caroline): y = 0.1/c + (sqrt 5 - 1)/2, f(z) = (z - y)(z - (2y - 1)/(y - 1))/z^2.
+//   per2  (n = 2, superseded on the site): f_t(z) = t(2z + 1)/(8 z^2), marked 0 -> inf -> 0, free critical point -1.
 //   cor   (n >= 3): Caroline's chart f(z) = (z - x)(z - w)/z^2, w = (x + y - 1)/(x - 1), marked 0 -> inf -> 1 -> y -> ... -> x.
 //         n = 3: parameter x, y = 0, w = 1.  n = 4: parameter y, x = y.  n = 5: torus coordinate u.  n >= 6: (x, y) on the curve.
 'use strict';
@@ -139,6 +142,67 @@ var PM = (function () {
     } else { r.landing = end; r.how = r.landed ? 'ray converged (|step| < 1e-10)' : 'end of traced ray (depth 50)'; }
     r.period = p; return r;
   }
+
+  // ---- Hubbard tree of a centre z^2 + c (period n): union of the regulated arcs [0, P^j(0)], built recursively from the
+  // kneading sequence nu (nu[i-1] = side of P^i(0), i = 1..n-1, w.r.t. the two preimage rays of the characteristic angle):
+  //   [0, P^j]   = the lift through P^j of [c, P^(j+1)] (f is injective on it: 0 is an end point);
+  //   [P^i, P^j] = the lift through P^i of [P^(i+1), P^(j+1)] if nu_i == nu_j, else [P^i, 0] + [0, P^j];
+  // depth 0 = straight segment. Indices mod n (P^n = P^0 = 0). Memoised; ~depth 14.
+  function hubbardTree(c, n, nu, depth) {
+    depth = depth === undefined ? Math.min(160, 14*n + 10) : depth;      // direction error halves once per period: depth ~ 14 n
+    var P = [[0, 0]]; for (var i = 1; i < n; i++) { var q = P[i-1]; P.push(cadd(cmul(q, q), c)); }
+    function side(i) { return nu[(i % n) - 1]; }
+    function csq(z) { var r = Math.hypot(z[0], z[1]), t = Math.atan2(z[1], z[0])/2, s = Math.sqrt(r); return [s*Math.cos(t), s*Math.sin(t)]; }
+    function resample(pts, N) {
+      var L = [0]; for (var i = 1; i < pts.length; i++) L.push(L[i-1] + cabs(csub(pts[i], pts[i-1])));
+      var T = L[L.length-1], out = [pts[0]], j = 1; if (T === 0) return [pts[0], pts[pts.length-1]];
+      for (var k = 1; k < N; k++) { var t = T*k/N; while (j < pts.length - 1 && L[j] < t) j++;
+        var u = (t - L[j-1])/((L[j] - L[j-1]) || 1); out.push(cadd(pts[j-1], cscale(csub(pts[j], pts[j-1]), u))); }
+      out.push(pts[pts.length-1]); return out;
+    }
+    function liftFrom(z0, w) {                 // path w with w[0] = f(z0): continuous preimage starting at z0
+      var out = [z0], prev = z0;
+      for (var i = 1; i < w.length; i++) { var r = csq(csub(w[i], c)); if (cabs(csub(r, prev)) > cabs(cadd(r, prev))) r = [-r[0], -r[1]]; out.push(r); prev = r; }
+      return out;
+    }
+    var memo = {};
+    function arc(i, j, d) {                    // regulated arc from P^i to P^j (points), indices mod n
+      i %= n; j %= n; var key = i + ',' + j + ',' + d; if (memo[key]) return memo[key];
+      var res;
+      if (i === j) res = [P[i]];
+      else if (d === 0) { res = []; for (var t = 0; t <= 16; t++) res.push(cadd(P[i], cscale(csub(P[j], P[i]), t/16))); }
+      else if (i === 0) res = liftFrom(P[j], arc(j + 1, 1, d - 1)).reverse();           // [0, P^j]
+      else if (j === 0) res = liftFrom(P[i], arc(i + 1, 1, d - 1));                      // [P^i, 0]
+      else if (side(i) === side(j)) res = liftFrom(P[i], arc(i + 1, j + 1, d - 1));
+      else res = arc(i, 0, d).concat(arc(0, j, d).slice(1));
+      res = resample(res, Math.min(800, Math.max(300, res.length)));
+      res[0] = P[i]; res[res.length - 1] = P[j];                                           // exact end points
+      memo[key] = res; return res;
+    }
+    var edges = []; for (var j = 1; j < n; j++) edges.push(arc(0, j, depth));
+    return { P: P, edges: edges };
+  }
+  // Moebius map sending (z1, z2, z3) to (w1, w2, w3); points may be null (infinity). Returns z -> w (null = infinity).
+  function moebius3(z, w) {
+    function hv(p) { return p === null ? [[1, 0], [0, 0]] : [p, [1, 0]]; }
+    function toStd(p) {                     // matrix sending p1 -> 0, p2 -> 1, p3 -> inf
+      var a = hv(p[0]), b = hv(p[1]), cc = hv(p[2]);
+      // row vectors: M = [[ (b x c) ... ]] built from the classical formula with homogeneous points
+      var det = function (u, v) { return csub(cmul(u[0], v[1]), cmul(u[1], v[0])); };
+      var k1 = det(b, cc), k2 = det(b, a);
+      // z -> (z - p1)(p2 - p3)/((z - p3)(p2 - p1)) in homogeneous form: rows [a1', -a0'] scaled
+      return [[cmul([a[1][0], a[1][1]], k1), cscale(cmul(a[0], k1), -1)], [cmul([cc[1][0], cc[1][1]], k2), cscale(cmul(cc[0], k2), -1)]];
+    }
+    var A = toStd(z), B = toStd(w);
+    var dB = csub(cmul(B[0][0], B[1][1]), cmul(B[0][1], B[1][0]));
+    var Bi = [[cdiv(B[1][1], dB), cdiv(cscale(B[0][1], -1), dB)], [cdiv(cscale(B[1][0], -1), dB), cdiv(B[0][0], dB)]];
+    var Mx = [[cadd(cmul(Bi[0][0], A[0][0]), cmul(Bi[0][1], A[1][0])), cadd(cmul(Bi[0][0], A[0][1]), cmul(Bi[0][1], A[1][1]))],
+              [cadd(cmul(Bi[1][0], A[0][0]), cmul(Bi[1][1], A[1][0])), cadd(cmul(Bi[1][0], A[0][1]), cmul(Bi[1][1], A[1][1]))]];
+    return function (q) {
+      var num = q === null ? Mx[0][0] : cadd(cmul(Mx[0][0], q), Mx[0][1]), den = q === null ? Mx[1][0] : cadd(cmul(Mx[1][0], q), Mx[1][1]);
+      if (cabs(den) <= 1e-300*cabs(num) || cabs(den) === 0) return null; var r = cdiv(num, den); return cabs(r) > 1e150 ? null : r;
+    };
+  }
   // ---- maps
   function corMap(x, y, n) {
     var w = cdiv([x[0]+y[0]-1, x[1]+y[1]], [x[0]-1, x[1]]);
@@ -156,6 +220,9 @@ var PM = (function () {
     var M;
     if (family === 'quad') { var c = q.p; M = { n: 1, A: [1, 0], B: [0, 0], C: c, D: [0, 0], E: [0, 0], F: [1, 0], omega: [0, 0], marked: [null] }; }
     else if (family === 'per2') { var t = q.p; M = { n: 2, A: [0, 0], B: cscale(t, 0.25), C: cscale(t, 0.125), D: [1, 0], E: [0, 0], F: [0, 0], omega: [-1, 0], marked: [[0, 0], null] }; }
+    else if (family === 'per2c') { var cc = q.p; M = { n: 2, A: [1, 0], B: [0, 0], C: [-cc[0], -cc[1]], D: [1, 0], E: [0, 0], F: [-1, 0], omega: [0, 0], marked: [null, [1, 0]] }; }
+    else if (family === 'cor3c') { M = corMap(cdiv(q.p, csub([2, 0], q.p)), [0, 0], 3); }
+    else if (family === 'cor4c') { var y4 = cadd(cdiv([0.1, 0], q.p), [(Math.sqrt(5) - 1)/2, 0]); M = corMap(y4, y4, 4); }
     else if (family === 'cor3') M = corMap(q.p, [0, 0], 3);
     else if (family === 'cor4') M = corMap(q.p, q.p, 4);
     else if (family === 'torus5') { var P = torusXY(q.p); if (!P.x || !P.y) return null; M = corMap(P.x, P.y, 5); }
@@ -199,6 +266,6 @@ var PM = (function () {
   function fateText(f) { return f.kind === 'capture' ? 'captured by the marked cycle, phase ' + f.phase + ', time ' + f.t
     : f.kind === 'cycle' ? 'attracting cycle, period ' + f.period : 'undecided (bifurcation locus)'; }
   return { cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY,
-           corMap: corMap, mapFrom: mapFrom, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
+           corMap: corMap, mapFrom: mapFrom, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
 })();
 if (typeof module !== 'undefined') module.exports = PM;

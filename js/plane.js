@@ -9,10 +9,11 @@
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
   document.title = E.titleText || id;
-  $('legend').innerHTML = GLSL.LEGEND(E.n).map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
+  $('legend').innerHTML = GLSL.LEGEND(E.n, E.palette).map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
   if (torus) ['gnl', 'gn', 'sml', 'sm'].forEach(k => { $(k).style.display = ''; });
-  const opt = { mk: true, ml: true, gn: true, sm: true };
-  ['mk', 'ml', 'gn', 'sm'].forEach(k => { $(k).onchange = e => { opt[k] = e.target.checked; pv.redraw(); }; });
+  const opt = { mk: true, ml: true, gn: false, sm: true, rc: true };
+  if (E.real) ['rcl', 'rc'].forEach(k => { $(k).style.display = ''; });
+  ['mk', 'ml', 'gn', 'sm', 'rc'].forEach(k => { $(k).onchange = e => { opt[k] = e.target.checked; pv.redraw(); }; });
   $('minb').onclick = () => { $('side').classList.toggle('min'); $('minb').textContent = $('side').classList.contains('min') ? '+' : '–'; };
   let picked = null;
   function lattice(W, H) {           // visible lattice translates (torus)
@@ -30,6 +31,15 @@
       for (const o of offs) { const p = pv.toScreen(o), q = pv.toScreen([o[0] + T5.W1, o[1] + T5.W2]);
         g.strokeRect(p[0], q[1], q[0] - p[0], p[1] - q[1]); }
       g.setLineDash([]);
+    }
+    if (E.real && opt.rc) {                   // real circles: where the normal form has real coefficients (log.md)
+      const lines = [];
+      if (torus) { const a = pv.toPlane(0, H), b = pv.toPlane(0, 0), h2 = T5.W2/2;
+        for (let k = Math.floor(a[1]/h2) - 1; k <= Math.ceil(b[1]/h2) + 1; k++) lines.push(k*h2); }
+      else lines.push(0);
+      for (const im of lines) { const y = pv.toScreen([0, im])[1]; if (y < -5 || y > H + 5) continue;
+        g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.strokeStyle = 'rgba(0,0,0,.75)'; g.lineWidth = 4.5; g.stroke();
+        g.strokeStyle = '#00e5ff'; g.lineWidth = 2.2; g.stroke(); }
     }
     if (torus && opt.gn && C.edges) {
       for (const o of offs) for (const e of C.edges) {
@@ -87,11 +97,13 @@
     else { const f = PM.fate(M, M.omega, pv.maxIt, pv.delta, 1e-7); lines.push('free critical point: ' + PM.fateText(f)); }
     if (marker) lines.unshift(...marker.lines, '');
     showCard(marker ? marker.title : 'Parameter', lines);
-    parent.postMessage({ e96: 'param', model: id, p, x, y, label: marker ? marker.title : null }, '*');
+    parent.postMessage({ e96: 'param', model: id, p, x, y, label: marker ? marker.title : null,
+      marker: marker ? { kind: marker.kind, label: marker.label, title: marker.title, lines: marker.lines.concat(lines.slice(marker.lines.length + 1)),
+                         ks: marker.ks || null, thetas: marker.thetas || null } : null }, '*');
   }
   const pv = new PlaneView($('view'), {
     ctr: E.view.ctr, upp: E.view.upp, maxIt: 600, delta: 1e-3,
-    setUniforms: (gl, U) => { gl.uniform1i(U('fam'), E.famId);
+    setUniforms: (gl, U) => { gl.uniform1i(U('fam'), E.famId); GLSL.setPalette(gl, U, E.palette, E.flat);
       gl.uniform1f(U('W1'), T5.W1); gl.uniform1f(U('W2'), T5.W2); gl.uniform1f(U('qn'), Math.exp(-Math.PI*T5.W2/T5.W1)); gl.uniform1f(U('e1'), 0.75); },
     drawOverlay,
     onPick: (p, s) => {
@@ -116,7 +128,7 @@
   }
   $('mfilter').oninput = buildList; buildList();
   window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'goto' && d.p) { pv.ctr = d.p.slice(); pv.redraw(); pick(d.p, null); } });
-  if (E.rays) { setTimeout(() => setRays($('rayin').value), 300); $('raybox').style.display = ''; $('raygo').onclick = () => setRays($('rayin').value);
+  if (E.rays) { $('raybox').style.display = ''; $('raygo').onclick = () => setRays($('rayin').value);
     $('rayin').addEventListener('keydown', e => { if (e.key === 'Enter') setRays(e.target.value); });
     $('rayclr').onclick = () => { RAYS = []; $('rayout').textContent = ''; parent.postMessage({ e96: 'rays', angles: [] }, '*'); pv.redraw(); }; }
   if (window.innerWidth < 650) $('minb').onclick();

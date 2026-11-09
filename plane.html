@@ -43,7 +43,8 @@
   <div class="ctrl">
     <span>Markers</span><input type="checkbox" id="mk" checked>
     <span>Labels</span><input type="checkbox" id="ml" checked>
-    <span id="gnl" style="display:none">G<sub>n</sub> edges</span><input type="checkbox" id="gn" checked style="display:none">
+    <span id="rcl" style="display:none">Real circles</span><input type="checkbox" id="rc" checked style="display:none">
+    <span id="gnl" style="display:none">G<sub>n</sub> edges</span><input type="checkbox" id="gn" style="display:none">
     <span id="sml" style="display:none">Torus seams</span><input type="checkbox" id="sm" checked style="display:none">
     <span>Iterates</span><span><input type="range" id="pit" min="50" max="4000" step="50" value="600"> <span id="pitv">600</span></span>
     <span>Capture δ</span><span><input type="range" id="del" min="-5" max="-1" step="0.25" value="-3"> <span id="delv">1e-3</span> (rel.)</span>
@@ -54,7 +55,7 @@
     <div class="sub">Angles as p/q or decimals, separated by commas, e.g. <code>1/3, 2/3, 1/7, 1/6</code>. Parameter rays are drawn
       here; the dynamic rays of the same angles are drawn in the dynamical plane (for the selected c). Rational angles get their
       exact landing point (a root, or a Misiurewicz point).</div>
-    <input id="rayin" size="24" value="1/3, 2/3, 1/7, 2/7, 1/6" style="margin:4px 0"> <button id="raygo">Draw</button> <button id="rayclr">Clear</button>
+    <input id="rayin" size="24" value="" placeholder="e.g. 1/3, 2/3, 1/7, 1/6" style="margin:4px 0"> <button id="raygo">Draw</button> <button id="rayclr">Clear</button>
     <div id="rayout" class="sub" style="font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap"></div></details>
   <details open><summary><b>Polynomial centres and punctures</b></summary>
     <input id="mfilter" size="28" placeholder="filter: 1/3, puncture, rabbit …" style="margin:4px 0">

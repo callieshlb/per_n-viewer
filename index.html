@@ -28,6 +28,15 @@
   .hd { display:flex; justify-content:space-between; align-items:center; }
   .ctrl { display:grid; grid-template-columns:auto 1fr; gap:3px 8px; align-items:center; margin:5px 0; }
   #dhint { position:absolute; left:50%; top:45%; transform:translate(-50%, -50%); color:#bbb; text-align:center; font-size:14px; pointer-events:none; }
+  #dcard { position:absolute; left:8px; top:8px; max-width:min(440px, 70%); max-height:60%; overflow:auto; display:none; z-index:4;
+           background:rgba(255,255,255,.97); border:1px solid #bbb; border-radius:6px; padding:7px 9px; font:12px/1.45 ui-monospace, Menlo, monospace;
+           white-space:pre-wrap; color:#222; box-shadow:0 2px 10px rgba(0,0,0,.3); }
+  #dcard b { font-family:-apple-system, system-ui, sans-serif; font-size:13px; }
+  #dcb { white-space:normal; margin-top:6px; display:flex; flex-wrap:wrap; gap:4px; font-family:-apple-system, system-ui, sans-serif; }
+  #dover { position:absolute; inset:0; display:none; z-index:6; background:#f4f3ef; }
+  #dovh { height:30px; display:flex; align-items:center; gap:8px; padding:0 8px; border-bottom:1px solid var(--faint); font-size:12px; }
+  #dovh #dovx { margin-left:auto; } #dovtabs { display:flex; gap:3px; flex-wrap:wrap; }
+  #dovf { position:absolute; top:31px; left:0; right:0; bottom:0; width:100%; height:calc(100% - 31px); border:0; }
   #status { position:absolute; left:0; right:0; bottom:0; height:64px; border-top:1px solid var(--faint); background:#fafaf8;
             font:12px/1.5 ui-monospace, Menlo, monospace; padding:4px 10px; box-sizing:border-box; overflow:auto; white-space:pre; }
   button.sm { font:inherit; padding:0 6px; border:1px solid #bbb; background:#fff; border-radius:4px; cursor:pointer; }
@@ -41,7 +50,9 @@
 <div id="main">
   <div id="left"><iframe id="frame" title="parameter space"></iframe></div>
   <div id="split" title="drag to resize"></div>
-  <div id="right"><div id="dyn"></div><div id="dhint">Dynamical plane<br><span style="font-size:12px">click a parameter on the left</span></div>
+  <div id="right"><div id="dyn"></div>
+    <div id="dcard"><button class="sm" id="dcx" style="float:right">×</button><div id="dct"></div><div id="dcb"></div></div>
+    <div id="dover"><div id="dovh"><span id="dovt"></span><span id="dovtabs"></span><button class="sm" id="dovx">Close</button></div><iframe id="dovf" title="card"></iframe></div><div id="dhint">Dynamical plane<br><span style="font-size:12px">click a parameter on the left</span></div>
     <div id="dside">
       <div class="hd"><b>Dynamical plane&nbsp;</b><button class="sm" id="dmin" title="show / hide the controls">–</button></div>
       <div class="ctrl">
@@ -50,6 +61,7 @@
         <span>Marked cycle</span><input type="checkbox" id="dmk" checked>
         <span>Labels</span><input type="checkbox" id="dml" checked>
         <span>Critical orbit</span><span><input type="checkbox" id="dorb"> <input type="number" id="dorbn" value="60" min="1" max="2000" style="width:60px"></span>
+        <span>Orbit mode</span><span><input type="checkbox" id="omode" title="click a point: draw z0 -> z1 -> ... -> zk"> k <input type="range" id="ok" min="1" max="200" value="20" style="width:80px"> <span id="okv">20</span></span>
       </div>
       <button class="sm" id="dhome">Fit view</button>
       <div style="margin-top:6px;color:#6b6b6b">Colours: capture into the marked cycle by phase (j − t) mod n, as in the parameter pane;

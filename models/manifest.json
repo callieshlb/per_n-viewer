@@ -1,5 +1,5 @@
 {
- "built_from": "b2b59ef",
+ "built_from": "9e2cbd0",
  "models": [
   {
    "id": "per1",
@@ -22,7 +22,13 @@
    },
    "rays": true,
    "normal": "f(z) = z<sup>2</sup> + c. Marked cycle {\u221e} (critical, fixed); capture = escape to \u221e. Free critical point 0.",
-   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py."
+   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py.",
+   "info": {
+    "genus": 0,
+    "centres": 1,
+    "punctures": 1,
+    "circles": 1
+   }
   },
   {
    "id": "per2",
@@ -31,20 +37,27 @@
    "title": "Per<sub>2</sub>(0)",
    "titleText": "Per_2(0)",
    "kind": "plane",
-   "family": "per2",
+   "family": "per2c",
    "famId": 2,
-   "param": "t",
+   "param": "c",
    "page": "plane.html?m=per2",
    "census": "models/census_n2.json",
    "view": {
     "ctr": [
-     4,
+     0.5,
      0
     ],
-    "upp": 0.04
+    "upp": 0.005
    },
-   "normal": "f<sub>t</sub>(z) = t(2z + 1)/(8z<sup>2</sup>): marked 0 \u2192 \u221e \u2192 0 (0 critical), free critical point \u22121. Milnor\u2019s a/(z<sup>2</sup> + 2z) has a = 8/t; t = 0 is the class of 1/z<sup>2</sup> (orbifold point).",
-   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py."
+   "real": true,
+   "normal": "f(z) = (z<sup>2</sup> \u2212 c)/(z<sup>2</sup> \u2212 1): marked \u221e \u2192 1 \u2192 \u221e (\u221e critical), free critical point 0. c = 1 is the puncture; c = \u221e is the class of 1/z<sup>2</sup>.",
+   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py.",
+   "info": {
+    "genus": 0,
+    "centres": 1,
+    "punctures": 1,
+    "circles": 1
+   }
   },
   {
    "id": "per3",
@@ -53,20 +66,27 @@
    "title": "Per<sub>3</sub>(0)",
    "titleText": "Per_3(0)",
    "kind": "plane",
-   "family": "cor3",
+   "family": "cor3c",
    "famId": 3,
-   "param": "x",
+   "param": "c",
    "page": "plane.html?m=per3",
    "census": "models/census_n3.json",
    "view": {
     "ctr": [
-     -2.5,
+     1.15,
      0
     ],
-    "upp": 0.015
+    "upp": 0.005
    },
-   "normal": "Caroline\u2019s chart f(z) = (z \u2212 x)(z \u2212 w)/z<sup>2</sup> with y = a<sub>3</sub> = 0, w = 1: f(z) = (z \u2212 x)(z \u2212 1)/z<sup>2</sup>, marked 0 \u2192 \u221e \u2192 1 \u2192 0. Parameter x (the other zero of f).",
-   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py."
+   "real": true,
+   "normal": "f(z) = (z \u2212 1)(z \u2212 c/(2 \u2212 c))/z<sup>2</sup>: marked 0 \u2192 \u221e \u2192 1 \u2192 0, and c is the free critical point. (In Caroline\u2019s chart: y = 0, x = c/(2 \u2212 c).)",
+   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py.",
+   "info": {
+    "genus": 0,
+    "centres": 3,
+    "punctures": 2,
+    "circles": 1
+   }
   },
   {
    "id": "per4",
@@ -75,20 +95,27 @@
    "title": "Per<sub>4</sub>(0)",
    "titleText": "Per_4(0)",
    "kind": "plane",
-   "family": "cor4",
+   "family": "cor4c",
    "famId": 4,
-   "param": "y",
+   "param": "c",
    "page": "plane.html?m=per4",
    "census": "models/census_n4.json",
    "view": {
     "ctr": [
-     0.45,
+     -0.22,
      0
     ],
-    "upp": 0.0025
+    "upp": 0.0024
    },
-   "normal": "Caroline\u2019s chart with x = a<sub>3</sub> = y: f(z) = (z \u2212 y)(z \u2212 w)/z<sup>2</sup>, w = (2y \u2212 1)/(y \u2212 1), marked 0 \u2192 \u221e \u2192 1 \u2192 y \u2192 0. Parameter y.",
-   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py."
+   "real": true,
+   "normal": "y = 0.1/c + (\u221a5 \u2212 1)/2 and f(z) = (z \u2212 y)(z \u2212 (2y \u2212 1)/(y \u2212 1))/z<sup>2</sup>: marked 0 \u2192 \u221e \u2192 1 \u2192 y \u2192 0, free critical point (4y<sup>2</sup> \u2212 2y)/(y<sup>2</sup> + y \u2212 1).",
+   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py.",
+   "info": {
+    "genus": 0,
+    "centres": 6,
+    "punctures": 4,
+    "circles": 1
+   }
   },
   {
    "id": "per5",
@@ -109,8 +136,43 @@
     ],
     "upp": 0.0065
    },
+   "real": true,
    "normal": "The genus-1 curve x<sup>2</sup>(y<sup>2</sup> + y \u2212 1) \u2212 x(2y<sup>2</sup> + y \u2212 1) + 2y<sup>2</sup> \u2212 y = 0 (y = a<sub>3</sub>, x = a<sub>4</sub>, Caroline\u2019s chart) uniformized: y = 1 \u2212 1/(\u2118(u) + 5/4), \u2118 for g<sub>2</sub> = 11/4, g<sub>3</sub> = \u22123/8, periods 3.0942 and 2.7457i (dashed seams). The plane of u covers the torus: the picture repeats.",
-   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py. White segments: G<sub>5</sub> (E91), each edge drawn as the shortest straight segment on the flat torus between its two centres (pairs of multiplicity 2 once): a stand-in for the capture path. The flat coordinate is u = \u222b dy/v, v<sup>2</sup> = \u22124y<sup>4</sup> + 9y<sup>2</sup> \u2212 6y + 1 (E96 torus5.py; checks in log_torus5.txt)."
+   "about": "Polynomial centres (white): the parameters where the map is conjugate to a quadratic polynomial z<sup>2</sup> + c with c a period-n centre (the free critical point is then a superattracting fixed point). Punctures (red): the degenerate points of the compactified curve; a puncture at \u221e is listed but not drawn. Census: E90 (runs/2026-11-06-E90-real-circles), converted to this chart by E96 census_small.py. White segments: G<sub>5</sub> (E91), each edge drawn as the shortest straight segment on the flat torus between its two centres (pairs of multiplicity 2 once): a stand-in for the capture path. The flat coordinate is u = \u222b dy/v, v<sup>2</sup> = \u22124y<sup>4</sup> + 9y<sup>2</sup> \u2212 6y + 1 (E96 torus5.py; checks in log_torus5.txt).",
+   "info": {
+    "genus": 1,
+    "centres": 15,
+    "punctures": 10,
+    "circles": 2
+   },
+   "palette": [
+    [
+     70,
+     70,
+     255
+    ],
+    [
+     0,
+     255,
+     255
+    ],
+    [
+     70,
+     255,
+     70
+    ],
+    [
+     255,
+     0,
+     255
+    ],
+    [
+     255,
+     80,
+     70
+    ]
+   ],
+   "flat": true
   },
   {
    "id": "per6",
@@ -123,7 +185,14 @@
    "param": "(x, y)",
    "page": "models/per6/index.html",
    "genus": 6,
-   "source": "2026-11-07-E92-per6-atlas"
+   "source": "2026-11-07-E92-per6-atlas",
+   "info": {
+    "genus": 6,
+    "centres": 27,
+    "punctures": 18,
+    "circles": 2,
+    "sheets": 5
+   }
   },
   {
    "id": "per7",
@@ -136,7 +205,14 @@
    "param": "(x, y)",
    "page": "models/per7/index.html",
    "genus": 24,
-   "source": "2026-11-08-E93-per7-conformal"
+   "source": "2026-11-08-E93-per7-conformal",
+   "info": {
+    "genus": 24,
+    "centres": 63,
+    "punctures": 40,
+    "circles": 4,
+    "sheets": 10
+   }
   },
   {
    "id": "per8",
@@ -149,7 +225,14 @@
    "param": "(x, y)",
    "page": "models/per8/index.html",
    "genus": 69,
-   "source": "2026-11-08-E94-per8-conformal"
+   "source": "2026-11-08-E94-per8-conformal",
+   "info": {
+    "genus": 69,
+    "centres": 120,
+    "punctures": 74,
+    "circles": 5,
+    "sheets": 20
+   }
   },
   {
    "id": "per9",
