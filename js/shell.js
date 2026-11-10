@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261110013643').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261110020233').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none';
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261110013643'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261110020233'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -153,18 +153,34 @@
   $('dorb').onchange = e => { opt.orb = e.target.checked; dv.redraw(); };
   $('dorbn').oninput = e => { opt.orbN = Math.max(1, Math.min(2000, +e.target.value || 1)); dv.redraw(); };
   $('dhome').onclick = fit;
-  function keyM() {                                   // 'm' (Caroline 2026-11-10): jump to the mating box of the current center card
-    const box = document.querySelector('#dcb .mang');
-    if (box) { $('dcard').classList.remove('min'); box.focus(); box.select(); }
-    else $('status').textContent = 'm: click a polynomial center first; its card has the mating box (f ⊔ g).';
+  // f of a mating: a label (even numerator k), or either characteristic angle p/q of a period-n center (Caroline 2026-11-10)
+  async function resolveF(text, n) {
+    const D = n >= 2 ? await loadPoly(n) : null; if (!D) return null; const t = String(text).trim(), Q = 2**n - 1; let P = null, m;
+    if ((m = t.match(/^(\d+)\s*\/\s*(\d+)$/))) { const k = +m[1]*Q/+m[2]; if (Number.isInteger(k)) P = D.find(q => q.ks.includes(k)); }
+    else if (/^\d+$/.test(t)) P = D.find(q => String(q.label) === t) || D.find(q => q.ks.includes(+t));
+    return P || null;
   }
+  async function mateFromText(ft, gt) {
+    if (!cur) return; const n = cur.n;
+    if (n < 2) { $('status').textContent = 'Mating: choose Per_n with n ≥ 2 (in Per_1, z² ⊔ g = g).'; return; }
+    const P = await resolveF(ft, n);
+    if (!P) { $('status').textContent = `Mating: "${ft}" is not a period-${n} center (give its label k, or either angle k/${2**n - 1})`; return; }
+    doMate([Number(P.c_str[0]), Number(P.c_str[1])], n, P.label, gt, null);
+  }
+  function keyM() {                                   // 'm': mating prompt: f angle, g angle, Enter
+    const dl = $('mdlg'); dl.style.display = 'block'; $('mdn').textContent = cur ? cur.n : 'n';
+    const cardLab = (document.querySelector('#dct b') || {}).textContent || '', m = cardLab.match(/^cent(?:er|re) (\d+)/);
+    if (m && !$('mdf').value) $('mdf').value = m[1];
+    const first = $('mdf').value ? $('mdg') : $('mdf'); first.focus(); first.select();
+  }
+  $('mdf').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdg').focus(); $('mdg').select(); } });
+  $('mdg').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdlg').style.display = 'none'; mateFromText($('mdf').value, $('mdg').value); } });
+  $('mdlg').addEventListener('keydown', e => { if (e.key === 'Escape') $('mdlg').style.display = 'none'; });
+  $('mdx').onclick = () => { $('mdlg').style.display = 'none'; };
   window.addEventListener('keydown', e => { if (e.key === 'm' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { e.preventDefault(); keyM(); } });
-  window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'm') keyM(); });
-  window.addEventListener('message', async ev => {                 // mating box in a model's side panel: f by label, g by angle
-    const d = ev.data; if (!d || d.e96 !== 'mateReq' || !cur) return; const n = cur.n;
-    const D = n >= 2 ? await loadPoly(n) : null, P = D && D.find(q => String(q.label) === String(d.label).trim());
-    if (!P) { $('status').textContent = `Mating: no polynomial with label ${d.label} in Per_${n} (labels = even numerators k of k/${2**n - 1})`; return; }
-    doMate([Number(P.c_str[0]), Number(P.c_str[1])], n, P.label, d.angle, null);
+  window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'm') { window.focus(); keyM(); } });
+  window.addEventListener('message', ev => {                       // mating box in a model's side panel
+    const d = ev.data; if (!d || d.e96 !== 'mateReq' || !cur) return; mateFromText(d.label, d.angle);
   });
   window.addEventListener('keydown', e => {          // 'o': orbit of the point under the cursor (dynamical plane)
     if (e.target.tagName === 'INPUT' || !M || e.key !== 'o' || !dv.mouse) return;
@@ -236,8 +252,17 @@
     else msg = { x: ch.x, y: ch.y };
     $('frame').contentWindow.postMessage(Object.assign({ e96: 'mark', label }, msg), '*');
     handleParam(Object.assign({ e96: 'param', label, keepCard: true }, msg));
-    out.textContent = `${label}: converged in ${m.iters} steps, residual ${m.residual.toExponential(1)}; ${gname}` + (cur.kind === 'hyperbolic' ? ' (yellow marker in the disk: next step)' : ' (yellow marker)');
+    const base = `${label}: converged in ${m.iters} steps, residual ${m.residual.toExponential(1)}; ${gname}`;
+    out.textContent = base + (cur.kind === 'hyperbolic' ? ' (locating it in the disk…)' : ' (yellow marker)');
+    if (cur.kind === 'hyperbolic') MATEOUT = { out, base, label };
   }
+  let MATEOUT = null;
+  window.addEventListener('message', ev => {         // the hyperbolic viewer's answer to 'mark' (chart inversion, M6)
+    const d = ev.data; if (!d || d.e96 !== 'markDone' || !MATEOUT || d.label !== MATEOUT.label) return;
+    MATEOUT.out.textContent = MATEOUT.base + (d.ok ? ` (yellow star in the disk; chart residual ${d.res.toExponential(1)})`
+      : ` (not located in the disk${d.res != null ? ': best chart residual ' + d.res.toExponential(1) : ''})`);
+    MATEOUT = null;
+  });
   // jump to the polynomial with label lab in Per_n (retries until the model has loaded and answers with its card)
   let GOTO = null;
   function viewIn(n, lab) {

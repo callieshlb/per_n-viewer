@@ -43,10 +43,10 @@
             font:12px/1.5 ui-monospace, Menlo, monospace; padding:4px 10px; box-sizing:border-box; overflow:auto; white-space:pre; }
   button.sm { font:inherit; padding:0 6px; border:1px solid #bbb; background:#fff; border-radius:4px; cursor:pointer; }
 </style>
-<script src="js/pern_math.js?v=20261110013643"></script>
-<script src="js/glsl.js?v=20261110013643"></script>
-<script src="js/planeview.js?v=20261110013643"></script>
-<script src="js/mating.js?v=20261110013643"></script>
+<script src="js/pern_math.js?v=20261110020233"></script>
+<script src="js/glsl.js?v=20261110020233"></script>
+<script src="js/planeview.js?v=20261110020233"></script>
+<script src="js/mating.js?v=20261110020233"></script>
 </head>
 <body>
 <div id="top"><h1>Per<sub>n</sub>(0) atlas</h1><div id="models"></div><span id="kind"></span></div>
@@ -76,7 +76,12 @@
     </div>
   </div>
 </div>
+<div id="mdlg" style="display:none;position:absolute;left:50%;top:30%;transform:translateX(-50%);z-index:20;background:#fff;border:1px solid #888;border-radius:8px;padding:12px 14px;box-shadow:0 4px 24px rgba(0,0,0,.35);font-size:14px">
+  <b>Mating in Per<sub id="mdn">n</sub>(0)</b> <button class="sm" id="mdx" style="float:right">×</button><br>
+  <span style="display:inline-block;margin-top:8px">f = <input id="mdf" size="8" placeholder="angle or label" autocomplete="off"> ⊔ g = <input id="mdg" size="8" placeholder="angle" autocomplete="off"></span>
+  <div style="color:#6b6b6b;font-size:12px;margin-top:6px;max-width:330px">f: either characteristic angle of a period-n center (e.g. 1/7 or 2/7), or its label k.
+  g: any angle (either characteristic angle of a center, or a preperiodic angle). Enter to compute, Esc to close.</div></div>
 <div id="status">Choose a model, then click a parameter.</div>
-<script src="js/shell.js?v=20261110013643"></script>
+<script src="js/shell.js?v=20261110020233"></script>
 </body>
 </html>

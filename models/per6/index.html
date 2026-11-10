@@ -23,8 +23,8 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261110013643"></script>
-<script src="per6_core.js?v=20261110013643"></script>
+<script src="conformal_data.js?v=20261110020233"></script>
+<script src="per6_core.js?v=20261110020233"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
@@ -541,7 +541,7 @@ body.e96min #side{display:none} body.e96min #view{right:0 !important} body.e96mi
 <button id="e96tog" title="hide / show the side panel">panel ▸</button>
 <label id="e96mv" style="position:absolute;top:8px;left:8px;z-index:9;font:12px system-ui;background:rgba(255,255,255,.9);padding:1px 6px;border-radius:4px;border:1px solid #bbb">
 <input type="checkbox" onchange="window.E96MOVE=this.checked"> move to clicked point</label>
-<div id="e96mate" style="margin:6px 0;font:12px system-ui"><b>Mating</b> f = <input id="e96mf" size="4" placeholder="label"> ⊔ g = <input id="e96mg" size="7" placeholder="angle 1/7">
+<div id="e96mate" style="margin:6px 0;font:12px system-ui"><b>Mating</b> f = <input id="e96mf" size="4" placeholder="angle or k"> ⊔ g = <input id="e96mg" size="7" placeholder="angle 1/7">
 <button id="e96mgo">f ⊔ g</button><div style="color:#6b6b6b">f by its label (the even numerator k of its angles k/(2^n − 1)); g: any external angle. Shown in the
 dynamical plane; details in the status line below.</div></div>
 <script>(function(){var b=document.getElementById('e96tog');b.onclick=function(){document.body.classList.toggle('e96min');
@@ -553,5 +553,58 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if(e.key==='m'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:'m'},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
+<script>/* E96: chart inversion + mating markers (REGISTRATION addendum 2026-11-10 (b)) */
+var E96MARKS=[];
+function e96locate(x,y){
+  if(!idData||!CH||!CHG||!CHM)return null;
+  var S=T.idSize,ch=function(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1])/Math.sqrt((1+a[0]*a[0]+a[1]*a[1])*(1+b[0]*b[0]+b[1]*b[1]));};
+  var cand=[];
+  for(var py=0;py<S;py++)for(var px=0;px<S;px++){var qx=(px+.5)/S*2-1,qy=1-(py+.5)/S*2;if(qx*qx+qy*qy>=.999)continue;
+    var o=4*(py*S+px),id=(idData[o]<<16)|(idData[o+1]<<8)|idData[o+2];
+    var d=ch([VX[2*id],VX[2*id+1]],x)+ch([VY[2*id],VY[2*id+1]],y);if(!(d<1e9))continue;
+    if(cand.length<400||d<cand[cand.length-1].d){cand.push({d:d,p:[qx,qy]});if(cand.length>800){cand.sort(function(a,b){return a.d-b.d;});cand.length=400;}}}
+  cand.sort(function(a,b){return a.d-b.d;});var sel=[];cand.forEach(function(c){if(sel.length<10&&sel.every(function(e){return Math.hypot(e.p[0]-c.p[0],e.p[1]-c.p[1])>6/S;}))sel.push(c);});cand=sel;
+  var bx=Math.hypot(x[0],x[1])>1,by=Math.hypot(y[0],y[1])>1,inv=function(v,b){if(!b)return v;var d=v[0]*v[0]+v[1]*v[1];return[v[0]/d,-v[1]/d];};
+  var tx=inv(x,bx),ty=inv(y,by),val=function(p){var L=chartLookup(p);if(!L||!isFinite(L.x[0]+L.x[1]+L.y[0]+L.y[1]))return null;return[inv(L.x,bx),inv(L.y,by)];};
+  /* Seeds: pixel candidates + every census marker, nearest (chordal, in (x, y)) first. From each seed: damped Newton on ONE coordinate
+     (|holomorphic| has no local minima besides zeros), which lands on some sheet over that coordinate; keep the root whose other coordinate matches. */
+  var MIx=window.E96MI||(typeof MI!=='undefined'?MI:null),seeds=cand.map(function(c){return{p:c.p,d:c.d};});
+  if(MIx)T.markers.forEach(function(m,i){var it=MIx.items[i];if(it&&it.x&&it.y&&isFinite(it.x[0]+it.y[0]))seeds.push({p:m.p,d:ch(it.x,x)+ch(it.y,y)});});
+  seeds.sort(function(a,b){return a.d-b.d;});
+  var best=null,full=function(v){return ch(inv(v[0],bx),x)+ch(inv(v[1],by),y);};
+  function newt(p,k,tg){p=fold(p);var v=val(p);if(!v)return null;var r=Math.hypot(v[k][0]-tg[0],v[k][1]-tg[1]);
+    for(var it=0;it<80&&r>1e-13;it++){var sc=1-p[0]*p[0]-p[1]*p[1],h=1e-4*sc,wv=val([p[0]+h,p[1]]);if(!wv)break;
+      var d=[(wv[k][0]-v[k][0])/h,(wv[k][1]-v[k][1])/h],dd=d[0]*d[0]+d[1]*d[1];if(!(dd>0))break;var e=[v[k][0]-tg[0],v[k][1]-tg[1]];
+      var st=[(e[0]*d[0]+e[1]*d[1])/dd,(e[1]*d[0]-e[0]*d[1])/dd],sl=Math.hypot(st[0],st[1]),mx=.25*sc;if(sl>mx){st=[st[0]*mx/sl,st[1]*mx/sl];}
+      var ok=false;for(var ls=0,t=1;ls<10;ls++,t/=2){var q=fold([p[0]-t*st[0],p[1]-t*st[1]]),u=val(q);if(!u)continue;var r1=Math.hypot(u[k][0]-tg[0],u[k][1]-tg[1]);if(r1<r){p=q;v=u;r=r1;ok=true;break;}}
+      if(!ok)break;}
+    return{p:p,v:v,r:r};}
+  var tried=0;
+  for(var si=0;si<seeds.length&&si<60&&(!best||best.res>2e-5);si++){for(var k=1;k>=0;k--){var R=newt(seeds[si].p,k,k?ty:tx);tried++;if(!R)continue;var res=full(R.v);
+      if(!best||res<best.res)best={p:R.p,res:res,seed:seeds[si].d,tried:tried};if(best.res<2e-5)break;}}
+  if(best){var c0=null,p=best.p,cost=function(p){var v=val(p);if(!v)return null;var dx=[v[0][0]-tx[0],v[0][1]-tx[1]],dy=[v[1][0]-ty[0],v[1][1]-ty[1]];return{v:v,dx:dx,dy:dy,r:Math.hypot(dx[0],dx[1])+Math.hypot(dy[0],dy[1])};};
+    c0=cost(p);                                                                 /* polish on both coordinates (least squares) */
+    for(var it=0;c0&&it<30&&c0.r>1e-13;it++){var sc=1-p[0]*p[0]-p[1]*p[1],h=1e-4*sc,wv=val([p[0]+h,p[1]]);if(!wv)break;var v=c0.v;
+      var xp=[(wv[0][0]-v[0][0])/h,(wv[0][1]-v[0][1])/h],yp=[(wv[1][0]-v[1][0])/h,(wv[1][1]-v[1][1])/h];
+      var den=xp[0]*xp[0]+xp[1]*xp[1]+yp[0]*yp[0]+yp[1]*yp[1];if(!(den>0))break;var dx=c0.dx,dy=c0.dy;
+      var num=[xp[0]*dx[0]+xp[1]*dx[1]+yp[0]*dy[0]+yp[1]*dy[1],xp[0]*dx[1]-xp[1]*dx[0]+yp[0]*dy[1]-yp[1]*dy[0]];
+      var st=[num[0]/den,num[1]/den],sl=Math.hypot(st[0],st[1]),mx=.1*sc;if(sl>mx){st=[st[0]*mx/sl,st[1]*mx/sl];}
+      var ok=false;for(var ls=0,t=1;ls<10;ls++,t/=2){var q2=fold([p[0]-t*st[0],p[1]-t*st[1]]),c1=cost(q2);if(c1&&c1.r<c0.r){p=q2;c0=c1;ok=true;break;}}
+      if(!ok)break;}
+    if(c0){var r2=full(c0.v);if(r2<=best.res){best.p=p;best.res=r2;}}}
+  return best;
+}
+(function(){var _do=drawOverlay;drawOverlay=function(){_do();if(!E96MARKS.length)return;var fs=Math.round(13*dpr);g2.textAlign='left';g2.textBaseline='middle';
+  for(var ti=0;ti<tiles.length;ti++)for(var mi=0;mi<E96MARKS.length;mi++){var m=E96MARKS[mi],s=ap(tiles[ti].W,m.p),sc=1-cabs2(s);if(sc<0.02)continue;
+    var p=diskToScreen(s);if(p[0]<-10||p[1]<-10||p[0]>W_+10||p[1]>H_+10)continue;var r=Math.max(2*dpr,Math.min(9*dpr,9*dpr*sc*Math.pow(zoom,0.35)));
+    g2.beginPath();for(var k=0;k<10;k++){var rr=k%2?r*.45:r,t=-Math.PI/2+k*Math.PI/5;g2.lineTo(p[0]+rr*Math.cos(t),p[1]+rr*Math.sin(t));}g2.closePath();
+    g2.fillStyle='#ffe600';g2.fill();g2.strokeStyle='#141414';g2.lineWidth=1.2*dpr;g2.stroke();
+    if(opt.ml&&r>4*dpr&&m.label){g2.font='600 '+fs+'px system-ui';g2.lineWidth=3*dpr;g2.strokeStyle='rgba(0,0,0,.85)';g2.strokeText(m.label,p[0]+r+3*dpr,p[1]);g2.fillStyle='#ffe600';g2.fillText(m.label,p[0]+r+3*dpr,p[1]);}}};
+window.addEventListener('message',function(ev){var d=ev.data;if(!d)return;
+  if(d.e96==='clearMarks'){E96MARKS.length=0;dirty=true;return;}
+  if(d.e96!=='mark'||!d.x||!d.y)return;var L=e96locate(d.x,d.y),ok=!!L&&L.res<1e-4;
+  if(ok){E96MARKS.push({p:L.p,label:d.label,vein:d.vein});if(!d.quiet){V=Mq(L.p);anim=null;reduceView();}dirty=true;}
+  parent.postMessage({e96:'markDone',label:d.label,ok:ok,res:L?L.res:null,p:L?L.p:null,tag:d.tag},'*');});})();
+</script>
 </body>
 </html>
