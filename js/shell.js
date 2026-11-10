@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261110025327').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261110031235').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -25,8 +25,8 @@
     const I = cur.info || {};
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
-    hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none';
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261110025327'; history.replaceState(null, '', '#' + id);
+    hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261110031235'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -184,6 +184,7 @@
     if (cur.family === 'quad' || cur.family === 'per2') { sel.x = null; sel.y = null; }
     $('dhint').style.display = 'none'; dynRays(); polyView(); fit(); $('status').textContent = statusText(); ORB0 = null;
     TREE = null; const mk = parseMarker(d); if (mk) { showMarker(mk); if (mk.kind === 'centre') showTree(mk); } else if (!d.keepCard) hideCard();
+    if (!mk || mk.kind !== 'centre') setTimeout(followTree, 30);
   }
   window.SHELL = { get M() { return M; }, get sel() { return sel; }, dv, choose, viewM, handleParam };
   // ---- controls
@@ -283,7 +284,30 @@
     const pc = [Number(P.c_str[0]), Number(P.c_str[1])], psi = cur.family === 'quad' ? (q => q) : PM.moebius3([[0, 0], pc, null], [Mc.marked[0], Mc.marked[1], Mc.omega]);
     let err = 0, z = [0, 0]; if (cur.family !== 'quad') for (let k = 0; k < n; k++) { err = Math.max(err, PM.chord(psi(z), Mc.marked[k])); z = PM.cadd(PM.cmul(z, z), pc); }
     TREE = P.tree.map(arc => arc.map(q => psi(q))); TREEERR = err; dv.redraw();
+    TREEP = { model: cur.id, n, lab, P, c0: pc, arcsW: P.tree, mpos: null };
     $('status').textContent = statusText() + `\nHubbard tree of polynomial ${lab} (white), moved into this chart: max chordal |psi(P^k(0)) - a_k| = ${err.toExponential(1)}`;
+  }
+  // ---- Hubbard tree off-center (REGISTRATION addendum 2026-11-10 (e)): the tree of the last polynomial, continued to the selected map
+  let TREEP = null, TREEJOB = 0;
+  async function followTree() {
+    if (!M || !cur || cur.n < 2 || cur.family === 'quad' || !opt.tree) return; const Mc = M, job = ++TREEJOB, n = cur.n, hyp = cur.kind === 'hyperbolic';
+    const f = PM.fate(Mc, Mc.omega, 2000, 1e-6, 1e-9); let note = '';
+    if (f.kind === 'cycle' && f.period === 1) {                     // inside a polynomial component: whose?
+      const C = PM.cycleCentre(hyp ? 'cor' : cur.family, n, hyp ? { x: sel.x, y: sel.y } : { p: sel.p }, 1), T = C && PM.transfer(C.M, 1), D = await loadPoly(n);
+      if (job !== TREEJOB || M !== Mc) return;
+      const P = T && D && D.find(q => PM.cabs(PM.csub([Number(q.c_str[0]), Number(q.c_str[1])], T.p)) < 1e-6);
+      if (P && (!TREEP || TREEP.P !== P || TREEP.model !== cur.id)) TREEP = { model: cur.id, n, lab: P.label, P, c0: [Number(P.c_str[0]), Number(P.c_str[1])], arcsW: P.tree, mpos: null };
+    }
+    if (!TREEP || TREEP.model !== cur.id) return;
+    const orb0 = () => { const o = [[0, 0]]; for (let k = 1; k < n; k++) o.push(PM.cadd(PM.cmul(o[k - 1], o[k - 1]), TREEP.c0)); return o; };
+    let R = HT.deform(Mc, TREEP.c0, TREEP.arcsW, { mpos: TREEP.mpos || orb0(), res: 400, maxSteps: 70 }), from = 'continued from the previous tree';
+    if (R.why && TREEP.arcsW !== TREEP.P.tree) { const R2 = HT.deform(Mc, TREEP.c0, TREEP.P.tree, { mpos: orb0(), res: 400, maxSteps: 70 }); if (!R2.why) { R = R2; from = 'restarted from the center\'s tree'; } }
+    if (M !== Mc || job !== TREEJOB) return;
+    if (!R.why) { TREEP.arcsW = R.arcs; TREEP.mpos = R.mpos; }
+    TREE = (R.why && R.steps === 0) ? null : R.arcs.map(arc => arc.map(q => R.F.psi(q))); dv.redraw();
+    note = R.why ? `Hubbard tree of polynomial ${TREEP.lab}: the pullback stops here after ${R.steps} step${R.steps === 1 ? '' : 's'}: ${R.why}` + (TREE ? ' (last tree shown)' : '')
+      : `Hubbard tree of polynomial ${TREEP.lab} (white) for THIS map: regulated hull of the marked cycle by pullback, ${from}; ${R.steps} steps, last movement ${(R.defect/R.h).toFixed(2)} node spacings${R.defect > 0.5*R.h ? ' (NOT yet settled: the drawn tree is approximate; click again nearby to continue it)' : ''}, branch degrees [${R.shape}]`;
+    $('status').textContent = statusText() + '\n' + note;
   }
   let TREEERR = null;
   const GN = {};

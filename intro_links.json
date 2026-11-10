@@ -1,7 +1,0 @@
-{
-  "_how_to_edit": "Each entry: section (heading it appears under), title, url (may be empty), note (one line). Add, remove or reorder entries; the intro page rebuilds the list from this file.",
-  "links": [
-    { "section": "Papers and proofs", "title": "(add a paper)", "url": "", "note": "Placeholder: replace with a title, a link and one line on what it proves." },
-    { "section": "Explanations", "title": "(add an explanation or talk)", "url": "", "note": "Placeholder." }
-  ]
-}
