@@ -113,16 +113,26 @@
     if (!M) return '';
     const par = (cur.kind !== 'plane') && sel.x && sel.y ? `x = a${M.n - 1} = ${PM.fmt(sel.x)}   y = a3 = ${PM.fmt(sel.y)}${sel.p ? '   (' + cur.param + ' = ' + PM.fmt(sel.p) + ')' : ''}` : `${cur.param} = ${PM.fmt(sel.p)}`;
     const f = PM.fate(M, M.omega, dv.maxIt, dv.delta, 1e-7);
+    let comp = '';
+    if (f.kind === 'capture' && cur.kind !== 'hyperbolic' && sel.p) { const C = PM.captureCentre(cur.family, cur.n, sel.p, f);
+      comp = C ? `capture component: at its centre (${cur.param} = ${PM.fmt(C.centre, 6)}) ${C.preperiod === 0 ? 'the free critical point IS a' + C.j : 'the free critical point lands on a' + C.j + ' after ' + C.preperiod + ' step' + (C.preperiod === 1 ? '' : 's')}: preperiod ${C.preperiod}, period ${cur.n} (phase ${C.phase})`
+               : `captured (phase ${f.phase}); centre not found by Newton from here`; }
+    else if (f.kind === 'capture') comp = `captured by the marked cycle (phase ${f.phase})`;
+    if (f.kind === 'capture' && cur.family === 'quad') comp = 'escapes to ∞ (outside the Mandelbrot set)';
+    else if (f.kind === 'cycle') comp = f.period === 1 ? 'hyperbolic component with an attracting fixed point (polynomial-like: the free critical point is attracted to a fixed point)' : `hyperbolic component of period ${f.period} (the free critical point is attracted to a ${f.period}-cycle)`;
+    else comp = 'undecided: bifurcation locus (or beyond the iteration count)';
     return `${cur.titleText}${sel.label ? '  ·  ' + sel.label : ''}   ${par}\n` +
       `f(z) = ((${PM.fmt(M.A, 5)}) z² + (${PM.fmt(M.B, 5)}) z + (${PM.fmt(M.C, 5)})) / ((${PM.fmt(M.D, 5)}) z² + (${PM.fmt(M.E, 5)}) z + (${PM.fmt(M.F, 5)}))\n` +
       `marked cycle: ${M.marked.map((a, j) => 'a' + j + ' = ' + PM.fmt(a, 5)).join(',  ')}   (closes to ${PM.closure(M).toExponential(1)})\n` +
-      `free critical point ω = ${PM.fmt(M.omega, 6)}: ${PM.fateText(f)}   |   iterates ${dv.maxIt}, δ ${dv.delta.toExponential(0)}`;
+      `free critical point ω = ${PM.fmt(M.omega, 6)}: ${comp}   |   iterates ${dv.maxIt}, δ ${dv.delta.toExponential(0)}`;
   }
   let RAYA = [], DRAYS = [];
   function dynRays() { DRAYS = (M && cur && cur.family === 'quad') ? RAYA.map(t => { const a = PM.parseAngle(t); return { a, ...PM.rayWithLanding('dyn', a, M.C) }; }) : []; }
   window.addEventListener('message', ev => {
     const d0 = ev.data; if (d0 && d0.e96 === 'rays') { RAYA = d0.angles || []; dynRays(); dv.redraw(); return; }
-    const d = ev.data; if (!d || d.e96 !== 'param' || !cur) return;
+    if (d0 && d0.e96 === 'param' && cur) handleParam(d0);
+  });
+  function handleParam(d) {
     const q = { p: d.p, x: d.x, y: d.y };
     const fam = cur.kind === 'hyperbolic' ? 'cor' : cur.family;
     const m = PM.mapFrom(fam, cur.n, q);
@@ -132,8 +142,8 @@
     M = m; sel = { p: d.p || null, x: d.x || (m.x || null), y: d.y || (m.y || null), label: d.label };
     if (cur.family === 'quad' || cur.family === 'per2') { sel.x = null; sel.y = null; }
     $('dhint').style.display = 'none'; dynRays(); polyView(); fit(); $('status').textContent = statusText(); ORB0 = null;
-    TREE = null; const mk = parseMarker(d); if (mk) { showMarker(mk); if (mk.kind === 'centre') showTree(mk); } else hideCard();
-  });
+    TREE = null; const mk = parseMarker(d); if (mk) { showMarker(mk); if (mk.kind === 'centre') showTree(mk); } else if (!d.keepCard) hideCard();
+  }
   window.SHELL = { get M() { return M; }, get sel() { return sel; }, dv, choose };
   // ---- controls
   $('dit').oninput = e => { dv.maxIt = +e.target.value; $('ditv').textContent = dv.maxIt; dv.redraw(); if (M) $('status').textContent = statusText(); };
@@ -143,6 +153,9 @@
   $('dorb').onchange = e => { opt.orb = e.target.checked; dv.redraw(); };
   $('dorbn').oninput = e => { opt.orbN = Math.max(1, Math.min(2000, +e.target.value || 1)); dv.redraw(); };
   $('dhome').onclick = fit;
+  window.addEventListener('keydown', e => {          // 'o': orbit of the point under the cursor (dynamical plane)
+    if (e.target.tagName === 'INPUT' || !M || e.key !== 'o' || !dv.mouse) return;
+    ORB0 = TV ? (TV.Ti(dv.mouse) || [1e300, 0]) : dv.mouse; opt.omode = true; $('omode').checked = true; dv.redraw(); });
   $('dbands').onchange = e => { dv.bands = e.target.checked; dv.redraw(); };
   $('dinv').onchange = e => { opt.inv = e.target.checked; polyView(); fit(); };
   $('dtree').onchange = e => { opt.tree = e.target.checked; dv.redraw(); };
@@ -192,6 +205,25 @@
     while (q.length) { const i = q.shift(); if (i === t) break; for (const j of adj[i]) if (!prev.has(j) && v2(L[j]) > v2(L[i])) { prev.set(j, i); q.push(j); } }
     if (!prev.has(t)) return []; const path = []; for (let i = t; i !== -1; i = prev.get(i)) path.unshift(L[i]); return path;
   }
+  function parseC(mk) {                         // the polynomial c of a centre card (census lines 'c = re +/- im i')
+    if (mk.pc) return mk.pc.map(Number);
+    const t = (mk.lines || []).join('\n').match(/c = ([-+]?[\d.eE-]+) ([+-]) ([\d.eE-]+)i/); return t ? [Number(t[1]), (t[2] === '-' ? -1 : 1)*Number(t[3])] : null;
+  }
+  // ---- mating calculator (mating.js; REGISTRATION addendum 2026-11-10, checks M1-M5 in log.md)
+  function doMate(cf, n, lab, text, out) {
+    const a = PM.parseAngle(text); if (!a || !cf) { out.textContent = 'enter an angle p/q'; return; }
+    const g = MATE.pcfFromAngle(a), m = MATE.mate(cf, g.c), gname = `g = ${g.kind} of angle ${a.text} (c = ${PM.fmt(g.c, 6)})`;
+    if (!m.ok) { out.textContent = `not converged: ${m.why} (${gname})`; return; }
+    const ch = MATE.toChart(m), label = `${lab} ⊔ ${a.text}`;
+    if (!ch || cur.n !== n) { out.textContent = `f ⊔ g lies in Per_${n}; open Per_${n} to place it (coming next)`; return; }
+    let msg;
+    if (cur.kind === 'plane') msg = { p: ch.p };
+    else if (cur.kind === 'torus') { const L = PM.torusLocate(ch.x, ch.y); if (!L) { out.textContent = 'torus point not found'; return; } msg = { p: L.u }; }
+    else msg = { x: ch.x, y: ch.y };
+    $('frame').contentWindow.postMessage(Object.assign({ e96: 'mark', label }, msg), '*');
+    handleParam(Object.assign({ e96: 'param', label, keepCard: true }, msg));
+    out.textContent = `${label}: converged in ${m.iters} steps, residual ${m.residual.toExponential(1)}; ${gname}` + (cur.kind === 'hyperbolic' ? ' (yellow marker in the disk: next step)' : ' (yellow marker)');
+  }
   function showMarker(mk) {
     const n = mk.n || cur.n, D = 2**n - 1, esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(mk.lines.join('\n'));
@@ -202,6 +234,12 @@
         const lab = mk.ks ? mk.ks.find(k => k % 2 === 0) ?? mk.ks[0] : +mk.label;
         btn('Polynomial card: Hubbard tree, rays, addresses', () => overlay(`Per_${n}: polynomial ${lab}`, [[`${lab}/${D}`, `poly/index.html#n=${n}&label=${lab}`]]));
         btn('Obstruction Γ(θ) of its puncture', () => overlay(`Thurston obstruction Γ(θ), θ = ${lab}/${D}`, [[`θ = ${lab}/${D}`, `obstruction/index.html#p=${lab}&q=${D}`]]));
+        const mrow = document.createElement('div'); mrow.style.cssText = 'width:100%;margin-top:4px';
+        mrow.innerHTML = 'Mate with g of angle <input class="mang" size="9" placeholder="e.g. 1/7"> <button class="sm mbtn">f ⊔ g</button> <span class="mres"></span>';
+        B.appendChild(mrow);
+        const cf = parseC(mk);
+        mrow.querySelector('.mbtn').onclick = () => doMate(cf, n, lab, mrow.querySelector('.mang').value, mrow.querySelector('.mres'));
+        mrow.querySelector('.mang').addEventListener('keydown', e => { if (e.key === 'Enter') mrow.querySelector('.mbtn').click(); });
         if (n >= 5) evenPath(n, lab).then(path => { if (!path) return; const d = document.createElement('div'); d.style.cssText = 'width:100%;margin-top:4px';
           d.innerHTML = path.length ? `G<sub>${n}</sub> path to ${2**(n - 1)} (more factors of 2 at each step; click to go): ` : `no increasing G<sub>${n}</sub> path from ${lab}`;
           path.forEach((L, i) => { const a = document.createElement('a'); a.href = '#'; a.textContent = L; a.style.margin = '0 3px';

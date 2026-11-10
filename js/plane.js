@@ -15,7 +15,7 @@
   if (E.real) ['rcl', 'rc'].forEach(k => { $(k).style.display = ''; });
   ['mk', 'ml', 'gn', 'sm', 'rc'].forEach(k => { $(k).onchange = e => { opt[k] = e.target.checked; pv.redraw(); }; });
   $('minb').onclick = () => { $('side').classList.toggle('min'); $('minb').textContent = $('side').classList.contains('min') ? '+' : '–'; };
-  let picked = null;
+  let picked = null; const MARKS = [];
   function lattice(W, H) {           // visible lattice translates (torus)
     const a = pv.toPlane(0, H), b = pv.toPlane(W, 0), out = [];
     const m0 = Math.floor(a[0]/T5.W1) - 1, m1 = Math.ceil(b[0]/T5.W1) + 1, l0 = Math.floor(a[1]/T5.W2) - 1, l1 = Math.ceil(b[1]/T5.W2) + 1;
@@ -54,7 +54,7 @@
       g.font = '600 12px system-ui'; g.textBaseline = 'middle';
       for (const o of offs) for (const m of markers) {
         const s = pv.toScreen([m.p[0] + o[0], m.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
-        g.beginPath(); g.arc(s[0], s[1], 5, 0, 2*Math.PI); g.fillStyle = m.kind === 'centre' ? '#fff' : '#e8173a'; g.fill();
+        g.beginPath(); g.arc(s[0], s[1], 5, 0, 2*Math.PI); g.fillStyle = m.kind === 'centre' ? (E.n >= 5 && m.label === String(2**(E.n - 1)) ? '#b388ff' : '#fff') : '#e8173a'; g.fill();
         g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
         if (opt.ml) { g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(m.label, s[0] + 8, s[1]);
           g.fillStyle = m.kind === 'centre' ? '#fff' : '#ffd0d8'; g.fillText(m.label, s[0] + 8, s[1]); }
@@ -62,6 +62,12 @@
     }
     if (RAYS.length) drawRays(g, W, H);
     if (E.rays) drawPerN(g, W, H);
+    for (const mk of MARKS) for (const o of torus ? lattice(W, H) : [[0, 0]]) {        // matings (yellow)
+      const s = pv.toScreen([mk.p[0] + o[0], mk.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
+      g.beginPath(); for (let k = 0; k < 10; k++) { const r = k % 2 ? 3 : 7, t = -Math.PI/2 + k*Math.PI/5; g.lineTo(s[0] + r*Math.cos(t), s[1] + r*Math.sin(t)); } g.closePath();
+      g.fillStyle = '#ffe600'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
+      if (opt.ml) { g.font = '600 12px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(mk.label, s[0] + 9, s[1]); g.fillStyle = '#ffe600'; g.fillText(mk.label, s[0] + 9, s[1]); }
+    }
     if (picked) { const s = pv.toScreen(picked); g.strokeStyle = '#fff'; g.lineWidth = 2;
       g.beginPath(); g.moveTo(s[0] - 9, s[1]); g.lineTo(s[0] + 9, s[1]); g.moveTo(s[0], s[1] - 9); g.lineTo(s[0], s[1] + 9); g.stroke(); }
   }
@@ -108,18 +114,14 @@
   $('cardx').onclick = () => { $('card').style.display = 'none'; };
   function pick(p, marker) {
     picked = p; pv.redraw();
-    const M = PM.mapFrom(E.family, E.n, { p });
-    const lines = [];
     let x = null, y = null;
-    if (torus) { const P = PM.torusXY(p); x = P.x; y = P.y; lines.push(`u = ${PM.fmt(p)}  (flat coordinate)`, `y = a3 = ${PM.fmt(y)}`, `x = a4 = ${PM.fmt(x)}`); }
-    else lines.push(`${E.param} = ${PM.fmt(p)}`);
-    if (!M) lines.push('degenerate map here (puncture)');
-    else { const f = PM.fate(M, M.omega, pv.maxIt, pv.delta, 1e-7); lines.push('free critical point: ' + PM.fateText(f)); }
-    if (marker) lines.unshift(...marker.lines, '');
-    showCard(marker ? marker.title : 'Parameter', lines);
+    if (torus) { const P = PM.torusXY(p); x = P.x; y = P.y; }
+    // Caroline 2026-11-10: no card for plain parameters (the status line below shows the map and the free critical point's fate);
+    // a marker shows its census data only
+    if (marker) showCard(marker.title, marker.lines); else $('card').style.display = 'none';
     parent.postMessage({ e96: 'param', model: id, p, x, y, label: marker ? marker.title : null,
-      marker: marker ? { kind: marker.kind, label: marker.label, n: marker.n, title: marker.title, lines: marker.lines.concat(lines.slice(marker.lines.length + 1)),
-                         ks: marker.ks || null, thetas: marker.thetas || null } : null }, '*');
+      marker: marker ? { kind: marker.kind, label: marker.label, n: marker.n, title: marker.title, lines: marker.lines,
+                         ks: marker.ks || null, thetas: marker.thetas || null, pc: marker.pc || null } : null }, '*');
   }
   const pv = new PlaneView($('view'), {
     ctr: E.view.ctr, upp: E.view.upp, maxIt: 600, delta: 1e-3,
@@ -151,12 +153,13 @@
   }
   $('mfilter').oninput = buildList; buildList();
   window.addEventListener('message', ev => { const d = ev.data;
+    if (d && d.e96 === 'mark' && d.p) { MARKS.push({ p: d.p, label: d.label }); pv.redraw(); return; }
     if (d && d.e96 === 'goto' && d.label !== undefined) { const m = markers.find(q => q.kind === 'centre' && q.label === String(d.label)); if (m) { pv.ctr = m.p.slice(); pv.redraw(); pick(m.p, m); } return; }
     if (d && d.e96 === 'goto' && d.p) { pv.ctr = d.p.slice(); pv.redraw(); pick(d.p, null); } });
   if (E.rays) { $('perbox').style.display = ''; $('pern').onchange = e => setPerN(+e.target.value); $('perang').onchange = () => pv.redraw();
     $('raybox').style.display = ''; $('raygo').onclick = () => setRays($('rayin').value);
     $('rayin').addEventListener('keydown', e => { if (e.key === 'Enter') setRays(e.target.value); });
     $('rayclr').onclick = () => { RAYS = []; $('rayout').textContent = ''; parent.postMessage({ e96: 'rays', angles: [] }, '*'); pv.redraw(); }; }
-  if (window.innerWidth < 650) $('minb').onclick();
+  $('minb').onclick();                      // panel starts collapsed (Caroline 2026-11-10); + expands
   window.E96READY = true;
 })().catch(e => { document.body.innerHTML = '<pre style="color:#fff;padding:20px">' + e.stack + '</pre>'; console.error(e); });

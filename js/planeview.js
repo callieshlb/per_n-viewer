@@ -66,6 +66,14 @@ function PlaneView(host, opts) {
   gc.addEventListener('pointerup', function (e) { pts.delete(e.pointerId); if (pts.size) return;
     var wasDown = down; down = null; if (!wasDown || moved > 4) return;
     var r = gc.getBoundingClientRect(); self.onPick(self.toPlane(e.clientX - r.left, e.clientY - r.top), [e.clientX - r.left, e.clientY - r.top]); });
+  // hotkeys (Caroline 2026-11-10): z = zoom in, x = zoom out, at the cursor; self.mouse = plane point under the cursor
+  self.mouse = null; var lastXY = null;
+  gc.addEventListener('pointermove', function (e) { var r = gc.getBoundingClientRect(); lastXY = [e.clientX - r.left, e.clientY - r.top]; self.mouse = self.toPlane(lastXY[0], lastXY[1]); });
+  gc.addEventListener('pointerleave', function () { lastXY = null; self.mouse = null; });
+  window.addEventListener('keydown', function (e) {
+    if (!lastXY || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || (e.key !== 'z' && e.key !== 'x')) return;
+    var before = self.toPlane(lastXY[0], lastXY[1]); self.upp *= e.key === 'z' ? 1/1.6 : 1.6; self.upp = Math.min(10, Math.max(1e-7, self.upp));
+    var after = self.toPlane(lastXY[0], lastXY[1]); self.ctr[0] += before[0] - after[0]; self.ctr[1] += before[1] - after[1]; dirty = true; poke(); });
   gc.addEventListener('wheel', function (e) { e.preventDefault();
     var r = gc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, before = self.toPlane(sx, sy);
     self.upp = Math.min(10, Math.max(1e-7, self.upp*Math.exp(e.deltaY*0.0015)));

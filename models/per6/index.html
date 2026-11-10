@@ -297,7 +297,7 @@ function poke() { interacting = true; clearTimeout(idleT); idleT = setTimeout(()
   G6E = ovd.edges.map(e => ({ ...e, pts: geodPts(e.P, e.Q, 24) }));
   { const CL = T.markers.filter(m => m.kind === 'centre').map(m => parseInt(m.label, 10));
     const v2 = k => { let v = 0; while (k > 0 && k % 2 === 0) { k /= 2; v++; } return v; };
-    G6E.forEach(e => { e.vgap = (e.kind === 'capture' && e.b >= 0 && CL[e.a] > 0 && CL[e.b] > 0) ? v2(CL[e.b]) - v2(CL[e.a]) : 0; }); }
+    G6E.forEach(e => { e.vgap = (e.kind === 'capture' && e.b >= 0 && CL[e.a] > 0 && CL[e.b] > 0) ? v2(CL[e.b]) - v2(CL[e.a]) : 0; }); const MV = {}; G6E.forEach(e => { if (e.kind !== 'capture' || e.b < 0) return; MV[e.a] = Math.max(MV[e.a] ?? -1, v2(CL[e.b])); MV[e.b] = Math.max(MV[e.b] ?? -1, v2(CL[e.a])); }); G6E.forEach(e => { if (!e.vgap) return; const lo = e.vgap > 0 ? e.a : e.b, hi = e.vgap > 0 ? e.b : e.a; if (v2(CL[hi]) < MV[lo]) e.vgap = 0; }); }
   gl.activeTexture(gl.TEXTURE0);
   gl.uniform1i(U('charts'), 1); gl.uniform1i(U('ptab'), 2); gl.uniform1i(U('ctab'), 3); gl.uniform1i(U('cmapT'), 4);
   gl.uniform1f(U('RU'), meta.RU); gl.uniform1i(U('SS'), meta.S); gl.uniform1f(U('mapSize'), meta.mapSize);
@@ -404,7 +404,7 @@ function drawOverlay() {
       const s = ap(t.W, m.p), sc = 1 - cabs2(s); if (sc < 0.02) continue;
       const p = diskToScreen(s); if (p[0] < -10 || p[1] < -10 || p[0] > W_ + 10 || p[1] > H_ + 10) continue;
       const r = Math.max(1.5*dpr, Math.min(7*dpr, 7*dpr*sc*Math.pow(zoom, 0.35)));
-      g2.fillStyle = m.kind === 'centre' ? '#ffffff' : '#e8173a'; g2.strokeStyle = '#141414'; g2.lineWidth = 1.2*dpr;
+      g2.fillStyle = m.kind === 'centre' ? (m.label === '32' ? '#b388ff' : '#ffffff') : '#e8173a'; g2.strokeStyle = '#141414'; g2.lineWidth = 1.2*dpr;
       g2.beginPath(); g2.arc(p[0], p[1], r, 0, TAU); g2.fill(); g2.stroke();
       if (opt.ml && r > 4*dpr) {
         g2.font = `600 ${fs}px system-ui`; g2.lineWidth = 3*dpr; g2.strokeStyle = 'rgba(0,0,0,.85)'; g2.strokeText(m.label, p[0] + r + 3*dpr, p[1]);

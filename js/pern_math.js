@@ -53,6 +53,22 @@ var PM = (function () {
     if (Xp && Xm) { var fd = cscale(csub(Xp, Xm), 1/(2*h)); if (cabs(csub(fd, r)) > cabs(cadd(fd, r))) r = [-r[0], -r[1]]; }
     return [X, r];
   }
+  // (x, y) on P5 -> u (inverse of torusXY): X = 1/(1 - y) - 5/4, r = v/(y - 1)^2, v = 2(y^2 + y - 1)x - (2y^2 + y - 1);
+  // Newton on wpX(u) = X from a grid of starts, then u or -u by the sign of wp' (as torus5.py's locate)
+  function torusLocate(x, y) {
+    var X = cadd(cdiv([1, 0], csub([1, 0], y)), [-1.25, 0]), y2 = cmul(y, y);
+    var v = csub(cmul(cscale(cadd(csub(y2, [1, 0]), y), 2), x), csub(cadd(cscale(y2, 2), y), [1, 0])), y1 = csub(y, [1, 0]), r = cdiv(v, cmul(y1, y1));
+    var best = null, bd = Infinity;
+    for (var a = 0; a < 10; a++) for (var b = 0; b < 10; b++) {
+      var u = [(a + .5)/10*T5.W1, (b + .5)/10*T5.W2];
+      for (var it = 0; it < 60; it++) { var w = wp(u); if (!w) break; var du = cdiv(csub(w[0], X), w[1]); u = csub(u, du); if (cabs(du) < 1e-15) break; }
+      var w2 = wp(u); if (!w2) continue; var e = cabs(csub(w2[0], X))/(1 + cabs(X));
+      if (e < 1e-10) { var su = cabs(csub(w2[1], r)) <= cabs(cadd(w2[1], r)) ? u : [-u[0], -u[1]];
+        su = [su[0] - T5.W1*Math.floor(su[0]/T5.W1), su[1] - T5.W2*Math.floor(su[1]/T5.W2)];
+        var P = torusXY(su), d = (P.x ? cabs(csub(P.x, x)) : 1e9) + cabs(csub(P.y, y)); if (d < bd) { bd = d; best = su; } }
+    }
+    return best ? { u: best, err: bd } : null;
+  }
   function torusXY(u) {                                     // u -> (x, y) on P5 = x^2 A - x B + C
     var w = wp(u);
     if (w === null) return { x: [1, 0], y: [1, 0], X: null, r: null };
@@ -259,13 +275,35 @@ var PM = (function () {
     }
     return { kind: 'undecided' };
   }
+  // the centre of the capture component containing parameter p (plane / torus families): smallest t' <= t such that Newton in
+  // the parameter on G(q) = f_q^t'(omega_q) - a_j'(q) (j' = j - (t - t'), phase-consistent) converges near p to a centre whose
+  // fate is a capture of the same phase. Returns {preperiod t', landing a_j', centre} or null.
+  function captureCentre(family, n, p, f) {
+    if (!f || f.kind !== 'capture') return null;
+    for (var tp = 0; tp <= f.t; tp++) {
+      var jp = ((f.j - (f.t - tp)) % n + n) % n, q = p.slice(), ok = false;
+      var G = function (q) { var M = mapFrom(family, n, { p: q }); if (!M) return null; var z = M.omega;
+        for (var i = 0; i < tp; i++) { z = fz(M, z); if (z === null) break; }
+        var a = M.marked[jp]; if (z === null || a === null) return (z === null && a === null) ? [0, 0] : (a === null ? cdiv([1, 0], z || [1e300, 0]) : cdiv([1, 0], a)); return csub(z, a); };
+      for (var it = 0; it < 60; it++) {
+        var g0 = G(q); if (!g0) break; var h = 1e-7*(1 + cabs(q)), g1 = G(cadd(q, [h, 0])); if (!g1) break;
+        var d = cdiv(cscale(g0, h), csub(g1, g0)); q = csub(q, d); if (!isFinite(q[0]) || cabs(csub(q, p)) > 2*(1 + cabs(p))) break;
+        if (cabs(d) < 1e-13*(1 + cabs(q))) { ok = true; break; }
+      }
+      if (!ok) continue;
+      var Mc = mapFrom(family, n, { p: q }); if (!Mc) continue;
+      var fc = fate(Mc, Mc.omega, 400, 1e-6, 1e-9);
+      if (fc.kind === 'capture' && fc.phase === f.phase && fc.t <= tp + 1) return { preperiod: tp, j: jp, centre: q, phase: f.phase };
+    }
+    return null;
+  }
   function orbit(M, z, N) { var out = [z]; for (var i = 0; i < N; i++) { z = fz(M, z); out.push(z); } return out; }
   function closure(M) { var a = M.marked[0], z = a; for (var i = 0; i < M.n; i++) z = fz(M, z); return chord(z, a); }
   function fmt(z, d) { d = d || 6; if (z === null) return '∞'; var f = function (v) { return (Math.abs(v) < 1e-12 ? 0 : v).toPrecision(d); };
     return f(z[0]) + (z[1] < 0 ? ' − ' : ' + ') + f(Math.abs(z[1])) + 'i'; }
   function fateText(f) { return f.kind === 'capture' ? 'captured by the marked cycle, phase ' + f.phase + ', time ' + f.t
     : f.kind === 'cycle' ? 'attracting cycle, period ' + f.period : 'undecided (bifurcation locus)'; }
-  return { cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY,
-           corMap: corMap, mapFrom: mapFrom, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
+  return { cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY, torusLocate: torusLocate,
+           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
 })();
 if (typeof module !== 'undefined') module.exports = PM;
