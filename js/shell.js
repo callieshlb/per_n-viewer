@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261110035332').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261110042027').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261110035332'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261110042027'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -295,6 +295,33 @@
     TREEP = { model: cur.id, n, lab, P, c0: pc, arcsW: P.tree, mpos: null };
     $('status').textContent = statusText() + `\nHubbard tree of polynomial ${lab} (white), moved into this chart: max chordal |psi(P^k(0)) - a_k| = ${err.toExponential(1)}`;
   }
+  // ---- captures (REGISTRATION addendum 2026-11-10 (g)); 'c': f ^ theta
+  function keyC() { if (!cur) return; $('cdlg').style.display = 'block'; $('cdn').textContent = cur.n; $('cdf').value = ''; $('cdg').value = '';
+    const cardLab = (document.querySelector('#dct b') || {}).textContent || '', m = cardLab.match(/^cent(?:er|re) (\d+)/); $('cdf').placeholder = m ? m[1] + ' (this card)' : 'angle or label'; $('cdf').dataset.def = m ? m[1] : ''; $('cdf').focus(); }
+  async function doCapture(ft, gt, choice) {
+    const n = cur.n, st = t => { $('status').textContent = t; };
+    if (n < 2) { st('Capture: choose Per_n with n ≥ 2.'); return; }
+    const P = await resolveF(ft, n); if (!P) { st(`Capture: "${ft}" is not a period-${n} center (give its label k, or either angle k/${2**n - 1})`); return; }
+    const a = PM.parseAngle(gt); if (!a) { st('Capture: enter the angle θ as p/q'); return; }
+    const cf = [Number(P.c_str[0]), Number(P.c_str[1])], m = CAP.capture(cf, n, a, { choice: Math.max(0, (choice || 1) - 1) }), label = `${P.label} ^ ${a.text}`;
+    const cl = m.comps ? `\nFatou components at the landing point of the ray ${a.text} (z = ${PM.fmt(m.landing, 6)}): ` + m.comps.map((v, i) => `#${i + 1}: center ${PM.fmt(v.x, 5)}${v.cycIndex >= 0 ? ' = x' + (v.cycIndex === 0 ? n : v.cycIndex) + ' (periodic)' : ', reaches the cycle after ' + v.t + ' step' + (v.t === 1 ? '' : 's')}`).join(';  ') : '';
+    if (!m.ok) { st(`${label}: no capture: ${m.why}${m.iters !== undefined ? ' at pullback ' + m.iters : ''}` + cl); return; }
+    const ch = MATE.toChart(m), kind = m.typeII ? `bitransitive (the free critical point sits on the marked cycle in place of x${m.predicted.slot})` : `capture (type C): the free critical point reaches the marked cycle after ${m.predicted.t} steps`;
+    const base = `${label}: ${kind}; ${m.iters} pullbacks, residual ${m.residual.toExponential(1)}` + cl;
+    let msg;
+    if (cur.kind === 'plane') { if (!ch.p || !isFinite(ch.p[0] + ch.p[1])) { st(base + `\nThis map is at ∞ of the Per_${n} chart shown here, so it cannot be marked in the plane.`); return; } msg = { p: ch.p }; }
+    else if (cur.kind === 'torus') { const L = PM.torusLocate(ch.x, ch.y); if (!L) { st(base + '\ntorus point not found'); return; } msg = { p: L.u }; }
+    else msg = { x: ch.x, y: ch.y };
+    $('frame').contentWindow.postMessage(Object.assign({ e96: 'mark', label, go: cur.kind !== 'hyperbolic' }, msg), '*');
+    handleParam(Object.assign({ e96: 'param', label, keepCard: true }, msg));
+    st(base + (cur.kind === 'hyperbolic' ? ' (locating it in the disk…)' : ' (yellow star)')); if (cur.kind === 'hyperbolic') MATEOUT = { out: { set textContent(t) { $('status').textContent = t; } }, base, label };
+  }
+  $('cdf').addEventListener('keydown', e => { if (e.key === 'Enter') $('cdg').focus(); });
+  $('cdg').addEventListener('keydown', e => { if (e.key === 'Enter') { $('cdlg').style.display = 'none'; doCapture($('cdf').value.trim() || $('cdf').dataset.def || '', $('cdg').value, +$('cdc').value); } });
+  $('cdlg').addEventListener('keydown', e => { if (e.key === 'Escape') $('cdlg').style.display = 'none'; });
+  $('cdx').onclick = () => { $('cdlg').style.display = 'none'; };
+  window.addEventListener('keydown', e => { if (e.key === 'c' && !e.metaKey && !e.ctrlKey && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { e.preventDefault(); keyC(); } });
+  window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'c') { window.focus(); keyC(); } });
   // ---- puncture explorer, part 1 (REGISTRATION addendum 2026-11-10 (f)): spheres of the marked configuration at the selected map
   let SPHR = null;
   function spheres() {

@@ -43,12 +43,13 @@
             font:12px/1.5 ui-monospace, Menlo, monospace; padding:4px 10px; box-sizing:border-box; overflow:auto; white-space:pre; }
   button.sm { font:inherit; padding:0 6px; border:1px solid #bbb; background:#fff; border-radius:4px; cursor:pointer; }
 </style>
-<script src="js/pern_math.js?v=20261110035332"></script>
-<script src="js/glsl.js?v=20261110035332"></script>
-<script src="js/planeview.js?v=20261110035332"></script>
-<script src="js/mating.js?v=20261110035332"></script>
-<script src="js/tree.js?v=20261110035332"></script>
-<script src="js/spheres.js?v=20261110035332"></script>
+<script src="js/pern_math.js?v=20261110042027"></script>
+<script src="js/glsl.js?v=20261110042027"></script>
+<script src="js/planeview.js?v=20261110042027"></script>
+<script src="js/mating.js?v=20261110042027"></script>
+<script src="js/capture.js?v=20261110042027"></script>
+<script src="js/tree.js?v=20261110042027"></script>
+<script src="js/spheres.js?v=20261110042027"></script>
 </head>
 <body>
 <div id="top"><h1>Per<sub>n</sub>(0) atlas</h1><div id="models"></div><span id="kind"></span></div>
@@ -75,7 +76,7 @@
       <div style="margin-top:6px;border-top:1px solid #d9d9d9;padding-top:5px"><b>Spheres</b> <span style="color:#a05a00">(experimental)</span> <button class="sm" id="sphb" title="group the marked cycle, ω and f(ω) by scale at this map (useful near a puncture)">find (u)</button>
         neck ε <input type="range" id="sphe" min="-4" max="-0.5" step="0.25" value="-2" style="width:70px"> <span id="sphev">1e-2</span>
         <div id="sphl" style="margin-top:4px;font:11px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap"></div></div>
-      <div style="margin-top:5px;color:#6b6b6b">Keys: z / x zoom in / out · m mating · v view in Per<sub>m</sub> · r real circles · g G<sub>n</sub> edges · e violet arrows · p period colors</div>
+      <div style="margin-top:5px;color:#6b6b6b">Keys: z / x zoom in / out · m mating · c capture · u spheres · v view in Per<sub>m</sub> · r real circles · g G<sub>n</sub> edges · e violet arrows · p period colors</div>
       <div style="margin-top:6px;color:#6b6b6b">Colors: capture into the marked cycle by phase (j − t) mod n, as in the parameter pane;
         gray = basin of another attracting cycle; black = undecided (Julia set). White dots a<sub>j</sub>: the marked cycle
         (a<sub>0</sub> critical); yellow ω: the free critical point.</div>
@@ -89,7 +90,14 @@
     <button class="sm" id="mdc" style="float:right" title="remove all yellow mating marks">clear marks</button></div>
   <div style="color:#6b6b6b;font-size:12px;margin-top:6px;max-width:330px">Vein: also mates f with the K lowest-period centers g<sub>i</sub> (period ≤ 8) on the arc of the Mandelbrot set from z² to g (small yellow dots). f: either characteristic angle of a period-n center (e.g. 1/7 or 2/7), or its label k.
   g: any angle (either characteristic angle of a center, or a preperiodic angle). Enter to compute, Esc to close.</div></div>
+<div id="cdlg" style="display:none;position:absolute;left:50%;top:30%;transform:translateX(-50%);z-index:20;background:#fff;border:1px solid #888;border-radius:8px;padding:12px 14px;box-shadow:0 4px 24px rgba(0,0,0,.35);font-size:14px">
+  <b>Capture in Per<sub id="cdn">n</sub>(0)</b> <span style="color:#a05a00;font-size:12px">(experimental)</span> <button class="sm" id="cdx" style="float:right">×</button><br>
+  <span style="display:inline-block;margin-top:8px">f = <input id="cdf" size="8" placeholder="angle or label" autocomplete="off"> ^ θ = <input id="cdg" size="8" placeholder="angle" autocomplete="off">
+  &nbsp;component # <input id="cdc" type="number" min="1" max="6" value="1" style="width:40px"></span>
+  <div style="color:#6b6b6b;font-size:12px;margin-top:6px;max-width:360px">f: either characteristic angle of a period-n center, or its label. θ: the angle of the new critical VALUE: its ray must land on the boundary of a Fatou
+  component of f; the second critical value is moved along that ray to the component's center. If the landing point lies on several components they are listed in the status line; pick one with “component #”.
+  Type f, Tab, θ, Enter. Esc closes.</div></div>
 <div id="status">Choose a model, then click a parameter.</div>
-<script src="js/shell.js?v=20261110035332"></script>
+<script src="js/shell.js?v=20261110042027"></script>
 </body>
 </html>

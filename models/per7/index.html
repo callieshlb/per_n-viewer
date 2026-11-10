@@ -31,8 +31,8 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261110035332"></script>
-<script src="per7_core.js?v=20261110035332"></script>
+<script src="conformal_data.js?v=20261110042027"></script>
+<script src="per7_core.js?v=20261110042027"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -653,7 +653,7 @@ Object.keys(K).forEach(function(k){var el=document.getElementById(K[k]);if(!el)r
 var pi=document.getElementById('pit');if(pi&&pi.parentNode.previousElementSibling)pi.parentNode.previousElementSibling.innerHTML+=' (+ / −)';
 function key(k){if(K[k]){var el=document.getElementById(K[k]);if(!el)return true;el.checked=!el.checked;if(el.onchange)el.onchange({target:el});else el.dispatchEvent(new Event('change'));return true;}
 if(k==='+'||k==='='||k==='-'){if(!pi)return true;pi.value=Math.max(+pi.min,Math.min(+pi.max,+pi.value+(k==='-'?-1:1)*100));pi.dispatchEvent(new Event('input'));if(pi.oninput)0;return true;}
-if(k==='t'||k==='i'||k==='u'){parent.postMessage({e96:'key',key:k},'*');return true;}return false;}
+if(k==='t'||k==='i'||k==='u'||k==='c'){parent.postMessage({e96:'key',key:k},'*');return true;}return false;}
 window.addEventListener('keydown',function(e){var t=e.target;if((t.tagName==='INPUT'&&t.type!=='checkbox'&&t.type!=='range')||t.tagName==='SELECT'||e.metaKey||e.ctrlKey||e.altKey)return;if(key(e.key))e.preventDefault();});
 window.addEventListener('message',function(ev){var d=ev.data;if(d&&d.e96==='key'&&'rgep'.indexOf(d.key)>=0)key(d.key);});})();
 </script>
