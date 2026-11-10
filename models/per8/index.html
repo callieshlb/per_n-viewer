@@ -48,7 +48,6 @@
     <span>Real ovals</span><input type="checkbox" id="ov2" checked>
     <span>G<sub>8</sub>: capture edges</span><input type="checkbox" id="gc">
     <span>G: violet arrow f &rarr; f&prime; when f&prime; has more factors of 2</span><input type="checkbox" id="g2">
-    <span>Mark the y = 0 node zone (not resolved)</span><input type="checkbox" id="zn" checked>
     <span style="display:none"></span><input type="checkbox" id="gm" style="display:none">
     <span style="display:none"></span><input type="checkbox" id="gp" style="display:none">
   </div>
@@ -137,7 +136,7 @@ uniform vec2 res; uniform float Rpx, zoom, lineW; uniform vec2 Va, Vb, Vc, Vd; u
 uniform highp sampler2D faceT;
 uniform sampler2D tex; uniform int edges; uniform vec3 bg;
 uniform highp sampler2DArray charts; uniform highp sampler2D cmapT; uniform highp sampler2D ptab; uniform highp sampler2D ctab;
-uniform highp sampler2D ovT; uniform int nOv; uniform int showOv; uniform highp sampler2D wT; uniform int nW; uniform int showZone;
+uniform highp sampler2D ovT; uniform int nOv; uniform int showOv; uniform highp sampler2D wT; uniform int nW;
 const float EDGES2 = .74;   // E94: shader edges only where |s| > 0.86 (2 atanh = RVIS)
 uniform float RU; uniform int SS; uniform float mapSize; uniform highp sampler2D coefT; uniform int live; uniform int maxIt; uniform float delta; uniform float tolP;
 uniform vec2 Wa, Wb, Wc, Wd; uniform int k0; uniform int useW;
@@ -164,7 +163,6 @@ vec4 bicubic(int k, vec2 f){ vec2 i0 = floor(f), t = f - i0; vec4 wx = cw(t.x), 
   return acc; }
 const vec3 CAP[8] = vec3[8](vec3(42., 120., 214.), vec3(235., 104., 52.), vec3(27., 175., 122.), vec3(237., 161., 0.), vec3(232., 123., 164.), vec3(127., 63., 191.), vec3(160., 82., 45.), vec3(0., 150., 160.));
 vec3 shadeT(vec3 c, float t){ float s = max(.3, min(1., 1. - .6*log(1. + t)/log(81.))); return (c*s + 20.*(1. - s))/255.; }
-float zoneY = 1e9;
 vec3 liveColourU(int k, vec2 u);
 vec3 liveColour(vec2 z){
   vec2 mt = vec2(.5 + .5*z.x, .5 - .5*z.y)*mapSize; ivec2 mi = clamp(ivec2(mt), ivec2(0), ivec2(int(mapSize) - 1));
@@ -186,33 +184,27 @@ vec3 liveColourU(int k, vec2 u){
   // E93: P has degree 10 in x and y; leading coefficient exactly (y-1)^2 (y^4 + 3y^3 - 2y^2 - 2y + 1). Newton polish of x only
   // where float32 can resolve the root: |y|, |x| <= 50 (no overflow) and estimated root error 1.2e-7 sum|c_k x^k| / |P'| below
   // 1e-6 (1 + |x|) (fails next to the order-4 tangent branches over y = 0: the chart value is kept there).
-  {                                   // E94 fix 3: per-pixel projection of (y, x) onto P = 0, minimal move in scaled variables
-    bool iy = dot(y, y) > 1., ix = dot(x, x) > 1.;  // w = y or 1/y, v = x or 1/x; P scaled by y^-20 and/or x^-20
-    vec2 w = iy ? cd(one, y) : y, v = ix ? cd(one, x) : x, w0 = w, v0 = v; bool okp = true;
-    for (int it = 0; it < 5; it++) {
-      vec2 P = vec2(0.), Pv = vec2(0.), Pw = vec2(0.); float Sab = 0., av = length(v), pw = 1.;
-      for (int q = 0; q < 21; q++) {
-        int kk = ix ? q : 20 - q;                    // Horner order over the x-index
-        vec2 c = vec2(0.), dc = vec2(0.);
-        if (kk == 20) {                              // exact leading coefficient y^4 (y - 1)^6 (scaled: w^10 (1 - w)^6)
-          if (iy) { vec2 e1 = one - w, e2 = cm(e1, e1), e4 = cm(e2, e2), e5 = cm(e4, e1), w2 = cm(w, w), w4 = cm(w2, w2), w8 = cm(w4, w4), w9 = cm(w8, w);
-                    c = cm(cm(w9, w), cm(e5, e1)); dc = cm(cm(w9, e5), vec2(10., 0.) - 16.*w); }
-          else    { vec2 e1 = w - one, e2 = cm(e1, e1), e4 = cm(e2, e2), e5 = cm(e4, e1), w2 = cm(w, w), w3 = cm(w2, w);
-                    c = cm(cm(w3, w), cm(e5, e1)); dc = cm(cm(w3, e5), 10.*w - vec2(4., 0.)); }
-        } else if (iy) { for (int j = 0; j <= 20; j++) { dc = cm(dc, w) + c; c = cm(c, w) + vec2(texelFetch(coefT, ivec2(j, kk), 0).r, 0.); } }
-        else           { for (int j = 20; j >= 0; j--) { dc = cm(dc, w) + c; c = cm(c, w) + vec2(texelFetch(coefT, ivec2(j, kk), 0).r, 0.); } }
-        Pv = cm(Pv, v) + P; P = cm(P, v) + c; Pw = cm(Pw, v) + dc;
-        Sab = Sab*av + length(c);
-      }
-      float Dn = dot(Pv, Pv) + dot(Pw, Pw);
-      if (!(Dn > 0.) || 1.2e-7*Sab/sqrt(Dn) > 1e-5*(1. + av)) break;
-      vec2 s = P/Dn;
-      v -= cm(s, vec2(Pv.x, -Pv.y)); w -= cm(s, vec2(Pw.x, -Pw.y));
-      if (length(v - v0) + length(w - w0) > 2e-2*(1. + length(v0) + length(w0))) { okp = false; break; }
+  {                                   // E94 fix 2: Newton polish of x everywhere, in scaled variables (eta = 1/y, xi = 1/x beyond 1)
+    bool iy = dot(y, y) > 1., ix = dot(x, x) > 1.;
+    vec2 eta = iy ? cd(one, y) : y;
+    vec2 c[21];
+    for (int kk = 0; kk < 21; kk++) { vec2 acc = vec2(0.);
+      if (iy) { for (int j = 0; j <= 20; j++) acc = cm(acc, eta) + vec2(texelFetch(coefT, ivec2(j, kk), 0).r, 0.); }
+      else    { for (int j = 20; j >= 0; j--) acc = cm(acc, y) + vec2(texelFetch(coefT, ivec2(j, kk), 0).r, 0.); }
+      c[kk] = acc; }
+    if (iy) { vec2 e1 = one - eta, e2 = cm(e1, e1), e6 = cm(e2, cm(e2, e2)), t2 = cm(eta, eta), t4 = cm(t2, t2), t8 = cm(t4, t4); c[20] = cm(cm(t8, t2), e6); }
+    else    { vec2 e1 = y - one, e2 = cm(e1, e1), y2 = cm(y, y); c[20] = cm(cm(y2, y2), cm(e2, cm(e2, e2))); }   // exact leading coefficient y^4 (y - 1)^6
+    vec2 v = ix ? cd(one, x) : x;
+    for (int it = 0; it < 6; it++) {
+      vec2 P = vec2(0.), dP = vec2(0.); float Sab = 0., av = length(v), pw = 1.;
+      if (ix) { for (int kk = 0; kk <= 20; kk++) { dP = cm(dP, v) + P; P = cm(P, v) + c[kk]; } for (int kk = 20; kk >= 0; kk--) { Sab += length(c[kk])*pw; pw *= av; } }
+      else    { for (int kk = 20; kk >= 0; kk--) { dP = cm(dP, v) + P; P = cm(P, v) + c[kk]; } for (int kk = 0; kk < 21; kk++) { Sab += length(c[kk])*pw; pw *= av; } }
+      float dPl = length(dP);
+      if (dPl > 0. && 1.2e-7*Sab/dPl < 1e-5*(1. + av)) { vec2 d = cd(P, dP); if (length(d) < 2e-2*(1. + av)) v -= d; else break; }
+      else break;
     }
-    if (okp) { x = ix ? cd(one, v) : v; y = iy ? cd(one, w) : w; }
+    x = ix ? cd(one, v) : v;
   }
-  zoneY = length(y);                  // E94: y = 0 node zone flag
   // map data
   vec2 w = cd(x + y - one, x - one), s = x + w, p = cm(x, w), om = cd(2.*p, s);
   vec2 mk[8]; bool mi6[8];               // marked cycle a_0 = 0, a_1 = inf, a_2 = 1, a_3 = y, a_4..a_6 = f-iterates, a_7 = x
@@ -269,7 +261,6 @@ void main(){
   else if (live == 1 && bk >= 0 && bl < .9409*RU*RU) col = liveColourU(bk, bu);   // E94 fix: view-relative charts, |u| < 0.97 RU
   else if (live == 1 && useW == 1 && length(u0) < .95*RU) col = liveColourU(k0, u0);
   else if (live == 1) col = liveColour(z); else col = textureGrad(tex, vec2(.5 + .5*z.x, .5 - .5*z.y), vec2(g, 0.), vec2(0., g)).rgb;
-  if (live == 1 && showZone == 1 && zoneY < 0.13) col = mix(col, vec3(122., 42., 42.)/255., .7);
   if (edges == 1 && dot(s, s) > EDGES2) {
     float bestd = 1e9; float bp = 0.;
     for (int a = 0; a < ${MAXF}; a++) {
@@ -322,7 +313,7 @@ function geodPts(P, Q, n) {             // points along the geodesic segment P -
 }
 const LEG = [['#2a78d6', 'captured, phase 0'], ['#eb6834', 'captured, phase 1'], ['#1baf7a', 'captured, phase 2'], ['#eda100', 'captured, phase 3'],
   ['#e87ba4', 'captured, phase 4'], ['#7f3fbf', 'captured, phase 5'], ['#a0522d', 'captured, phase 6'], ['#00969f', 'captured, phase 7'], ['#555555', 'attracting fixed point (polynomial components)'],
-  ['#a3a3a3', 'other attracting cycle'], ['#121212', 'undecided: bifurcation locus'], ['#551414', 'too close to a puncture to compute'], ['#7a2a2a', 'y = 0 node zone (|y| < 0.13): dynamics beyond double / float32 precision (60-digit check), no mesh vertices for |y| < 0.08: colours not reliable (checkbox)']];
+  ['#a3a3a3', 'other attracting cycle'], ['#121212', 'undecided: bifurcation locus'], ['#551414', 'too close to a puncture to compute']];
 document.getElementById('legend').innerHTML = LEG.map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
 let liveMode = 1, pit = 600, delta = 1e-3, interacting = false, idleT = null;
 document.getElementById('cmode').onchange = e => { liveMode = +e.target.value; dirty = true; };
@@ -409,8 +400,8 @@ idImg.onload = () => { const c = document.createElement('canvas'); c.width = c.h
 idImg.src = T.ids;
 // ---------- view ----------
 let V = I2, zoom = 1, tiles = [], dirty = true, anim = null;
-const opt = { ed: true, lt: true, mk: true, ml: true, ov2: true, gc: false, gm: false, gp: false, g2: false, zn: true };
-['ed', 'lt', 'mk', 'ml', 'ov2', 'gc', 'gm', 'gp', 'g2', 'zn'].forEach(k => { document.getElementById(k).onchange = e => { opt[k] = e.target.checked; dirty = true; }; });
+const opt = { ed: true, lt: true, mk: true, ml: true, ov2: true, gc: false, gm: false, gp: false, g2: false };
+['ed', 'lt', 'mk', 'ml', 'ov2', 'gc', 'gm', 'gp', 'g2'].forEach(k => { document.getElementById(k).onchange = e => { opt[k] = e.target.checked; dirty = true; }; });
 let W_ = 0, H_ = 0, Rpx = 1, dpr = 1;
 function resize() { dpr = window.devicePixelRatio || 1; W_ = view.clientWidth*dpr; H_ = view.clientHeight*dpr;
   cv.width = ov.width = W_; cv.height = ov.height = H_; Rpx = 0.48*Math.min(W_, H_); gl.viewport(0, 0, W_, H_); dirty = true; }
@@ -540,7 +531,7 @@ function render() {
   gl.uniform2f(U('Va'), ...V.a); gl.uniform2f(U('Vb'), ...V.b); gl.uniform2f(U('Vc'), ...V.c); gl.uniform2f(U('Vd'), ...V.d);
   gl.uniform1i(U('edges'), opt.ed ? 1 : 0);
   setW0(); setViewCharts();
-  gl.uniform1i(U('showOv'), 0); gl.uniform1i(U('showZone'), opt.zn ? 1 : 0);
+  gl.uniform1i(U('showOv'), 0);
   gl.uniform1i(U('live'), liveMode); gl.uniform1i(U('maxIt'), interacting ? Math.min(pit, 120) : pit); gl.uniform1f(U('delta'), delta);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   tiles = enumerateTiles(); drawOverlay(); drawMini();
@@ -648,19 +639,6 @@ function setW0() {             // E93: chart of the view centre, composed with t
   gl.uniform2f(U('Wa'), ...W.a); gl.uniform2f(U('Wb'), ...W.b); gl.uniform2f(U('Wc'), ...W.c); gl.uniform2f(U('Wd'), ...W.d);
   gl.uniform1i(U('k0'), P.chart); gl.uniform1i(U('useW'), 1);
 }
-function projectYX(y, x) {   // E94 fix 3: minimal (chordal-weighted) move of (y, x) onto P = 0, double precision
-  let yy = y, xx = x, it = 0;
-  for (; it < 12; it++) {
-    const e = CORE.pEval(xx, CORE.coeffs(yy)), p = e[0], px = e[1], py = e[2];
-    const rx = 1/(1 + CORE.cabs(xx)**2), ry = 1/(1 + CORE.cabs(yy)**2), ax = CORE.cabs(px)/rx, ay = CORE.cabs(py)/ry, D = ax*ax + ay*ay;
-    if (!(D > 0)) break;
-    const sx = CORE.cmul(p, [px[0]/(rx*rx*D), -px[1]/(rx*rx*D)]), sy = CORE.cmul(p, [py[0]/(ry*ry*D), -py[1]/(ry*ry*D)]);
-    xx = CORE.csub(xx, sx); yy = CORE.csub(yy, sy);
-    if (CORE.cabs(sx)*rx + CORE.cabs(sy)*ry < 1e-15) break;
-  }
-  const mv = CORE.cabs(CORE.csub(xx, x))/(1 + CORE.cabs(x)**2) + CORE.cabs(CORE.csub(yy, y))/(1 + CORE.cabs(y)**2);
-  return mv < 2e-2 ? { y: yy, x: xx, it, ok: true } : { y, x, it, ok: false };
-}
 function chartLookup(p) {
   if (!CH || !CHM) return null;
   const S = CH.mapSize, mx_ = Math.min(S - 1, Math.max(0, Math.floor((.5 + .5*p[0])*S))), my_ = Math.min(S - 1, Math.max(0, Math.floor((.5 - .5*p[1])*S)));
@@ -677,11 +655,11 @@ function chartLookup(p) {
     for (let c = 0; c < 4; c++) g[c] += wx[i]*wy[j]*CHG[b + c];
   }
   const C = CH.charts[k], one = [1, 0];
-  let y = cdiv(csub(C.ay, cmul(C.by, [g[0], g[1]])), csub(one, [g[0], g[1]]));
+  const y = cdiv(csub(C.ay, cmul(C.by, [g[0], g[1]])), csub(one, [g[0], g[1]]));
   let x = cdiv(csub(C.ax, cmul(C.bx, [g[2], g[3]])), csub(one, [g[2], g[3]]));
-  const pr = projectYX(y, x); const x0 = x; y = pr.y; x = pr.x; const nw = [x, pr.it];
+  const x0 = x, nw = CORE.newton(x, CORE.coeffs(y), 30);
   // E93: keep the Newton value only if it stays next to the chart value (near y = 0 double precision cannot separate the branches)
-  let nit = pr.ok ? 'proj ' + pr.it : 'skipped';
+  let nit = nw[1]; if (nw[1] >= 0 && CORE.cabs(CORE.csub(nw[0], x0)) < 2e-2*(1 + CORE.cabs(x0))) x = nw[0]; else nit = 'skipped';   // E94 fix 2: 1e-5 -> 2e-2 (x-only polished chart nodes)
   return { y, x, k, nit };
 }
 function inspect(p, rpick) {

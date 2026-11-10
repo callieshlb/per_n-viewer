@@ -60,8 +60,27 @@
       }
     }
     if (RAYS.length) drawRays(g, W, H);
+    if (E.rays) drawPerN(g, W, H);
     if (picked) { const s = pv.toScreen(picked); g.strokeStyle = '#fff'; g.lineWidth = 2;
       g.beginPath(); g.moveTo(s[0] - 9, s[1]); g.lineTo(s[0] + 9, s[1]); g.moveTo(s[0], s[1] - 9); g.lineTo(s[0], s[1] + 9); g.stroke(); }
+  }
+  // ---- Per_1: the centres of period n (poly_info_n{n}.json from poly_info_n.py; n = 1 is c = 0)
+  let PERN = [], PERNn = 0;
+  async function setPerN(n) {
+    PERNn = n; PERN = [];
+    if (n === 1) PERN = [{ p: [0, 0], ks: [0, 0], label: '0', n: 1, title: 'centre of period 1: c = 0', lines: ['z^2, angle 0'] }];
+    else if (n >= 2) { const D = await fetch(`poly/poly_info_n${n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); if (!D) return; const Q = 2**n - 1;
+      PERN = D.map(P => ({ p: [Number(P.c_str[0]), Number(P.c_str[1])], ks: P.ks, label: String(P.label), n, kind: 'centre',
+        title: `centre ${P.label} of period ${n} (angles ${P.ks[0]}/${Q}, ${P.ks[1]}/${Q})`,
+        lines: [`z^2 + c,  c = ${P.c_str[0]} ${P.c_str[1].startsWith('-') ? '-' : '+'} ${P.c_str[1].replace('-', '')}i`, `angles ${P.ks[0]}/${Q}, ${P.ks[1]}/${Q}`,
+                `kneading ${P.kneading}`, `internal address ${P.address.join(' -> ')}`] })); }
+    pv.redraw();
+  }
+  function drawPerN(g, W, H) {
+    if (!PERN.length) return; const Q = 2**PERNn - 1; g.font = '600 11px system-ui'; g.textBaseline = 'middle';
+    for (const m of PERN) { const s = pv.toScreen(m.p); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
+      g.beginPath(); g.arc(s[0], s[1], 4, 0, 2*Math.PI); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
+      if ($('perang').checked) { const t = PERNn === 1 ? '0' : `${m.ks[0]}/${Q}, ${m.ks[1]}/${Q}`; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, s[0] + 6, s[1]); g.fillStyle = '#fff'; g.fillText(t, s[0] + 6, s[1]); } }
   }
   // ---- external rays (manifest rays: true; z^2 + c only)
   let RAYS = [];
@@ -98,7 +117,7 @@
     if (marker) lines.unshift(...marker.lines, '');
     showCard(marker ? marker.title : 'Parameter', lines);
     parent.postMessage({ e96: 'param', model: id, p, x, y, label: marker ? marker.title : null,
-      marker: marker ? { kind: marker.kind, label: marker.label, title: marker.title, lines: marker.lines.concat(lines.slice(marker.lines.length + 1)),
+      marker: marker ? { kind: marker.kind, label: marker.label, n: marker.n, title: marker.title, lines: marker.lines.concat(lines.slice(marker.lines.length + 1)),
                          ks: marker.ks || null, thetas: marker.thetas || null } : null }, '*');
   }
   const pv = new PlaneView($('view'), {
@@ -110,6 +129,7 @@
       let best = null, bd = 12;
       if (opt.mk) { const [W, H] = pv.size(); for (const o of torus ? lattice(W, H) : [[0, 0]]) for (const m of markers) {
         const q = pv.toScreen([m.p[0] + o[0], m.p[1] + o[1]]), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o }; } } }
+      if (E.rays) for (const m of PERN) { const q = pv.toScreen(m.p), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o: [0, 0] }; } }
       if (best) pick([best.m.p[0] + best.o[0], best.m.p[1] + best.o[1]], best.m); else pick(p, null);
     } });
   window.PV = pv;
@@ -132,7 +152,8 @@
   window.addEventListener('message', ev => { const d = ev.data;
     if (d && d.e96 === 'goto' && d.label !== undefined) { const m = markers.find(q => q.kind === 'centre' && q.label === String(d.label)); if (m) { pv.ctr = m.p.slice(); pv.redraw(); pick(m.p, m); } return; }
     if (d && d.e96 === 'goto' && d.p) { pv.ctr = d.p.slice(); pv.redraw(); pick(d.p, null); } });
-  if (E.rays) { $('raybox').style.display = ''; $('raygo').onclick = () => setRays($('rayin').value);
+  if (E.rays) { $('perbox').style.display = ''; $('pern').onchange = e => setPerN(+e.target.value); $('perang').onchange = () => pv.redraw();
+    $('raybox').style.display = ''; $('raygo').onclick = () => setRays($('rayin').value);
     $('rayin').addEventListener('keydown', e => { if (e.key === 'Enter') setRays(e.target.value); });
     $('rayclr').onclick = () => { RAYS = []; $('rayout').textContent = ''; parent.postMessage({ e96: 'rays', angles: [] }, '*'); pv.redraw(); }; }
   if (window.innerWidth < 650) $('minb').onclick();

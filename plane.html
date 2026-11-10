@@ -53,6 +53,12 @@
   </div>
   <div class="legend" id="legend"></div>
   <p style="margin:4px 0"><button id="home">Reset view</button></p>
+  <div id="perbox" style="display:none;margin:4px 0"><b>Show period-n centres</b>
+    <select id="pern"><option value="0">none</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
+    <option>6</option><option>7</option><option>8</option><option value="9" disabled>9 (not yet)</option></select>
+    <label><input type="checkbox" id="perang" checked> angles</label>
+    <div class="sub">White dots: the centres of period n, labelled by their characteristic angles. Click one for its data card,
+      dynamical plane, Hubbard tree and polynomial card.</div></div>
   <details open id="raybox" style="display:none"><summary><b>External rays</b></summary>
     <div class="sub">Angles as p/q or decimals, separated by commas, e.g. <code>1/3, 2/3, 1/7, 1/6</code>. Parameter rays are drawn
       here; the dynamic rays of the same angles are drawn in the dynamical plane (for the selected c). Rational angles get their

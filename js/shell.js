@@ -156,11 +156,11 @@
   const POLY = {};
   function loadPoly(n) { if (!POLY[n]) POLY[n] = fetch(`poly/poly_info_n${n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); return POLY[n]; }
   async function showTree(mk) {                 // the centre's Hubbard tree (polynomial coordinates, E92/E96 poly_info), via psi:
-    TREE = null; const n = cur.n, Mc = M; if (n < 2 || !Mc) return;     // 0 -> a0, c -> a1, inf -> omega (Moebius)
+    TREE = null; const n = mk.n || cur.n, Mc = M; if (n < 2 || !Mc) return;     // 0 -> a0, c -> a1, inf -> omega (Moebius)
     const lab = mk.ks ? (mk.ks.find(k => k % 2 === 0) ?? mk.ks[0]) : +mk.label, D = await loadPoly(n); if (!D || M !== Mc) return;
     const P = D.find(q => q.label === lab); if (!P) return;
-    const pc = [Number(P.c_str[0]), Number(P.c_str[1])], psi = PM.moebius3([[0, 0], pc, null], [Mc.marked[0], Mc.marked[1], Mc.omega]);
-    let err = 0, z = [0, 0]; for (let k = 0; k < n; k++) { err = Math.max(err, PM.chord(psi(z), Mc.marked[k])); z = PM.cadd(PM.cmul(z, z), pc); }
+    const pc = [Number(P.c_str[0]), Number(P.c_str[1])], psi = cur.family === 'quad' ? (q => q) : PM.moebius3([[0, 0], pc, null], [Mc.marked[0], Mc.marked[1], Mc.omega]);
+    let err = 0, z = [0, 0]; if (cur.family !== 'quad') for (let k = 0; k < n; k++) { err = Math.max(err, PM.chord(psi(z), Mc.marked[k])); z = PM.cadd(PM.cmul(z, z), pc); }
     TREE = P.tree.map(arc => arc.map(q => psi(q))); TREEERR = err; dv.redraw();
     $('status').textContent = statusText() + `\nHubbard tree of polynomial ${lab} (white), moved into this chart: max chordal |psi(P^k(0)) - a_k| = ${err.toExponential(1)}`;
   }
@@ -176,7 +176,7 @@
     if (!prev.has(t)) return []; const path = []; for (let i = t; i !== -1; i = prev.get(i)) path.unshift(L[i]); return path;
   }
   function showMarker(mk) {
-    const n = cur.n, D = 2**n - 1, esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    const n = mk.n || cur.n, D = 2**n - 1, esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(mk.lines.join('\n'));
     const B = $('dcb'); B.innerHTML = '';
     const btn = (txt, fn) => { const b = document.createElement('button'); b.className = 'sm'; b.textContent = txt; b.onclick = fn; B.appendChild(b); };
