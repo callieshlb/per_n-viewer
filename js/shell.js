@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261110031235').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261110035332').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261110031235'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261110035332'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -37,18 +37,24 @@
   // (w^2 + B)/(C w^2 + 1) (= w^2 + c at a center, where omega is fixed). T = s T0, T0(a0) = 0, T0(a1) = 1, T0(omega) = inf.
   let TV = null;     // { T: z -> w, Ti: w -> z, mat: inverse as 2x2 }
   function polyView() {
-    TV = null; if (!opt.inv || !M) return;
+    TV = null; if (!M) return;
+    if (SVIEW) { TV = makeTV(SVIEW.T, SVIEW.Ti, [1, 0]); return; }
+    if (!opt.inv) return;
     const T0 = PM.moebius3([M.marked[0], M.marked[1], M.omega], [[0, 0], [1, 0], null]), T0i = PM.moebius3([[0, 0], [1, 0], null], [M.marked[0], M.marked[1], M.omega]);
     const g0 = w => T0(PM.fz(M, T0i(w))), b0 = g0([0, 0]), aI = g0(null), g1 = g0([1, 0]);
     let A; if (aI === null) A = PM.csub(g1, b0); else { const C = PM.cdiv(PM.csub(g1, b0), PM.csub(aI, g1)); A = PM.cmul(aI, C); }
     const s = A, si = PM.cdiv([1, 0], s);
     const T = z => { const w = T0(z); return w === null ? null : PM.cmul(s, w); }, Ti = w => T0i(w === null ? null : PM.cmul(si, w));
+    TV = makeTV(T, Ti, s);
+  }
+  let SVIEW = null;                                    // sphere coordinate (puncture explorer), overrides the polynomial view
+  function makeTV(T, Ti, s) {
     // the inverse as a matrix for the shader: images of 0, 1, inf under Ti give (mA w + mB)/(mC w + mD)
     const z0 = Ti([0, 0]), z1 = Ti([1, 0]), zi = Ti(null), hv = z => z === null ? [[1, 0], [0, 0]] : [z, [1, 0]];
     // matrix with columns (zi-vector * a, z0-vector * b), a + b normalized so that column sum gives z1
     const P = hv(zi), Q = hv(z0), R = hv(z1), det = PM.csub(PM.cmul(P[0], Q[1]), PM.cmul(P[1], Q[0]));
     const a = PM.cdiv(PM.csub(PM.cmul(R[0], Q[1]), PM.cmul(R[1], Q[0])), det), b = PM.cdiv(PM.csub(PM.cmul(P[0], R[1]), PM.cmul(P[1], R[0])), det);
-    TV = { T, Ti, s, m: [PM.cmul(P[0], a), PM.cmul(Q[0], b), PM.cmul(P[1], a), PM.cmul(Q[1], b)] };
+    return { T, Ti, s, m: [PM.cmul(P[0], a), PM.cmul(Q[0], b), PM.cmul(P[1], a), PM.cmul(Q[1], b)] };
   }
   const J = z => !TV ? z : TV.T(z);                                                       // plane point of z
   const SC = z => { const w = J(z); return w === null ? null : dv.toScreen(w); };
@@ -103,6 +109,7 @@
       $('status').textContent = statusText() + `\nclicked z = ${PM.fmt(p)}: ${PM.fateText(f)}`;
     } });
   function fit() {
+    if (!M) return; if (SVIEW) { const [W0, H0] = dv.size(); dv.ctr = [0, 0]; dv.upp = 7/Math.max(50, Math.min(W0, H0)); dv.redraw(); return; }
     if (!M) return; const pts = M.marked.concat([M.omega, [0, 0]]).map(J).filter(a => a && PM.cabs(a) < 1e3);
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
     for (const z of pts) { x0 = Math.min(x0, z[0]); x1 = Math.max(x1, z[0]); y0 = Math.min(y0, z[1]); y1 = Math.max(y1, z[1]); }
@@ -180,6 +187,7 @@
     const finite = m && [m.A, m.B, m.C, m.D, m.E, m.F, m.omega].every(z => isFinite(z[0]) && isFinite(z[1]));
     if (!finite) { $('status').textContent = `${cur.titleText}: the map degenerates at this point (puncture); the dynamical plane keeps the previous map`;
       const mk0 = parseMarker(d); if (mk0) showMarker(mk0); TREE = null; dv.redraw(); return; }
+    SVIEW = null; if (SPHR) { SPHR = null; $('sphl').textContent = 'new map: press find (u) again'; }
     M = m; sel = { p: d.p || null, x: d.x || (m.x || null), y: d.y || (m.y || null), label: d.label };
     if (cur.family === 'quad' || cur.family === 'per2') { sel.x = null; sel.y = null; }
     $('dhint').style.display = 'none'; dynRays(); polyView(); fit(); $('status').textContent = statusText(); ORB0 = null;
@@ -287,6 +295,24 @@
     TREEP = { model: cur.id, n, lab, P, c0: pc, arcsW: P.tree, mpos: null };
     $('status').textContent = statusText() + `\nHubbard tree of polynomial ${lab} (white), moved into this chart: max chordal |psi(P^k(0)) - a_k| = ${err.toExponential(1)}`;
   }
+  // ---- puncture explorer, part 1 (REGISTRATION addendum 2026-11-10 (f)): spheres of the marked configuration at the selected map
+  let SPHR = null;
+  function spheres() {
+    const box = $('sphl'); SVIEW = null; if (!M) { box.textContent = 'click a parameter first (near a puncture)'; return; }
+    const eps = Math.pow(10, +$('sphe').value), R = SPH.analyze(M, eps); SPHR = R; box.innerHTML = '';
+    const add = (txt, fn, title) => { const d = document.createElement('div'); if (fn) { const b = document.createElement('button'); b.className = 'sm'; b.textContent = 'view'; b.title = title || ''; b.onclick = fn; d.appendChild(b); d.appendChild(document.createTextNode(' ')); }
+      d.appendChild(document.createTextNode(txt)); box.appendChild(d); };
+    if (!R.compatible) { add(`no tree at ε = ${eps.toExponential(0)}: the ${R.necks.length} necks cross (try a smaller ε)`); polyView(); fit(); return; }
+    add(`${R.spheres.length} sphere${R.spheres.length === 1 ? '' : 's'} at ε = ${eps.toExponential(0)} (points: ${R.labels.join(', ')})`);
+    add('whole plane (chart coordinate)', () => { SVIEW = null; polyView(); fit(); });
+    SPH.summary(R).split('\n').forEach((line, s) => add(line, () => { SVIEW = R.spheres[s]; polyView(); fit(); }, 'the dynamical plane in the coordinate of this sphere: its largest direction at ∞, two others at −1 and 1'));
+    add('→ is the sphere containing the images of three points from different directions; "inconsistent" = different choices give different spheres.');
+    polyView(); fit();
+  }
+  $('sphb').onclick = spheres;
+  $('sphe').oninput = e => { $('sphev').textContent = Math.pow(10, +e.target.value).toExponential(0); if (SPHR) spheres(); };
+  window.addEventListener('keydown', e => { if (e.key === 'u' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { $('dside').classList.remove('min'); spheres(); } });
+  window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'u') { $('dside').classList.remove('min'); spheres(); } });
   // ---- Hubbard tree off-center (REGISTRATION addendum 2026-11-10 (e)): the tree of the last polynomial, continued to the selected map
   let TREEP = null, TREEJOB = 0;
   async function followTree() {
