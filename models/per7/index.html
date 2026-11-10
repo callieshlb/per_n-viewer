@@ -635,6 +635,8 @@ body.e96min #side{display:none} body.e96min #view{right:0 !important} body.e96mi
 <input type="checkbox" onchange="window.E96MOVE=this.checked"> move to clicked point</label>
 <script>(function(){var b=document.getElementById('e96tog');b.onclick=function(){document.body.classList.toggle('e96min');
 b.textContent=document.body.classList.contains('e96min')?'◂ panel':'panel ▸';window.dispatchEvent(new Event('resize'));};
-if(window.innerWidth<900){b.onclick();}})();</script>
+if(window.innerWidth<900){b.onclick();}
+window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
+if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
 </body>
 </html>

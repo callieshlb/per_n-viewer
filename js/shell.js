@@ -162,6 +162,16 @@
     $('status').textContent = statusText() + `\nHubbard tree of polynomial ${lab} (white), moved into this chart: max chordal |psi(P^k(0)) - a_k| = ${err.toExponential(1)}`;
   }
   let TREEERR = null;
+  const GN = {};
+  function loadG(n) { if (!GN[n]) GN[n] = fetch(`models/Gn/G${n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); return GN[n]; }
+  async function evenPath(n, lab) {              // shortest path in G_n with strictly more factors of 2 at each step, to 2^(n-1)
+    const G = await loadG(n); if (!G) return null; const L = G.labels, v2 = k => { let v = 0; while (k > 0 && k % 2 === 0) { k /= 2; v++; } return v; };
+    const adj = L.map(() => new Set()); for (const e of G.edges) if (e.b !== null && e.b >= 0) { adj[e.a].add(e.b); adj[e.b].add(e.a); }
+    const s = L.indexOf(lab), t = L.indexOf(2**(n - 1)); if (s < 0 || t < 0) return null;
+    const prev = new Map([[s, -1]]), q = [s];
+    while (q.length) { const i = q.shift(); if (i === t) break; for (const j of adj[i]) if (!prev.has(j) && v2(L[j]) > v2(L[i])) { prev.set(j, i); q.push(j); } }
+    if (!prev.has(t)) return []; const path = []; for (let i = t; i !== -1; i = prev.get(i)) path.unshift(L[i]); return path;
+  }
   function showMarker(mk) {
     const n = cur.n, D = 2**n - 1, esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(mk.lines.join('\n'));
@@ -172,6 +182,11 @@
         const lab = mk.ks ? mk.ks.find(k => k % 2 === 0) ?? mk.ks[0] : +mk.label;
         btn('Polynomial card: Hubbard tree, rays, addresses', () => overlay(`Per_${n}: polynomial ${lab}`, [[`${lab}/${D}`, `poly/index.html#n=${n}&label=${lab}`]]));
         btn('Obstruction Γ(θ) of its puncture', () => overlay(`Thurston obstruction Γ(θ), θ = ${lab}/${D}`, [[`θ = ${lab}/${D}`, `obstruction/index.html#p=${lab}&q=${D}`]]));
+        if (n >= 5) evenPath(n, lab).then(path => { if (!path) return; const d = document.createElement('div'); d.style.cssText = 'width:100%;margin-top:4px';
+          d.innerHTML = path.length ? `G<sub>${n}</sub> path to ${2**(n - 1)} (more factors of 2 at each step; click to go): ` : `no increasing G<sub>${n}</sub> path from ${lab}`;
+          path.forEach((L, i) => { const a = document.createElement('a'); a.href = '#'; a.textContent = L; a.style.margin = '0 3px';
+            a.onclick = ev => { ev.preventDefault(); $('frame').contentWindow.postMessage({ e96: 'goto', label: L }, '*'); }; if (i) d.append('→'); d.appendChild(a); });
+          B.appendChild(d); });
       } else {
         let labs = mk.labels || (mk.thetas ? mk.thetas.filter(k => k % 2 === 0) : []);
         if (!labs.length && mk.thetas) labs = mk.thetas;
