@@ -48,6 +48,7 @@
     <span>Real ovals</span><input type="checkbox" id="ov2" checked>
     <span>G<sub>8</sub>: capture edges</span><input type="checkbox" id="gc">
     <span>G: violet arrow f &rarr; f&prime; when f&prime; has more factors of 2</span><input type="checkbox" id="g2" checked>
+    <span>Mark the y = 0 node zone (not resolved)</span><input type="checkbox" id="zn" checked>
     <span style="display:none"></span><input type="checkbox" id="gm" style="display:none">
     <span style="display:none"></span><input type="checkbox" id="gp" style="display:none">
   </div>
@@ -136,7 +137,7 @@ uniform vec2 res; uniform float Rpx, zoom, lineW; uniform vec2 Va, Vb, Vc, Vd; u
 uniform highp sampler2D faceT;
 uniform sampler2D tex; uniform int edges; uniform vec3 bg;
 uniform highp sampler2DArray charts; uniform highp sampler2D cmapT; uniform highp sampler2D ptab; uniform highp sampler2D ctab;
-uniform highp sampler2D ovT; uniform int nOv; uniform int showOv; uniform highp sampler2D wT; uniform int nW;
+uniform highp sampler2D ovT; uniform int nOv; uniform int showOv; uniform highp sampler2D wT; uniform int nW; uniform int showZone;
 const float EDGES2 = .74;   // E94: shader edges only where |s| > 0.86 (2 atanh = RVIS)
 uniform float RU; uniform int SS; uniform float mapSize; uniform highp sampler2D coefT; uniform int live; uniform int maxIt; uniform float delta; uniform float tolP;
 uniform vec2 Wa, Wb, Wc, Wd; uniform int k0; uniform int useW;
@@ -163,6 +164,7 @@ vec4 bicubic(int k, vec2 f){ vec2 i0 = floor(f), t = f - i0; vec4 wx = cw(t.x), 
   return acc; }
 const vec3 CAP[8] = vec3[8](vec3(42., 120., 214.), vec3(235., 104., 52.), vec3(27., 175., 122.), vec3(237., 161., 0.), vec3(232., 123., 164.), vec3(127., 63., 191.), vec3(160., 82., 45.), vec3(0., 150., 160.));
 vec3 shadeT(vec3 c, float t){ float s = max(.3, min(1., 1. - .6*log(1. + t)/log(81.))); return (c*s + 20.*(1. - s))/255.; }
+float zoneY = 1e9;
 vec3 liveColourU(int k, vec2 u);
 vec3 liveColour(vec2 z){
   vec2 mt = vec2(.5 + .5*z.x, .5 - .5*z.y)*mapSize; ivec2 mi = clamp(ivec2(mt), ivec2(0), ivec2(int(mapSize) - 1));
@@ -210,6 +212,7 @@ vec3 liveColourU(int k, vec2 u){
     }
     if (okp) { x = ix ? cd(one, v) : v; y = iy ? cd(one, w) : w; }
   }
+  zoneY = length(y);                  // E94: y = 0 node zone flag
   // map data
   vec2 w = cd(x + y - one, x - one), s = x + w, p = cm(x, w), om = cd(2.*p, s);
   vec2 mk[8]; bool mi6[8];               // marked cycle a_0 = 0, a_1 = inf, a_2 = 1, a_3 = y, a_4..a_6 = f-iterates, a_7 = x
@@ -266,6 +269,7 @@ void main(){
   else if (live == 1 && bk >= 0 && bl < .9409*RU*RU) col = liveColourU(bk, bu);   // E94 fix: view-relative charts, |u| < 0.97 RU
   else if (live == 1 && useW == 1 && length(u0) < .95*RU) col = liveColourU(k0, u0);
   else if (live == 1) col = liveColour(z); else col = textureGrad(tex, vec2(.5 + .5*z.x, .5 - .5*z.y), vec2(g, 0.), vec2(0., g)).rgb;
+  if (live == 1 && showZone == 1 && zoneY < 0.13) col = mix(col, vec3(122., 42., 42.)/255., .7);
   if (edges == 1 && dot(s, s) > EDGES2) {
     float bestd = 1e9; float bp = 0.;
     for (int a = 0; a < ${MAXF}; a++) {
@@ -318,7 +322,7 @@ function geodPts(P, Q, n) {             // points along the geodesic segment P -
 }
 const LEG = [['#2a78d6', 'captured, phase 0'], ['#eb6834', 'captured, phase 1'], ['#1baf7a', 'captured, phase 2'], ['#eda100', 'captured, phase 3'],
   ['#e87ba4', 'captured, phase 4'], ['#7f3fbf', 'captured, phase 5'], ['#a0522d', 'captured, phase 6'], ['#00969f', 'captured, phase 7'], ['#555555', 'attracting fixed point (polynomial components)'],
-  ['#a3a3a3', 'other attracting cycle'], ['#121212', 'undecided: bifurcation locus'], ['#551414', 'too close to a puncture to compute']];
+  ['#a3a3a3', 'other attracting cycle'], ['#121212', 'undecided: bifurcation locus'], ['#551414', 'too close to a puncture to compute'], ['#7a2a2a', 'y = 0 node zone (|y| < 0.13): dynamics beyond double / float32 precision (60-digit check), no mesh vertices for |y| < 0.08: colours not reliable (checkbox)']];
 document.getElementById('legend').innerHTML = LEG.map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
 let liveMode = 1, pit = 600, delta = 1e-3, interacting = false, idleT = null;
 document.getElementById('cmode').onchange = e => { liveMode = +e.target.value; dirty = true; };
@@ -405,8 +409,8 @@ idImg.onload = () => { const c = document.createElement('canvas'); c.width = c.h
 idImg.src = T.ids;
 // ---------- view ----------
 let V = I2, zoom = 1, tiles = [], dirty = true, anim = null;
-const opt = { ed: true, lt: true, mk: true, ml: true, ov2: true, gc: false, gm: false, gp: false, g2: true };
-['ed', 'lt', 'mk', 'ml', 'ov2', 'gc', 'gm', 'gp', 'g2'].forEach(k => { document.getElementById(k).onchange = e => { opt[k] = e.target.checked; dirty = true; }; });
+const opt = { ed: true, lt: true, mk: true, ml: true, ov2: true, gc: false, gm: false, gp: false, g2: true, zn: true };
+['ed', 'lt', 'mk', 'ml', 'ov2', 'gc', 'gm', 'gp', 'g2', 'zn'].forEach(k => { document.getElementById(k).onchange = e => { opt[k] = e.target.checked; dirty = true; }; });
 let W_ = 0, H_ = 0, Rpx = 1, dpr = 1;
 function resize() { dpr = window.devicePixelRatio || 1; W_ = view.clientWidth*dpr; H_ = view.clientHeight*dpr;
   cv.width = ov.width = W_; cv.height = ov.height = H_; Rpx = 0.48*Math.min(W_, H_); gl.viewport(0, 0, W_, H_); dirty = true; }
@@ -536,7 +540,7 @@ function render() {
   gl.uniform2f(U('Va'), ...V.a); gl.uniform2f(U('Vb'), ...V.b); gl.uniform2f(U('Vc'), ...V.c); gl.uniform2f(U('Vd'), ...V.d);
   gl.uniform1i(U('edges'), opt.ed ? 1 : 0);
   setW0(); setViewCharts();
-  gl.uniform1i(U('showOv'), 0);
+  gl.uniform1i(U('showOv'), 0); gl.uniform1i(U('showZone'), opt.zn ? 1 : 0);
   gl.uniform1i(U('live'), liveMode); gl.uniform1i(U('maxIt'), interacting ? Math.min(pit, 120) : pit); gl.uniform1f(U('delta'), delta);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   tiles = enumerateTiles(); drawOverlay(); drawMini();
