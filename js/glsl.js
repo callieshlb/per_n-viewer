@@ -63,7 +63,7 @@ bool torusXY(vec2 u, out vec2 x, out vec2 y){
   return true;
 }
 uniform vec3 CAP[8]; uniform int flatPal;                       // phase palette (0..255), flat = no time shading
-uniform int bands;                                               // escape-time bands (Caroline 2026-11-10)
+uniform int bands; uniform int plain;                                               // escape-time bands (Caroline 2026-11-10)
 vec3 shadeT(vec3 c, float t){
   float s = flatPal == 1 ? 1. : max(.3, min(1., 1. - .6*log(1. + t)/log(81.)));
   if (bands == 1) s *= .72 + .28*cos(.55*t);
@@ -94,6 +94,7 @@ vec3 fateColour(vec2 z, bool zi){
   var MAIN = `
 void main(){
   vec2 p = ctr + (gl_FragCoord.xy - .5*res)*upp;
+  if (plain == 1) { o = vec4(.94, .93, .90, 1.); return; }        // plain surface: the curve alone, no dynamics
   vec2 om; bool ok = true; vec2 z0; bool z0i = false;
   if (fam == 0) {                          // dynamical plane: the pixel is the starting point
     A_ = uA; B_ = uB; C_ = uC; D_ = uD; E_ = uE; F_ = uF; nm = nM;

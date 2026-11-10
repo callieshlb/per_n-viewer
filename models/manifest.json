@@ -1,5 +1,5 @@
 {
- "built_from": "7570573",
+ "built_from": "0386352",
  "models": [
   {
    "id": "per1",
@@ -27,7 +27,8 @@
     "genus": 0,
     "centres": 1,
     "punctures": 1,
-    "circles": 1
+    "circles": 1,
+    "tiling": "No tiling: the curve is a sphere and this chart covers it once (punctures at \u221e are listed, not drawn)."
    }
   },
   {
@@ -56,7 +57,8 @@
     "genus": 0,
     "centres": 1,
     "punctures": 1,
-    "circles": 1
+    "circles": 1,
+    "tiling": "No tiling: the curve is a sphere and this chart covers it once (punctures at \u221e are listed, not drawn)."
    }
   },
   {
@@ -85,7 +87,8 @@
     "genus": 0,
     "centres": 3,
     "punctures": 2,
-    "circles": 1
+    "circles": 1,
+    "tiling": "No tiling: the curve is a sphere and this chart covers it once (punctures at \u221e are listed, not drawn)."
    }
   },
   {
@@ -114,7 +117,8 @@
     "genus": 0,
     "centres": 6,
     "punctures": 4,
-    "circles": 1
+    "circles": 1,
+    "tiling": "No tiling: the curve is a sphere and this chart covers it once (punctures at \u221e are listed, not drawn)."
    }
   },
   {
@@ -143,7 +147,8 @@
     "genus": 1,
     "centres": 15,
     "punctures": 10,
-    "circles": 2
+    "circles": 2,
+    "tiling": "Tiling: the plane of u tiled by the rectangle [0, 3.0942] \u00d7 [0, 2.7457] i (the period lattice); opposite sides are glued."
    },
    "palette": [
     [
@@ -191,7 +196,8 @@
     "centres": 27,
     "punctures": 18,
     "circles": 2,
-    "sheets": 5
+    "sheets": 5,
+    "tiling": "Tiling: the universal cover (Poincar\u00e9 disk) tiled by copies of one Dirichlet polygon for the Fuchsian group: 66 sides in 33 glued pairs, 22 vertex cycles (\u03c7 = 22 \u2212 33 + 1 = -10), area 4\u03c0(g \u2212 1) = 20\u03c0."
    }
   },
   {
@@ -211,7 +217,8 @@
     "centres": 63,
     "punctures": 40,
     "circles": 4,
-    "sheets": 10
+    "sheets": 10,
+    "tiling": "Tiling: the universal cover (Poincar\u00e9 disk) tiled by copies of one Dirichlet polygon for the Fuchsian group: 282 sides in 141 glued pairs, 94 vertex cycles (\u03c7 = 94 \u2212 141 + 1 = -46), area 4\u03c0(g \u2212 1) = 92\u03c0."
    }
   },
   {
@@ -231,7 +238,8 @@
     "centres": 120,
     "punctures": 74,
     "circles": 5,
-    "sheets": 20
+    "sheets": 20,
+    "tiling": "Tiling: the universal cover (Poincar\u00e9 disk) tiled by copies of one Dirichlet polygon for the Fuchsian group: 822 sides in 411 glued pairs, 274 vertex cycles (\u03c7 = 274 \u2212 411 + 1 = -136), area 4\u03c0(g \u2212 1) = 272\u03c0."
    }
   },
   {

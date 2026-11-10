@@ -4,7 +4,7 @@
 (async function () {
   const $ = s => document.getElementById(s);
   const man = await fetch('models/manifest.json').then(r => r.json());
-  let cur = null, M = null, sel = null, frac = 0.55;
+  let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
     $('left').style.width = x + 'px'; $('split').style.left = x + 'px'; $('right').style.left = (x + 4) + 'px'; }
@@ -28,7 +28,8 @@
     hideCard(); $('dover').style.display = 'none';
     $('frame').src = cur.page; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
-    $('status').textContent = `${cur.titleText}: ${cur.kind === 'hyperbolic' ? 'loading the model (tens of MB; the first load can take a while)…' : 'click a parameter'}`;
+    FACTS = `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centres} polynomial centre${I.centres === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
+    $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
   }
   // ---- dynamical plane
   const opt = { mk: true, ml: true, orb: false, orbN: 60, omode: false, ok: 20, inv: false, tree: true }; let ORB0 = null, TREE = null;

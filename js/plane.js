@@ -113,6 +113,7 @@
       if (best) pick([best.m.p[0] + best.o[0], best.m.p[1] + best.o[1]], best.m); else pick(p, null);
     } });
   window.PV = pv;
+  $('plain').onchange = e => { pv.plain = e.target.value === '1'; pv.redraw(); };
   $('bands').onchange = e => { pv.bands = e.target.checked; pv.redraw(); };
   $('pit').oninput = e => { pv.maxIt = +e.target.value; $('pitv').textContent = pv.maxIt; pv.redraw(); };
   $('del').oninput = e => { pv.delta = Math.pow(10, +e.target.value); $('delv').textContent = pv.delta.toExponential(0); pv.redraw(); };
