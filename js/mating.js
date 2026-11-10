@@ -132,23 +132,44 @@ var MATE = (function () {
     else out.family = n === 5 ? 'torus5' : 'cor';
     return out;
   }
-  // Vein of theta = a.p/a.q (REGISTRATION addendum 2026-11-10 (b), M7): the centers of period 2..8 whose wake (k0/Q, k1/Q) strictly contains theta,
-  // i.e. the hyperbolic components the combinatorial arc from 0 to the landing point of theta passes through. The K of lowest period
-  // (ties: wider wake first) are kept and returned in order along the arc (widest wake first). polys[n] = poly_info_n<n>.json.
-  function veinList(a, polys, K) {
-    var out = [];
-    for (var n = 2; n <= 8; n++) { var D = polys[n]; if (!D) continue; var Q = BigInt(Math.pow(2, n) - 1);
-      D.forEach(function (P) { var k0 = BigInt(Math.min(P.ks[0], P.ks[1])), k1 = BigInt(Math.max(P.ks[0], P.ks[1]));
-        if (k0*a.q < a.p*Q && a.p*Q < k1*a.q) out.push({ n: n, label: P.label, k0: Number(k0), k1: Number(k1), Q: Number(Q), width: Number(k1 - k0)/Number(Q),
-          c: [Number(P.c_str[0]), Number(P.c_str[1])] }); }); }
+  // Lavaurs' algorithm: the pairs of characteristic angles [k0, k1] / (2^n - 1) of all period-n components, n = 2..P (cached, extended on demand).
+  // Smallest unused angle of period n is joined to the next unused angle of period n such that the chord crosses no earlier chord.
+  var LAV = { P: 1, pairs: {}, ends: [], part: {} };                    // ends: sorted angles (float) of all chords so far; part[angle] = partner
+  function lavaurs(P) {
+    for (var n = LAV.P + 1; n <= P; n++) { var D = Math.pow(2, n) - 1, ang = [], k, d;
+      for (k = 1; k < D; k++) { var per = n; for (d = 1; d < n; d++) if (n % d === 0 && (k*(Math.pow(2, d) - 1)) % D === 0) { per = d; break; } if (per === n) ang.push(k); }
+      var used = new Uint8Array(ang.length), out = [], lo = function (x) { var a = 0, b = LAV.ends.length; while (a < b) { var m = (a + b) >> 1; if (LAV.ends[m] < x) a = m + 1; else b = m; } return a; };
+      for (var i = 0; i < ang.length; i++) { if (used[i]) continue; var A = ang[i]/D;
+        for (var j = i + 1; j < ang.length; j++) { if (used[j]) continue; var B = ang[j]/D, ok = true;
+          for (var e = lo(A); e < LAV.ends.length && LAV.ends[e] < B; e++) { var q = LAV.part[LAV.ends[e]]; if (q < A || q > B) { ok = false; break; } }
+          if (!ok) continue;
+          used[i] = used[j] = 1; out.push([ang[i], ang[j]]); LAV.ends.splice(lo(A), 0, A); LAV.ends.splice(lo(B), 0, B); LAV.part[A] = B; LAV.part[B] = A; break; } }
+      LAV.pairs[n] = out; LAV.P = n; }
+    return LAV.pairs;
+  }
+  // Vein of theta = a.p/a.q (REGISTRATION addendum 2026-11-10 (b), M7; extended (d), M9): the centers of period 2..P whose wake (k0/Q, k1/Q) strictly
+  // contains theta, i.e. the hyperbolic components the combinatorial arc from 0 to the landing point of theta passes through. The K of lowest period
+  // (ties: wider wake first) are kept and returned in order along the arc (widest wake first). polys[n] = poly_info_n<n>.json (n <= 8, exact c);
+  // for n > 8 the center comes from the spider algorithm (c: null until centerOf is called).
+  function veinList(a, polys, K, P) {
+    var out = [], th = Number(a.p)/Number(a.q), pairs = lavaurs(P || 8);
+    for (var n = 2; n <= (P || 8); n++) { var Q = Math.pow(2, n) - 1, Qb = BigInt(Q);
+      pairs[n].forEach(function (pr) { var k0 = BigInt(pr[0]), k1 = BigInt(pr[1]);
+        if (k0*a.q < a.p*Qb && a.p*Qb < k1*a.q) out.push({ n: n, k0: pr[0], k1: pr[1], Q: Q, width: (pr[1] - pr[0])/Q, c: null }); }); }
     out.sort(function (u, v) { return u.n - v.n || v.width - u.width; });
     if (K !== undefined && K !== null) out = out.slice(0, K);
     out.sort(function (u, v) { return v.width - u.width; });
+    out.forEach(function (v) { var D = polys && polys[v.n], Pn = D && D.find(function (q) { return q.ks.indexOf(v.k0) >= 0; });
+      if (Pn) { v.c = [Number(Pn.c_str[0]), Number(Pn.c_str[1])]; v.label = Pn.label; } });
     return out;
+  }
+  function centerOf(v) {                     // center of a vein entry (spider for n > 8); null if the result does not have exact period n
+    if (v.c) return v.c; var c = spiderCentre(v.k0, v.n), o = orbitOf(c, v.n + 2);
+    if (!o || o.pts.length !== v.n || o.F[v.n - 1] !== 0) return null; v.c = c; return c;
   }
   // period of the free critical point (infinity) under the mated map m.R (chordal tolerance), or 0
   function omegaPeriod(m, maxP) { var z = null;
     for (var i = 1; i <= (maxP || 40); i++) { z = m.R(z); if (z === null || PM.chord(z, [1e9, 0]) < 1e-7) return i; } return 0; }
-  return { veinList: veinList, omegaPeriod: omegaPeriod, spiderCentre: spiderCentre, pcfFromAngle: pcfFromAngle, orbitOf: orbitOf, mate: mate, toChart: toChart, newtonCentre: newtonCentre };
+  return { lavaurs: lavaurs, centerOf: centerOf, veinList: veinList, omegaPeriod: omegaPeriod, spiderCentre: spiderCentre, pcfFromAngle: pcfFromAngle, orbitOf: orbitOf, mate: mate, toChart: toChart, newtonCentre: newtonCentre };
 })();
 if (typeof module !== 'undefined') module.exports = MATE;

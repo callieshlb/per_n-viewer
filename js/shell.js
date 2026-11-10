@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261110023159').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261110025327').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -25,8 +25,8 @@
     const I = cur.info || {};
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
-    hideCard(); $('dover').style.display = 'none';
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261110023159'; history.replaceState(null, '', '#' + id);
+    hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none';
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261110025327'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -121,11 +121,52 @@
     if (f.kind === 'capture' && cur.family === 'quad') comp = 'escapes to ∞ (outside the Mandelbrot set)';
     else if (f.kind === 'cycle') comp = f.period === 1 ? 'hyperbolic component with an attracting fixed point (polynomial-like: the free critical point is attracted to a fixed point)' : `hyperbolic component of period ${f.period} (the free critical point is attracted to a ${f.period}-cycle)`;
     else comp = 'undecided: bifurcation locus (or beyond the iteration count)';
+    VIEWM = f.kind === 'cycle' && f.period <= 8 ? f.period : 0;
+    $('vin').style.display = VIEWM ? '' : 'none';
+    if (VIEWM) $('vin').textContent = VIEWM === cur.n ? `View the involution image in Per_${VIEWM}  (v)` : `View this component's center in Per_${VIEWM}  (v)`;
     return `${cur.titleText}${sel.label ? '  ·  ' + sel.label : ''}   ${par}\n` +
       `f(z) = ((${PM.fmt(M.A, 5)}) z² + (${PM.fmt(M.B, 5)}) z + (${PM.fmt(M.C, 5)})) / ((${PM.fmt(M.D, 5)}) z² + (${PM.fmt(M.E, 5)}) z + (${PM.fmt(M.F, 5)}))\n` +
       `marked cycle: ${M.marked.map((a, j) => 'a' + j + ' = ' + PM.fmt(a, 5)).join(',  ')}   (closes to ${PM.closure(M).toExponential(1)})\n` +
       `free critical point ω = ${PM.fmt(M.omega, 6)}: ${comp}   |   iterates ${dv.maxIt}, δ ${dv.delta.toExponential(0)}`;
   }
+  // ---- "View in Per_m" (REGISTRATION addendum 2026-11-10 (c)): the center of the clicked component, as a point of Per_m (m = period of omega's cycle)
+  let VIEWM = 0, VSEND = null;
+  function viewM() {
+    if (!M || !VIEWM || !cur) return; const m = VIEWM, n0 = cur.n, from = cur.titleText, hyp = cur.kind === 'hyperbolic';
+    const C = PM.cycleCentre(hyp ? 'cor' : cur.family, n0, hyp ? { x: sel.x, y: sel.y } : { p: sel.p }, m);
+    if (!C) { $('status').textContent += `\nView in Per_${m}: the center of this component was not found from here (click nearer its middle).`; return; }
+    const T = PM.transfer(C.M, m); if (!T) { $('status').textContent += `\nView in Per_${m}: transfer failed.`; return; }
+    const label = `≅ ${from.replace('(0)', '')}${sel.label ? ' ' + sel.label : ''}`;
+    if (T.n !== n0) choose('per' + T.n);
+    let msg;
+    if (cur.kind === 'plane') msg = { p: T.p };
+    else if (cur.kind === 'torus') { const L = PM.torusLocate(T.x, T.y); if (!L) { $('status').textContent += '\ntorus point not found'; return; } msg = { p: L.u }; }
+    else msg = { x: T.x, y: T.y };
+    const note = `${m === n0 ? 'Involution image' : 'The same rational map'}: center of the component clicked in ${from}` +
+      (C.p ? ` (there: ${PM.fmt(C.p, 8)})` : ` (there: x = ${PM.fmt(C.x, 8)}, y = ${PM.fmt(C.y, 8)})`) + `, now with the other critical cycle marked.`;
+    handleParam(Object.assign({ e96: 'param', label, keepCard: true }, msg)); $('status').textContent += '\n' + note;
+    clearInterval(VSEND && VSEND.t); let tries = 0;
+    const post = () => { tries++; if (tries > 150) { clearInterval(VSEND.t); VSEND = null; return; }
+      try { $('frame').contentWindow.postMessage(Object.assign({ e96: 'mark', label, go: true }, msg), '*'); } catch (e) {} };
+    VSEND = { label, t: setInterval(post, 1200) }; post();
+  }
+  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'markDone' && VSEND && d.label === VSEND.label) { clearInterval(VSEND.t); VSEND = null;
+    if (!d.ok) $('status').textContent += `\nnot located in the disk (best chart residual ${d.res != null ? d.res.toExponential(1) : '?'})`; } });
+  // hotkeys for the toggles (Caroline 2026-11-10). Dynamical pane (focus here): t tree, i polynomial view, b bands, l labels, k marked cycle, +/- iterates.
+  // Parameter-pane toggles typed here are forwarded to the pane: r real circles, g G_n edges, e violet arrows, p period colors.
+  const DKEY = { t: 'dtree', i: 'dinv', b: 'dbands', l: 'dml', k: 'dmk' };
+  function dynKey(key) {
+    if (DKEY[key]) { const el = $(DKEY[key]); el.checked = !el.checked; el.dispatchEvent(new Event('change')); return true; }
+    if (key === '+' || key === '=' || key === '-') { const el = $('dit'); el.value = Math.max(+el.min, Math.min(+el.max, +el.value + (key === '-' ? -1 : 1)*100)); el.dispatchEvent(new Event('input')); return true; }
+    return false;
+  }
+  window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (dynKey(e.key)) { e.preventDefault(); return; }
+    if ('rgep'.includes(e.key) && e.key.length === 1) { try { $('frame').contentWindow.postMessage({ e96: 'key', key: e.key }, '*'); } catch (err) {} } });
+  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && (d.key === 't' || d.key === 'i')) dynKey(d.key); });
+  $('vin').onclick = viewM;
+  window.addEventListener('keydown', e => { if (e.key === 'v' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { e.preventDefault(); viewM(); } });
+  window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'v') viewM(); });
   let RAYA = [], DRAYS = [];
   function dynRays() { DRAYS = (M && cur && cur.family === 'quad') ? RAYA.map(t => { const a = PM.parseAngle(t); return { a, ...PM.rayWithLanding('dyn', a, M.C) }; }) : []; }
   window.addEventListener('message', ev => {
@@ -144,7 +185,7 @@
     $('dhint').style.display = 'none'; dynRays(); polyView(); fit(); $('status').textContent = statusText(); ORB0 = null;
     TREE = null; const mk = parseMarker(d); if (mk) { showMarker(mk); if (mk.kind === 'centre') showTree(mk); } else if (!d.keepCard) hideCard();
   }
-  window.SHELL = { get M() { return M; }, get sel() { return sel; }, dv, choose };
+  window.SHELL = { get M() { return M; }, get sel() { return sel; }, dv, choose, viewM, handleParam };
   // ---- controls
   $('dit').oninput = e => { dv.maxIt = +e.target.value; $('ditv').textContent = dv.maxIt; dv.redraw(); if (M) $('status').textContent = statusText(); };
   $('ddel').oninput = e => { dv.delta = Math.pow(10, +e.target.value); $('ddelv').textContent = dv.delta.toExponential(0); dv.redraw(); };
@@ -174,24 +215,26 @@
   async function doVein(cf, n, lab, text, K) {
     const a = PM.parseAngle(text); if (!a) return '';
     const polys = {}; for (let m = 2; m <= 8; m++) polys[m] = await loadPoly(m);
-    const V = MATE.veinList(a, polys, K), W = $('frame').contentWindow; let ok = 0; const obs = [];
-    for (const v of V) { const m = MATE.mate(cf, v.c), nm = `${v.k0}/${v.Q}`; if (!m.ok) { obs.push(nm); continue; }
+    let V = [], P = 8; for (const Pt of [8, 10, 12, 14]) { P = Pt; V = MATE.veinList(a, polys, K, Pt); if (V.length >= K) break; }       // periods up to 14 (Lavaurs + spider), M9
+    const W = $('frame').contentWindow; let ok = 0; const obs = [];
+    for (const v of V) { const cg = MATE.centerOf(v), nm = `${v.k0}/${v.Q}`; if (!cg) { obs.push(nm + ' (center not found)'); continue; }
+      const m = MATE.mate(cf, cg); if (!m.ok) { obs.push(nm); continue; }
       const ch = MATE.toChart(m); if (!ch) continue; let msg;
       if (cur.kind === 'plane') msg = { p: ch.p };
       else if (cur.kind === 'torus') { const L = PM.torusLocate(ch.x, ch.y); if (!L) { obs.push(nm + ' (not located)'); continue; } msg = { p: L.u }; }
       else msg = { x: ch.x, y: ch.y };
       W.postMessage(Object.assign({ e96: 'mark', label: nm, vein: true, quiet: true }, msg), '*'); ok++; }
-    return `vein of ${a.text}: ${V.length} centers of period ≤ 8 on the arc from z² to g (K = ${K}): ${ok} mated (small yellow dots, labeled by the lower angle of g_i)` +
-      (obs.length ? `; ${obs.length} obstructed or not placed: ${obs.join(', ')}` : '');
+    return `vein of ${a.text}: ${V.length} centers of period ≤ ${P} on the arc from z² to g (asked K = ${K}${V.length < K ? '; there are no more up to period 14' : ''}): ${ok} mated (small yellow dots, labeled by the lower angle of g_i)` +
+      (obs.length ? `; ${obs.length} obstructed or not placed: ${obs.slice(0, 12).join(', ')}${obs.length > 12 ? ', …' : ''}` : '');
   }
   function keyM() {                                   // 'm': mating prompt: f angle, g angle, Enter
     const dl = $('mdlg'); dl.style.display = 'block'; $('mdn').textContent = cur ? cur.n : 'n';
     const cardLab = (document.querySelector('#dct b') || {}).textContent || '', m = cardLab.match(/^cent(?:er|re) (\d+)/);
-    if (m && !$('mdf').value) $('mdf').value = m[1];
-    const first = $('mdf').value ? $('mdg') : $('mdf'); first.focus(); first.select();
+    $('mdf').value = ''; $('mdg').value = ''; $('mdf').placeholder = m ? m[1] + ' (this card)' : 'angle or label'; $('mdf').dataset.def = m ? m[1] : '';
+    $('mdf').focus();          // always: type f, Tab (or Enter), type g, Enter (Caroline 2026-11-10)
   }
   $('mdf').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdg').focus(); $('mdg').select(); } });
-  $('mdg').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdlg').style.display = 'none'; mateFromText($('mdf').value, $('mdg').value, $('mdv').checked ? Math.max(0, Math.min(200, +$('mdk').value || 0)) : 0); } });
+  $('mdg').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdlg').style.display = 'none'; mateFromText($('mdf').value.trim() || $('mdf').dataset.def || '', $('mdg').value, $('mdv').checked ? Math.max(0, Math.min(200, +$('mdk').value || 0)) : 0); } });
   $('mdk').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdg').focus(); } });
   $('mdc').onclick = () => { $('frame').contentWindow.postMessage({ e96: 'clearMarks' }, '*'); };
   $('mdlg').addEventListener('keydown', e => { if (e.key === 'Escape') $('mdlg').style.display = 'none'; });

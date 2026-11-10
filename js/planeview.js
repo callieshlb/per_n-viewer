@@ -43,7 +43,7 @@ function PlaneView(host, opts) {
     gl.viewport(0, 0, GW, GH);
     gl.uniform2f(U('res'), GW, GH); gl.uniform2f(U('ctr'), self.ctr[0], self.ctr[1]); gl.uniform1f(U('upp'), self.upp*W/Math.max(1, GW)*1);
     gl.uniform1i(U('maxIt'), interacting ? Math.min(self.maxIt, 150) : self.maxIt); gl.uniform1f(U('delta'), self.delta); gl.uniform1f(U('tolP'), self.tolP);
-    gl.uniform1i(U('bands'), self.bands ? 1 : 0); gl.uniform1i(U('plain'), self.plain ? 1 : 0);
+    gl.uniform1i(U('bands'), self.bands ? 1 : 0); gl.uniform1i(U('plain'), self.plain ? 1 : 0); gl.uniform1i(U('perCol'), self.perCol ? 1 : 0);
     self.setUniforms(gl, U);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     var g = self.overlay; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);

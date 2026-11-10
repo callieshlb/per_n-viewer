@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Per_n(0) atlas: introduction</title>
+<style>
+  body { margin:0; font:16px/1.6 -apple-system, system-ui, sans-serif; color:#2b2b2b; background:#f4f3ef; }
+  main { max-width:780px; margin:0 auto; padding:28px 22px 60px; }
+  h1 { font-size:26px; margin:0 0 4px; } h2 { font-size:19px; margin:30px 0 6px; border-bottom:1px solid #d9d9d9; padding-bottom:3px; }
+  .sub { color:#6b6b6b; margin-bottom:18px; } a { color:#1f5fbf; }
+  .go { display:inline-block; padding:6px 14px; background:#2b2b2b; color:#fff; border-radius:5px; text-decoration:none; margin:6px 0 4px; }
+  table { border-collapse:collapse; margin:8px 0; font-size:15px; } td, th { border:1px solid #d0d0d0; padding:4px 9px; text-align:left; vertical-align:top; }
+  th { background:#ecebe6; } kbd { font:13px ui-monospace, Menlo, monospace; background:#fff; border:1px solid #bbb; border-radius:3px; padding:0 5px; }
+  .sw { display:inline-block; width:12px; height:12px; border-radius:2px; vertical-align:-1px; margin-right:4px; }
+  .note { color:#6b6b6b; font-size:14px; } li { margin:3px 0; }
+</style>
+</head>
+<body>
+<main>
+<h1>The Per<sub>n</sub>(0) atlas</h1>
+<div class="sub">An interactive viewer for the curves Per<sub>n</sub>(0) of quadratic rational maps, n = 1, …, 8.</div>
+<a class="go" href="index.html">Open the atlas</a>
+
+<h2>What you are looking at</h2>
+<p>A quadratic rational map has two critical points. Per<sub>n</sub>(0) is the set of conjugacy classes of quadratic rational maps for which
+one critical point is periodic of period n. That periodic critical orbit is the <b>marked cycle</b> a<sub>0</sub> → a<sub>1</sub> → … → a<sub>n−1</sub> → a<sub>0</sub>
+(a<sub>0</sub> the critical point, a<sub>1</sub> the critical value). The other critical point is the <b>free critical point</b> ω.
+Per<sub>n</sub>(0) is a punctured Riemann surface; each point of it is one map.</p>
+<p>The atlas has two panes. The <b>left pane</b> is the parameter space Per<sub>n</sub>(0): each pixel is a map, colored by what ω does under that map.
+The <b>right pane</b> is the dynamical plane of the map you clicked: each pixel is a point z, colored by what its orbit does.</p>
+
+<h2>The models</h2>
+<table>
+<tr><th>Curve</th><th>How it is drawn</th><th>Normal form</th></tr>
+<tr><td>Per<sub>1</sub></td><td>the c-plane (the Mandelbrot set)</td><td>z² + c</td></tr>
+<tr><td>Per<sub>2</sub></td><td>the c-plane</td><td>(z² − c)/(z² − 1); marked cycle ∞ → 1, ω = 0</td></tr>
+<tr><td>Per<sub>3</sub>, Per<sub>4</sub></td><td>a plane; the parameter c is the free critical point (Per<sub>3</sub>) or a coordinate on the curve (Per<sub>4</sub>)</td><td rowspan="4">(z − x)(z − w)/z², w = (x + y − 1)/(x − 1); marked cycle 0 → ∞ → 1 → y → … → x → 0</td></tr>
+<tr><td>Per<sub>5</sub></td><td>a flat torus (genus 1): the picture repeats with two periods</td></tr>
+<tr><td>Per<sub>6</sub>, Per<sub>7</sub>, Per<sub>8</sub></td><td>the hyperbolic disk, tiled by copies of a fundamental polygon (the curve has genus > 1)</td></tr>
+</table>
+<p class="note">The genus, the number of punctures, of polynomial centers and of real circles of each curve are shown in the bar at the top of the atlas and in the status line.</p>
+
+<h2>Colors</h2>
+<ul>
+<li><b>Capture colors</b> (blue, orange, green, …): ω eventually falls into the basin of the marked cycle. The color is the <b>phase</b>:
+it records which point of the marked cycle the orbit of ω is in step with, measured at the critical value a<sub>1</sub> (phase 0 = the component of a<sub>1</sub>).
+The same colors are used in the dynamical plane and in the polynomial cards.</li>
+<li><span class="sw" style="background:#555"></span><b>Dark gray</b>: ω is attracted to a fixed point. These components contain the <b>polynomial centers</b>, where the map is conjugate to a polynomial z² + c.</li>
+<li><span class="sw" style="background:#a3a3a3"></span><b>Light gray</b>: ω has its own attracting cycle of period ≥ 2. With “color components by period” these are tinted by that period.</li>
+<li><span class="sw" style="background:#121212"></span><b>Black</b>: undecided within the iteration count (the bifurcation locus, or the Julia set in the right pane).</li>
+</ul>
+<p class="note">The pictures are computed on the graphics card in single precision at every redraw. Fine speckle where captures take very many iterates is numerical noise; click a point for the double-precision answer in the status line.</p>
+
+<h2>Markers</h2>
+<ul>
+<li><b>White dots</b>: polynomial centers. A center is labeled by the even numerator k of its two characteristic angles k/(2ⁿ − 1). The violet dot is the center 2ⁿ⁻¹.</li>
+<li><b>Red dots</b>: punctures of the curve.</li>
+<li><b>Yellow star / yellow dots</b>: matings you computed (see below).</li>
+<li><b>Real circles</b> (off by default): the maps with real coefficients.</li>
+<li><b>G<sub>n</sub> edges</b> and <b>violet arrows</b> (off by default): the graph G<sub>n</sub> of tip capture edges between polynomial centers; a violet arrow points from a center to its neighbor(s) whose label has the most factors of 2.</li>
+</ul>
+<p>Clicking a center opens its card: the Julia set of z² + c with its Hubbard tree and external rays. Clicking a puncture offers the Thurston obstruction diagram for it.</p>
+
+<h2>Tools</h2>
+<ul>
+<li><b>Mating</b> (<kbd>m</kbd>): type f (either characteristic angle of a period-n center, or its label), Tab, type g (any angle), Enter.
+The mating f ⊔ g is computed by Thurston's pullback algorithm with the convention that the ray of angle θ of f is glued to the ray of angle −θ of g, and is placed in Per<sub>n</sub> as a yellow star.
+If the iteration degenerates the mating is reported as obstructed.</li>
+<li><b>Mating vein</b>: in the mating box, also mate f with the centers g<sub>i</sub> on the arc of the Mandelbrot set from z² to g (small yellow dots).</li>
+<li><b>View in Per<sub>m</sub></b> (<kbd>v</kbd>): if ω has an attracting cycle of period m at the map you clicked, jump to the center of that component written as a point of Per<sub>m</sub>
+(the same rational map, with the other critical cycle marked). For m = n this is the involution exchanging the two n-cycles.</li>
+<li><b>External rays</b> (Per<sub>1</sub>): enter angles; the parameter and dynamical rays are drawn with their landing points.</li>
+<li><b>Orbit mode</b> (<kbd>o</kbd>), <b>polynomial view</b> (<kbd>i</kbd>: ω at ∞, like the Julia set of a polynomial), <b>Hubbard tree</b> (<kbd>t</kbd>) in the dynamical plane.</li>
+</ul>
+
+<h2>Keys</h2>
+<table>
+<tr><th>Key</th><th>Does</th></tr>
+<tr><td><kbd>z</kbd> / <kbd>x</kbd></td><td>zoom in / out at the cursor</td></tr>
+<tr><td><kbd>m</kbd></td><td>mating box</td></tr>
+<tr><td><kbd>v</kbd></td><td>view the clicked component's center in Per<sub>m</sub></td></tr>
+<tr><td><kbd>r</kbd> <kbd>g</kbd> <kbd>e</kbd> <kbd>p</kbd></td><td>real circles, G<sub>n</sub> edges, violet arrows (most even), period colors</td></tr>
+<tr><td><kbd>l</kbd> <kbd>k</kbd> <kbd>b</kbd></td><td>labels, markers, escape-time bands (of the pane you last clicked)</td></tr>
+<tr><td><kbd>+</kbd> / <kbd>−</kbd></td><td>more / fewer iterates (of the pane you last clicked)</td></tr>
+<tr><td><kbd>o</kbd> <kbd>t</kbd> <kbd>i</kbd></td><td>orbit of the point under the cursor, Hubbard tree, polynomial view (dynamical plane)</td></tr>
+</table>
+
+<div id="links"></div>
+
+<h2>About</h2>
+<p class="note">Part of a research project on Hurwitz components of dynamical portraits. The pictures are numerical illustrations, not proofs.
+<span id="build"></span></p>
+<a class="go" href="index.html">Open the atlas</a>
+</main>
+<script>
+fetch('intro_links.json').then(r => r.json()).then(D => {
+  const esc = t => String(t || '').replace(/&/g, '&amp;').replace(/</g, '&lt;'), by = {};
+  for (const L of D.links || []) (by[L.section || 'Links'] = by[L.section || 'Links'] || []).push(L);
+  document.getElementById('links').innerHTML = Object.keys(by).map(s => `<h2>${esc(s)}</h2><ul>` + by[s].map(L =>
+    `<li>${L.url ? `<a href="${esc(L.url)}" target="_blank" rel="noopener">${esc(L.title)}</a>` : esc(L.title)}${L.note ? ' <span class="note">· ' + esc(L.note) + '</span>' : ''}</li>`).join('') + '</ul>').join('');
+}).catch(() => {});
+fetch('BUILD.txt').then(r => r.text()).then(t => { document.getElementById('build').textContent = t.split('\n')[0]; }).catch(() => {});
+</script>
+</body>
+</html>

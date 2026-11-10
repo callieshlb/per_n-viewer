@@ -297,6 +297,77 @@ var PM = (function () {
     }
     return null;
   }
+  // ---- "View in Per_m" (REGISTRATION addendum 2026-11-10 (c)) ----
+  function csolve(A, b) {                    // complex linear solve, Gaussian elimination with pivoting; A: k x k of [re, im]
+    var k = b.length, i, j, r; A = A.map(function (row) { return row.slice(); }); b = b.slice();
+    for (i = 0; i < k; i++) { var pv = i; for (r = i + 1; r < k; r++) if (cabs(A[r][i]) > cabs(A[pv][i])) pv = r;
+      if (cabs(A[pv][i]) === 0) return null; var tr = A[i]; A[i] = A[pv]; A[pv] = tr; var tb = b[i]; b[i] = b[pv]; b[pv] = tb;
+      for (r = i + 1; r < k; r++) { var f = cdiv(A[r][i], A[i][i]); for (j = i; j < k; j++) A[r][j] = csub(A[r][j], cmul(f, A[i][j])); b[r] = csub(b[r], cmul(f, b[i])); } }
+    var x = new Array(k);
+    for (i = k - 1; i >= 0; i--) { var s = b[i]; for (j = i + 1; j < k; j++) s = csub(s, cmul(A[i][j], x[j])); x[i] = cdiv(s, A[i][i]); }
+    return x;
+  }
+  function iterN(M, z, m) { for (var i = 0; i < m; i++) { z = fz(M, z); if (z === null) return null; } return z; }
+  // center of the component where omega is attracted to an m-cycle. sel = {p} (plane / torus families) or {x, y} (family 'cor', n >= 5).
+  function cycleCentre(family, n, sel, m) {
+    var two = family === 'cor', v0 = two ? [sel.x, sel.y] : [sel.p];
+    var mk = function (v) { try { return two ? mapFrom('cor', n, { x: v[0], y: v[1] }) : mapFrom(family, n, { p: v[0] }); } catch (e) { return null; } };
+    var M0 = mk(v0); if (!M0) return null;
+    var z = M0.omega; for (var i = 0; i < 4000; i++) { z = fz(M0, z); if (z === null) z = fz(M0, null); }
+    var cyc = [z]; for (i = 1; i < m; i++) cyc.push(fz(M0, cyc[i - 1]));
+    var z0 = null; cyc.forEach(function (w) { if (w !== null && (z0 === null || cabs(w) < cabs(z0))) z0 = w; }); if (z0 === null) return null;
+    var back = iterN(M0, z0, m); if (back === null || chord(back, z0) > 1e-6) return null;                 // not (yet) on an m-cycle
+    var dF = function (M, w) { var h = 1e-6*(1 + cabs(w)), a = iterN(M, w, m), b = iterN(M, [w[0] + h, w[1]], m); if (!a || !b) return null; return cscale(csub(b, a), 1/h); };
+    var rho0 = dF(M0, z0); if (!rho0 || !(cabs(rho0) < 1)) return null;
+    var G, run = function (ts) { var u = v0.concat([z0]);
+    var K = v0.length + 1;
+    G = function (u, t) { var M = mk(u); if (!M) return null; var w = u[K - 1], a = iterN(M, w, m), d = dF(M, w); if (!a || !d) return null;
+      var out = [csub(a, w), csub(d, cscale(rho0, t))];
+      if (two) { var e = iterN(M, u[1], n - 4); if (!e) return null; out.unshift(csub(e, u[0])); }
+      return out.every(function (q) { return isFinite(q[0]) && isFinite(q[1]); }) ? out : null; };
+    for (var ti = 0; ti < ts.length; ti++) { var okk = false;
+      for (var it = 0; it < 40; it++) { var g0 = G(u, ts[ti]); if (!g0) return null; var J = g0.map(function () { return []; });
+        for (var c = 0; c < K; c++) { var h = 1e-7*(1 + cabs(u[c])), u2 = u.slice(); u2[c] = [u[c][0] + h, u[c][1]]; var g1 = G(u2, ts[ti]); if (!g1) return null;
+          for (var r = 0; r < K; r++) J[r][c] = cscale(csub(g1[r], g0[r]), 1/h); }
+        var st = csolve(J, g0); if (!st) return null; var big = 0;
+        for (c = 0; c < K; c++) { u[c] = csub(u[c], st[c]); big = Math.max(big, cabs(st[c])/(1 + cabs(u[c]))); }
+        if (!u.every(function (q) { return isFinite(q[0]) && isFinite(q[1]); })) return null;
+        if (big < 1e-8) { okk = true; break; } }                                  // finite-difference (f^m)' limits this stage; exact polish below
+      if (!okk) { if (typeof process !== 'undefined' && process.env.CCDBG) console.log('fail at t', ts[ti], 'u', u, 'G', G(u, ts[ti])); return null; } }
+    var v = u.slice(0, K - 1), KV = K - 1, pol = false;                      // polish: f^m(omega) = omega exactly, in the parameter only
+    var H = function (v) { var M = mk(v); if (!M) return null; var a = iterN(M, M.omega, m); if (!a) return null; var out = [csub(a, M.omega)];
+      if (two) { var e = iterN(M, v[1], n - 4); if (!e) return null; out.unshift(csub(e, v[0])); } return out; };
+    for (var it2 = 0; it2 < 40; it2++) { var h0 = H(v); if (!h0) return null; var J2 = h0.map(function () { return []; });
+      for (var c2 = 0; c2 < KV; c2++) { var hh = 1e-7*(1 + cabs(v[c2])), v2 = v.slice(); v2[c2] = [v[c2][0] + hh, v[c2][1]]; var h1 = H(v2); if (!h1) return null;
+        for (var r2 = 0; r2 < KV; r2++) J2[r2][c2] = cscale(csub(h1[r2], h0[r2]), 1/hh); }
+      var s2 = csolve(J2, h0); if (!s2) return null; var b2 = 0; for (c2 = 0; c2 < KV; c2++) { v[c2] = csub(v[c2], s2[c2]); b2 = Math.max(b2, cabs(s2[c2])/(1 + cabs(v[c2]))); }
+      if (b2 < 1e-13) { pol = true; break; } }
+    if (!pol) return null; u = v;
+    var Mc = mk(u); if (!Mc) return null; var bk = iterN(Mc, Mc.omega, m); if (bk === null || chord(bk, Mc.omega) > 1e-8) return null;
+    for (i = 1; i < m; i++) { var wj = iterN(Mc, Mc.omega, i); if (wj !== null && chord(wj, Mc.omega) < 1e-8) return null; }   // exact period m
+    for (i = 0; i < Mc.marked.length; i++) for (var j2 = i + 1; j2 < Mc.marked.length; j2++) if (chord(Mc.marked[i], Mc.marked[j2]) < 1e-7) return null;   // marked cycle of exact period n
+    return two ? { x: u[0], y: u[1], M: Mc, rho0: rho0 } : { p: u[0], M: Mc, rho0: rho0 };
+    };
+    var coarse = [0.85, 0.7, 0.55, 0.4, 0.25, 0.12, 0.05, 0], fine = []; for (i = 59; i >= 0; i--) fine.push(i/60);
+    return run(coarse) || run(fine);
+  }
+  // the map M (omega periodic of exact period m) written in Per_m(0): marked cycle = orbit of omega, free critical point = M.marked[0].
+  // Returns {n: m, family, p} or {n: m, family: 'cor' | 'torus5', x, y} (as MATE.toChart), or {n: 1, family: 'quad', p: c}.
+  function transfer(M, m) {
+    var b = [M.omega], a0 = M.marked[0], R = function (z) { return fz(M, z); };
+    for (var i = 1; i < m; i++) b.push(fz(M, b[i - 1]));
+    if (m === 1) { var T = moebius3([b[0], a0, fz(M, a0)], [null, [0, 0], [1, 0]]);          // omega -> inf, a0 -> 0, f(a0) -> 1: g(z) = (z^2 + k)/(1 + k)... solved below
+      // g = T f T^-1 is a quadratic polynomial A z^2 + B with g(0) = 1: B = 1, A = g(1) - 1; conjugate to z^2 + A B
+      var Ti = moebius3([null, [0, 0], [1, 0]], [b[0], a0, fz(M, a0)]), g1 = T(fz(M, Ti([1, 0]))); if (g1 === null) return null;
+      return { n: 1, family: 'quad', p: csub(g1, [1, 0]) }; }
+    if (m === 2) { var T2 = moebius3([b[0], b[1], a0], [null, [1, 0], [0, 0]]); return { n: 2, family: 'per2c', p: T2(R(a0)) }; }
+    var T3 = moebius3([b[0], b[1], b[2]], [[0, 0], null, [1, 0]]);
+    var y = m >= 4 ? T3(b[3]) : [0, 0], x = T3(b[m - 1]), w = T3(a0), out = { n: m, x: x, y: y, omega: w };
+    if (m === 3) { out.family = 'cor3c'; out.p = w; }
+    else if (m === 4) { out.family = 'cor4c'; out.p = cdiv([0.1, 0], csub(y, [(Math.sqrt(5) - 1)/2, 0])); }
+    else out.family = m === 5 ? 'torus5' : 'cor';
+    return out;
+  }
   function orbit(M, z, N) { var out = [z]; for (var i = 0; i < N; i++) { z = fz(M, z); out.push(z); } return out; }
   function closure(M) { var a = M.marked[0], z = a; for (var i = 0; i < M.n; i++) z = fz(M, z); return chord(z, a); }
   function fmt(z, d) { d = d || 6; if (z === null) return '∞'; var f = function (v) { return (Math.abs(v) < 1e-12 ? 0 : v).toPrecision(d); };
@@ -304,6 +375,6 @@ var PM = (function () {
   function fateText(f) { return f.kind === 'capture' ? 'captured by the marked cycle, phase ' + f.phase + ', time ' + f.t
     : f.kind === 'cycle' ? 'attracting cycle, period ' + f.period : 'undecided (bifurcation locus)'; }
   return { cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY, torusLocate: torusLocate,
-           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
+           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
 })();
 if (typeof module !== 'undefined') module.exports = PM;

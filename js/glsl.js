@@ -63,11 +63,12 @@ bool torusXY(vec2 u, out vec2 x, out vec2 y){
   return true;
 }
 uniform vec3 CAP[8]; uniform int flatPal;                       // phase palette (0..255), flat = no time shading
-uniform int bands; uniform int plain;                                               // escape-time bands (Caroline 2026-11-10)
+uniform int bands; uniform int plain; uniform int perCol;                                               // escape-time bands (Caroline 2026-11-10)
 vec3 shadeT(vec3 c, float t){
   float s = flatPal == 1 ? 1. : max(.3, min(1., 1. - .6*log(1. + t)/log(81.)));
   if (bands == 1) s *= .72 + .28*cos(.55*t);
   return (c*s + 20.*(1. - s))/255.; }
+vec3 perColor(int per){ if (per == 2) return vec3(214.,170.,170.)/255.; if (per == 3) return vec3(170.,205.,175.)/255.; if (per == 4) return vec3(170.,185.,225.)/255.; if (per == 5) return vec3(225.,212.,160.)/255.; if (per == 6) return vec3(200.,172.,220.)/255.; if (per == 7) return vec3(160.,210.,212.)/255.; if (per == 8) return vec3(228.,190.,150.)/255.; if (per == 9) return vec3(190.,200.,140.)/255.; return vec3(163.)/255.; }
 vec3 greyT(float base, float t){ float v = base; if (bands == 1) v = base*(.78 + .22*cos(.5*t)) + 12.*(1. - exp(-.02*t)); return vec3(v)/255.; }
 vec3 fateColour(vec2 z, bool zi){
   float th[12];
@@ -86,7 +87,7 @@ vec3 fateColour(vec2 z, bool zi){
   }
   for (int per = 1; per <= 24; per++) {
     int a = (maxIt - 1 - per + 3200) & 31, b = (maxIt - 1) & 31;
-    if (chN(ring[b], ringI[b], ring[a], ringI[a]) < tolP) return per == 1 ? greyT(85., max(tconv, 0.)) : greyT(163., float(maxIt));
+    if (chN(ring[b], ringI[b], ring[a], ringI[a]) < tolP) return per == 1 ? greyT(85., max(tconv, 0.)) : (perCol == 1 ? perColor(per) : greyT(163., float(maxIt)));
   }
   return vec3(18.)/255.;
 }
@@ -114,6 +115,7 @@ void main(){
 }`;
   return { fs: function () { return HEAD + MAIN; },
            vs: '#version 300 es\nin vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }',
+           PERPAL: [[214, 170, 170], [170, 205, 175], [170, 185, 225], [225, 212, 160], [200, 172, 220], [160, 210, 212], [228, 190, 150], [190, 200, 140]],      // attracting-cycle tint by period 2..9 (option 'color components by period')
            DEFPAL: [[42, 120, 214], [235, 104, 52], [27, 175, 122], [237, 161, 0], [232, 123, 164], [127, 63, 191], [160, 82, 45], [0, 150, 160]],
            setPalette: function (gl, U, pal, flat) { var p = (pal || this.DEFPAL).concat(this.DEFPAL).slice(0, 8), a = new Float32Array(24);
              p.forEach(function (c, i) { a.set(c, 3*i); }); gl.uniform3fv(U('CAP'), a); gl.uniform1i(U('flatPal'), flat ? 1 : 0); },

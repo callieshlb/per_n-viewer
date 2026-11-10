@@ -43,33 +43,34 @@
             font:12px/1.5 ui-monospace, Menlo, monospace; padding:4px 10px; box-sizing:border-box; overflow:auto; white-space:pre; }
   button.sm { font:inherit; padding:0 6px; border:1px solid #bbb; background:#fff; border-radius:4px; cursor:pointer; }
 </style>
-<script src="js/pern_math.js?v=20261110023159"></script>
-<script src="js/glsl.js?v=20261110023159"></script>
-<script src="js/planeview.js?v=20261110023159"></script>
-<script src="js/mating.js?v=20261110023159"></script>
+<script src="js/pern_math.js?v=20261110025327"></script>
+<script src="js/glsl.js?v=20261110025327"></script>
+<script src="js/planeview.js?v=20261110025327"></script>
+<script src="js/mating.js?v=20261110025327"></script>
 </head>
 <body>
-<div id="top"><h1>Per<sub>n</sub>(0) atlas</h1><div id="models"></div><span id="kind"></span></div>
+<div id="top"><h1>Per<sub>n</sub>(0) atlas</h1><a href="intro.html" style="font-size:13px;margin-right:4px" title="what this is, conventions, keys, links">Intro</a><div id="models"></div><span id="kind"></span></div>
 <div id="main">
   <div id="left"><iframe id="frame" title="parameter space"></iframe></div>
   <div id="split" title="drag to resize"></div>
   <div id="right"><div id="dyn"></div>
     <div id="dcard"><button class="sm" id="dcx" style="float:right">×</button><button class="sm" id="dcm" style="float:right;margin-right:3px" title="minimise">–</button><div id="dct"></div><div id="dcb"></div></div>
-    <div id="dover"><div id="dovh"><span id="dovt"></span><span id="dovtabs"></span><button class="sm" id="dovm" title="shrink to this bar; the card stays open">Minimize</button><button class="sm" id="dovx">Close</button></div><iframe id="dovf" title="card"></iframe></div><div id="dhint">Dynamical plane<br><span style="font-size:12px">click a parameter on the left</span></div>
+    <div id="dover"><div id="dovh"><span id="dovt"></span><span id="dovtabs"></span><button class="sm" id="dovm" title="shrink to this bar; the card stays open">Minimize</button><button class="sm" id="dovx">Close</button></div><iframe id="dovf" title="card"></iframe></div><button id="vin" class="sm" style="display:none;position:absolute;left:8px;bottom:8px;z-index:4;padding:3px 9px;font-size:13px;background:#fffbe0;border-color:#b9a400"></button><div id="dhint">Dynamical plane<br><span style="font-size:12px">click a parameter on the left</span></div>
     <div id="dside">
       <div class="hd"><b>Dynamical plane&nbsp;</b><button class="sm" id="dmin" title="show / hide the controls">–</button></div>
       <div class="ctrl">
-        <span>Iterates</span><span><input type="range" id="dit" min="50" max="4000" step="50" value="500"> <span id="ditv">500</span></span>
+        <span>Iterates (+ / −)</span><span><input type="range" id="dit" min="50" max="4000" step="50" value="500"> <span id="ditv">500</span></span>
         <span>Capture δ</span><span><input type="range" id="ddel" min="-5" max="-1" step="0.25" value="-3"> <span id="ddelv">1e-3</span></span>
-        <span>Marked cycle</span><input type="checkbox" id="dmk" checked>
-        <span>Labels</span><input type="checkbox" id="dml" checked>
+        <span>Marked cycle (k)</span><input type="checkbox" id="dmk" checked>
+        <span>Labels (l)</span><input type="checkbox" id="dml" checked>
         <span>Critical orbit</span><span><input type="checkbox" id="dorb"> <input type="number" id="dorbn" value="60" min="1" max="2000" style="width:60px"></span>
-        <span>Escape-time bands</span><input type="checkbox" id="dbands" checked>
-        <span title="free critical point at ∞, marked critical point at 0, scaled like w² + c">Polynomial view</span><input type="checkbox" id="dinv">
-        <span>Hubbard tree</span><input type="checkbox" id="dtree" checked>
-        <span>Orbit mode</span><span><input type="checkbox" id="omode" title="click a point: draw z0 -> z1 -> ... -> zk"> k <input type="range" id="ok" min="1" max="200" value="20" style="width:80px"> <span id="okv">20</span></span>
+        <span>Escape-time bands (b)</span><input type="checkbox" id="dbands" checked>
+        <span title="free critical point at ∞, marked critical point at 0, scaled like w² + c">Polynomial view (i)</span><input type="checkbox" id="dinv">
+        <span>Hubbard tree (t)</span><input type="checkbox" id="dtree" checked>
+        <span>Orbit mode (o: orbit of the point under the cursor)</span><span><input type="checkbox" id="omode" title="click a point: draw z0 -> z1 -> ... -> zk"> k <input type="range" id="ok" min="1" max="200" value="20" style="width:80px"> <span id="okv">20</span></span>
       </div>
       <button class="sm" id="dhome">Fit view</button>
+      <div style="margin-top:5px;color:#6b6b6b">Keys: z / x zoom in / out · m mating · v view in Per<sub>m</sub> · r real circles · g G<sub>n</sub> edges · e violet arrows · p period colors</div>
       <div style="margin-top:6px;color:#6b6b6b">Colors: capture into the marked cycle by phase (j − t) mod n, as in the parameter pane;
         gray = basin of another attracting cycle; black = undecided (Julia set). White dots a<sub>j</sub>: the marked cycle
         (a<sub>0</sub> critical); yellow ω: the free critical point.</div>
@@ -84,6 +85,6 @@
   <div style="color:#6b6b6b;font-size:12px;margin-top:6px;max-width:330px">Vein: also mates f with the K lowest-period centers g<sub>i</sub> (period ≤ 8) on the arc of the Mandelbrot set from z² to g (small yellow dots). f: either characteristic angle of a period-n center (e.g. 1/7 or 2/7), or its label k.
   g: any angle (either characteristic angle of a center, or a preperiodic angle). Enter to compute, Esc to close.</div></div>
 <div id="status">Choose a model, then click a parameter.</div>
-<script src="js/shell.js?v=20261110023159"></script>
+<script src="js/shell.js?v=20261110025327"></script>
 </body>
 </html>

@@ -2,18 +2,30 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261110023159').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261110025327').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261110023159').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261110025327').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
   document.title = E.titleText || id;
   $('legend').innerHTML = GLSL.LEGEND(E.n, E.palette).map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
   if (torus) ['gnl', 'gn', 'vil', 'vi', 'sml', 'sm'].forEach(k => { $(k).style.display = ''; });
-  const opt = { mk: true, ml: true, gn: false, vi: false, sm: true, rc: true };
+  const opt = { mk: true, ml: true, gn: false, vi: false, sm: true, rc: false };      // real circles opt-in (Caroline 2026-11-10)
   if (E.real) ['rcl', 'rc'].forEach(k => { $(k).style.display = ''; });
   ['mk', 'ml', 'gn', 'vi', 'sm', 'rc'].forEach(k => { $(k).onchange = e => { opt[k] = e.target.checked; pv.redraw(); }; });
+  $('pcl').innerHTML = GLSL.PERPAL.map((c, i) => `<span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(${c.join(',')})">${i + 2}</span>`).join('');
+  $('pc').onchange = e => { pv.perCol = e.target.checked; pv.redraw(); };
+  // hotkeys (Caroline 2026-11-10): r real circles, g G_n edges, e violet arrows, p period colors, l labels, k markers, b bands, s seams, +/- iterates; t, i go to the dynamical pane
+  const PKEY = { r: 'rc', g: 'gn', e: 'vi', p: 'pc', l: 'ml', k: 'mk', b: 'bands', s: 'sm' };
+  function paneKey(key) {
+    if (PKEY[key]) { const el = $(PKEY[key]); if (!el || el.style.display === 'none') return true; el.checked = !el.checked; el.dispatchEvent(new Event('change')); return true; }
+    if (key === '+' || key === '=' || key === '-') { const el = $('pit'); el.value = Math.max(+el.min, Math.min(+el.max, +el.value + (key === '-' ? -1 : 1)*100)); el.dispatchEvent(new Event('input')); return true; }
+    if (key === 't' || key === 'i') { parent.postMessage({ e96: 'key', key }, '*'); return true; }
+    return false;
+  }
+  window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return; if (paneKey(e.key)) e.preventDefault(); });
+  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && 'rgep'.includes(d.key)) paneKey(d.key); });
   $('minb').onclick = () => { $('side').classList.toggle('min'); $('minb').textContent = $('side').classList.contains('min') ? '+' : '–'; };
   let picked = null; const MARKS = [];
   function lattice(W, H) {           // visible lattice translates (torus)
@@ -79,10 +91,11 @@
     }
     if (RAYS.length) drawRays(g, W, H);
     if (E.rays) drawPerN(g, W, H);
+    const VL = [];                                        // vein labels already drawn (skip overlapping ones)
     for (const mk of MARKS) for (const o of torus ? lattice(W, H) : [[0, 0]]) {        // matings (yellow)
       const s = pv.toScreen([mk.p[0] + o[0], mk.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
       if (mk.vein) { g.beginPath(); g.arc(s[0], s[1], 3.2, 0, 2*Math.PI); g.fillStyle = '#ffe600'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1; g.stroke();
-        if (opt.ml) { g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(mk.label, s[0] + 6, s[1]); g.fillStyle = '#ffe600'; g.fillText(mk.label, s[0] + 6, s[1]); }
+        if (opt.ml && !VL.some(q => Math.abs(q[0] - s[0]) < 46 && Math.abs(q[1] - s[1]) < 11)) { VL.push(s); g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(mk.label, s[0] + 6, s[1]); g.fillStyle = '#ffe600'; g.fillText(mk.label, s[0] + 6, s[1]); }
         continue; }
       g.beginPath(); for (let k = 0; k < 10; k++) { const r = k % 2 ? 3 : 7, t = -Math.PI/2 + k*Math.PI/5; g.lineTo(s[0] + r*Math.cos(t), s[1] + r*Math.sin(t)); } g.closePath();
       g.fillStyle = '#ffe600'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
@@ -196,7 +209,9 @@
   $('mfilter').oninput = buildList; buildList();
   window.addEventListener('message', ev => { const d = ev.data;
     if (d && d.e96 === 'clearMarks') { MARKS.length = 0; pv.redraw(); return; }
-    if (d && d.e96 === 'mark' && d.p) { MARKS.push({ p: d.p, label: d.label, vein: !!d.vein }); pv.redraw(); return; }
+    if (d && d.e96 === 'mark' && d.p) { const k = MARKS.findIndex(q => q.label === d.label && !q.vein && !d.vein); if (k >= 0) MARKS.splice(k, 1);
+      MARKS.push({ p: d.p, label: d.label, vein: !!d.vein }); if (d.go) pv.ctr = d.p.slice(); pv.redraw();
+      if (d.go) parent.postMessage({ e96: 'markDone', label: d.label, ok: true, res: 0, tag: d.tag }, '*'); return; }
     if (d && d.e96 === 'goto' && d.label !== undefined) { const m = markers.find(q => q.kind === 'centre' && q.label === String(d.label)); if (m) { pv.ctr = m.p.slice(); pv.redraw(); pick(m.p, m); } return; }
     if (d && d.e96 === 'goto' && d.p) { pv.ctr = d.p.slice(); pv.redraw(); pick(d.p, null); } });
   if (E.rays) { $('perbox').style.display = ''; $('pern').onchange = e => setPerN(+e.target.value); $('perang').onchange = () => pv.redraw(); $('perrays').onchange = () => pv.redraw();
@@ -207,6 +222,6 @@
   if (E.n < 2) $('matebox').style.display = 'none';
   $('mgo').onclick = () => parent.postMessage({ e96: 'mateReq', label: $('mf').value, angle: $('mg').value }, '*');
   $('mg').addEventListener('keydown', e => { if (e.key === 'Enter') $('mgo').click(); });
-  window.addEventListener('keydown', e => { if (e.key === 'm' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') parent.postMessage({ e96: 'key', key: 'm' }, '*'); });
+  window.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'v') && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') parent.postMessage({ e96: 'key', key: e.key }, '*'); });
   window.E96READY = true;
 })().catch(e => { document.body.innerHTML = '<pre style="color:#fff;padding:20px">' + e.stack + '</pre>'; console.error(e); });

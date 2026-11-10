@@ -28,9 +28,9 @@
   details summary { cursor:pointer; color:var(--muted); }
   .nf { font-size:12px; background:#fff; border:1px solid var(--faint); padding:4px 6px; margin:4px 0; }
 </style>
-<script src="js/pern_math.js?v=20261110023159"></script>
-<script src="js/glsl.js?v=20261110023159"></script>
-<script src="js/planeview.js?v=20261110023159"></script>
+<script src="js/pern_math.js?v=20261110025327"></script>
+<script src="js/glsl.js?v=20261110025327"></script>
+<script src="js/planeview.js?v=20261110025327"></script>
 </head>
 <body>
 <div id="view"></div>
@@ -41,15 +41,16 @@
   <div class="sub">Each pixel is a parameter; its color is the fate of the free critical point (computed on the GPU in single
     precision at every redraw, so zooming sharpens it). Drag to move, scroll to zoom, click a point to open its dynamical plane. Where the critical point is captured only after many (~100+) iterates, single precision cannot follow the orbit and the phase color there is noise (click a pixel for the double-precision fate).</div>
   <div class="ctrl">
-    <span>Markers</span><input type="checkbox" id="mk" checked>
-    <span>Labels</span><input type="checkbox" id="ml" checked>
-    <span id="rcl" style="display:none">Real circles</span><input type="checkbox" id="rc" checked style="display:none">
-    <span id="gnl" style="display:none">G<sub>n</sub> tip capture edges</span><input type="checkbox" id="gn" style="display:none">
-    <span id="vil" style="display:none" title="from each center, an arrow to its G_n neighbor(s) whose label has the most factors of 2 (when more than its own)">violet arrows (to the more even)</span><input type="checkbox" id="vi" style="display:none">
-    <span id="sml" style="display:none">Torus seams</span><input type="checkbox" id="sm" checked style="display:none">
+    <span>Markers (k)</span><input type="checkbox" id="mk" checked>
+    <span>Labels (l)</span><input type="checkbox" id="ml" checked>
+    <span id="rcl" style="display:none">Real circles (r)</span><input type="checkbox" id="rc" style="display:none">
+    <span title="tint the components where the free critical point has its own attracting cycle by the period of that cycle">Color components by period (p)</span><span><input type="checkbox" id="pc"> <span id="pcl"></span></span>
+    <span id="gnl" style="display:none">G<sub>n</sub> tip capture edges (g)</span><input type="checkbox" id="gn" style="display:none">
+    <span id="vil" style="display:none" title="from each center, an arrow to its G_n neighbor(s) whose label has the most factors of 2 (when more than its own)">violet arrows, to the more even (e)</span><input type="checkbox" id="vi" style="display:none">
+    <span id="sml" style="display:none">Torus seams (s)</span><input type="checkbox" id="sm" checked style="display:none">
     <span>Coloring</span><select id="plain"><option value="0" selected>dynamics (per pixel)</option><option value="1">plain surface (no dynamics)</option></select>
-    <span>Escape-time bands</span><input type="checkbox" id="bands" checked>
-    <span>Iterates</span><span><input type="range" id="pit" min="50" max="4000" step="50" value="600"> <span id="pitv">600</span></span>
+    <span>Escape-time bands (b)</span><input type="checkbox" id="bands" checked>
+    <span>Iterates (+ / −)</span><span><input type="range" id="pit" min="50" max="4000" step="50" value="600"> <span id="pitv">600</span></span>
     <span>Capture δ</span><span><input type="range" id="del" min="-5" max="-1" step="0.25" value="-3"> <span id="delv">1e-3</span> (rel.)</span>
   </div>
   <div id="matebox" style="margin:4px 0"><b>Mating</b> f = <input id="mf" size="4" placeholder="angle or k"> ⊔ g = <input id="mg" size="7" placeholder="angle 1/7">
@@ -75,6 +76,6 @@
     <div id="mlist"></div></details>
   <details><summary>What this is</summary><div id="about" class="sub"></div></details>
 </div>
-<script src="js/plane.js?v=20261110023159"></script>
+<script src="js/plane.js?v=20261110025327"></script>
 </body>
 </html>

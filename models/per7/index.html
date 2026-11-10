@@ -31,8 +31,8 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261110023159"></script>
-<script src="per7_core.js?v=20261110023159"></script>
+<script src="conformal_data.js?v=20261110025327"></script>
+<script src="per7_core.js?v=20261110025327"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -45,7 +45,7 @@
     <span>Edge numbers</span><input type="checkbox" id="lt" checked>
     <span>Markers</span><input type="checkbox" id="mk" checked>
     <span>Marker labels</span><input type="checkbox" id="ml" checked>
-    <span>Real ovals</span><input type="checkbox" id="ov2" checked>
+    <span>Real ovals</span><input type="checkbox" id="ov2">
     <span>G<sub>7</sub>: tip capture edges (one per Hubbard-tree leaf, E91)</span><input type="checkbox" id="gc">
     <span>G: violet arrow f &rarr; f&prime; when f&prime; has more factors of 2</span><input type="checkbox" id="g2">
     <span style="display:none"></span><input type="checkbox" id="gm" style="display:none">
@@ -132,6 +132,8 @@ const VS = `#version 300 es
 in vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }`;
 const FS = `#version 300 es
 precision highp float;
+uniform int perCol;
+vec3 perColor(int per){ if (per == 2) return vec3(214.,170.,170.)/255.; if (per == 3) return vec3(170.,205.,175.)/255.; if (per == 4) return vec3(170.,185.,225.)/255.; if (per == 5) return vec3(225.,212.,160.)/255.; if (per == 6) return vec3(200.,172.,220.)/255.; if (per == 7) return vec3(160.,210.,212.)/255.; if (per == 8) return vec3(228.,190.,150.)/255.; if (per == 9) return vec3(190.,200.,140.)/255.; return vec3(163.)/255.; }
 uniform vec2 res; uniform float Rpx, zoom, lineW; uniform vec2 Va, Vb, Vc, Vd; uniform int nF;
 uniform highp sampler2D faceT;
 uniform sampler2D tex; uniform int edges; uniform vec3 bg;
@@ -222,7 +224,7 @@ vec3 liveColourU(int k, vec2 u){
   }
   for (int per = 1; per <= 24; per++) {
     int a = (maxIt - 1 - per + 3200) & 31, b = (maxIt - 1) & 31;
-    if (chN(ring[b], ringI[b], ring[a], ringI[a]) < tolP) return per == 1 ? vec3(85.)/255. : vec3(163.)/255.;
+    if (chN(ring[b], ringI[b], ring[a], ringI[a]) < tolP) return per == 1 ? vec3(85.)/255. : (perCol == 1 ? perColor(per) : vec3(163.)/255.);
   }
   return vec3(18.)/255.;
 }
@@ -367,7 +369,7 @@ idImg.onload = () => { const c = document.createElement('canvas'); c.width = c.h
 idImg.src = T.ids;
 // ---------- view ----------
 let V = I2, zoom = 1, tiles = [], dirty = true, anim = null;
-const opt = { ed: true, lt: true, mk: true, ml: true, ov2: true, gc: false, gm: false, gp: false, g2: false };
+const opt = { ed: true, lt: true, mk: true, ml: true, ov2: false, gc: false, gm: false, gp: false, g2: false };
 ['ed', 'lt', 'mk', 'ml', 'ov2', 'gc', 'gm', 'gp', 'g2'].forEach(k => { document.getElementById(k).onchange = e => { opt[k] = e.target.checked; dirty = true; }; });
 let W_ = 0, H_ = 0, Rpx = 1, dpr = 1;
 function resize() { dpr = window.devicePixelRatio || 1; W_ = view.clientWidth*dpr; H_ = view.clientHeight*dpr;
@@ -469,7 +471,7 @@ function render() {
   gl.uniform2f(U('Va'), ...V.a); gl.uniform2f(U('Vb'), ...V.b); gl.uniform2f(U('Vc'), ...V.c); gl.uniform2f(U('Vd'), ...V.d);
   gl.uniform1i(U('edges'), opt.ed ? 1 : 0);
   setW0();
-  gl.uniform1i(U('showOv'), opt.ov2 ? 1 : 0);
+  gl.uniform1i(U('perCol'), window.E96PERCOL ? 1 : 0); gl.uniform1i(U('showOv'), opt.ov2 ? 1 : 0);
   gl.uniform1i(U('live'), liveMode); gl.uniform1i(U('maxIt'), interacting ? Math.min(pit, 120) : pit); gl.uniform1f(U('delta'), delta);
   gl.drawArrays(gl.TRIANGLES, 0, 3);
   tiles = enumerateTiles(); drawOverlay(); drawMini();
@@ -635,16 +637,26 @@ body.e96min #side{display:none} body.e96min #view{right:0 !important} body.e96mi
 <input type="checkbox" onchange="window.E96MOVE=this.checked"> move to clicked point</label>
 <div id="e96mate" style="margin:6px 0;font:12px system-ui"><b>Mating</b> f = <input id="e96mf" size="4" placeholder="angle or k"> ⊔ g = <input id="e96mg" size="7" placeholder="angle 1/7">
 <button id="e96mgo">f ⊔ g</button><div style="color:#6b6b6b">f by its label (the even numerator k of its angles k/(2^n − 1)); g: any external angle. Shown in the
-dynamical plane; details in the status line below.</div></div>
+dynamical plane; details in the status line below.</div><label style="display:block;margin-top:5px"><input type="checkbox" id="e96pc" onchange="window.E96PERCOL=this.checked;dirty=true;"> color components by period <span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(214,170,170)">2</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(170,205,175)">3</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(170,185,225)">4</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(225,212,160)">5</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(200,172,220)">6</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(160,210,212)">7</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(228,190,150)">8</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(190,200,140)">9</span></label></div>
 <script>(function(){var b=document.getElementById('e96tog');b.onclick=function(){document.body.classList.toggle('e96min');
 b.textContent=document.body.classList.contains('e96min')?'◂ panel':'panel ▸';window.dispatchEvent(new Event('resize'));};
 if(window.innerWidth<900){b.onclick();}
 (function(){var bx=document.getElementById('e96mate'),sd=document.getElementById('side');if(bx&&sd){sd.insertBefore(bx,sd.children[2]||null);}
 document.getElementById('e96mgo').onclick=function(){parent.postMessage({e96:'mateReq',label:document.getElementById('e96mf').value,angle:document.getElementById('e96mg').value},'*');};
 document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('e96mgo').click();});})();
-window.addEventListener('keydown',function(e){if(e.key==='m'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:'m'},'*');});
+window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
+<script>/* E96 hotkeys (Caroline 2026-11-10): r real ovals, g tip capture edges, e violet arrows, p period colors, l labels, k markers, d tile edges, n edge numbers, +/- iterates */
+(function(){var K={r:'ov2',g:'gc',e:'g2',p:'e96pc',l:'ml',k:'mk',d:'ed',n:'lt'};
+Object.keys(K).forEach(function(k){var el=document.getElementById(K[k]);if(!el)return;var sp=el.previousElementSibling;if(K[k]==='e96pc'){el.parentNode.insertBefore(document.createTextNode(' (p)'),el.nextSibling.nextSibling||null);}else if(sp){sp.innerHTML+=' ('+k+')';}});
+var pi=document.getElementById('pit');if(pi&&pi.parentNode.previousElementSibling)pi.parentNode.previousElementSibling.innerHTML+=' (+ / −)';
+function key(k){if(K[k]){var el=document.getElementById(K[k]);if(!el)return true;el.checked=!el.checked;if(el.onchange)el.onchange({target:el});else el.dispatchEvent(new Event('change'));return true;}
+if(k==='+'||k==='='||k==='-'){if(!pi)return true;pi.value=Math.max(+pi.min,Math.min(+pi.max,+pi.value+(k==='-'?-1:1)*100));pi.dispatchEvent(new Event('input'));if(pi.oninput)0;return true;}
+if(k==='t'||k==='i'){parent.postMessage({e96:'key',key:k},'*');return true;}return false;}
+window.addEventListener('keydown',function(e){var t=e.target;if((t.tagName==='INPUT'&&t.type!=='checkbox'&&t.type!=='range')||t.tagName==='SELECT'||e.metaKey||e.ctrlKey||e.altKey)return;if(key(e.key))e.preventDefault();});
+window.addEventListener('message',function(ev){var d=ev.data;if(d&&d.e96==='key'&&'rgep'.indexOf(d.key)>=0)key(d.key);});})();
+</script>
 <script>/* E96: chart inversion + mating markers (REGISTRATION addendum 2026-11-10 (b)) */
 var E96MARKS=[];
 function e96locate(x,y){
@@ -696,8 +708,8 @@ function e96locate(x,y){
     if(opt.ml&&r>4*dpr&&m.label){g2.font='600 '+fs+'px system-ui';g2.lineWidth=3*dpr;g2.strokeStyle='rgba(0,0,0,.85)';g2.strokeText(m.label,p[0]+r+3*dpr,p[1]);g2.fillStyle='#ffe600';g2.fillText(m.label,p[0]+r+3*dpr,p[1]);}}};
 window.addEventListener('message',function(ev){var d=ev.data;if(!d)return;
   if(d.e96==='clearMarks'){E96MARKS.length=0;dirty=true;return;}
-  if(d.e96!=='mark'||!d.x||!d.y)return;var L=e96locate(d.x,d.y),ok=!!L&&L.res<1e-4;
-  if(ok){E96MARKS.push({p:L.p,label:d.label,vein:d.vein});if(!d.quiet){V=Mq(L.p);anim=null;reduceView();}dirty=true;}
+  if(d.e96!=='mark'||!d.x||!d.y)return;if(!idData||!CH||!CHG||!CHM)return;var L=e96locate(d.x,d.y),ok=!!L&&L.res<1e-4;
+  if(ok){if(!d.vein){var kk=E96MARKS.findIndex(function(q){return q.label===d.label&&!q.vein;});if(kk>=0)E96MARKS.splice(kk,1);}E96MARKS.push({p:L.p,label:d.label,vein:d.vein});if(!d.quiet){V=Mq(L.p);anim=null;reduceView();}dirty=true;}
   parent.postMessage({e96:'markDone',label:d.label,ok:ok,res:L?L.res:null,p:L?L.p:null,tag:d.tag},'*');});})();
 </script>
 </body>
