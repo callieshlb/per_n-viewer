@@ -9,7 +9,7 @@ precision highp float;
 uniform vec2 res; uniform vec2 ctr; uniform float upp;           // view: centre, units per pixel
 uniform int maxIt; uniform float delta; uniform float tolP; uniform int fam; uniform int nM;
 uniform vec2 uA, uB, uC, uD, uE, uF; uniform vec2 uMk[12]; uniform int uMkI[12];   // dynamical-plane map (mode 0)
-uniform float W1, W2, qn, e1;                                    // Per_5 torus
+uniform float W1, W2, qn, e1; uniform int invz;                 // invz: dynamical plane drawn in w = 1/z                                    // Per_5 torus
 out vec4 o;
 vec2 cm(vec2 a, vec2 b){ return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
 vec2 cd(vec2 a, vec2 b){ return vec2(a.x*b.x + a.y*b.y, a.y*b.x - a.x*b.y)/dot(b, b); }
@@ -63,21 +63,30 @@ bool torusXY(vec2 u, out vec2 x, out vec2 y){
   return true;
 }
 uniform vec3 CAP[8]; uniform int flatPal;                       // phase palette (0..255), flat = no time shading
-vec3 shadeT(vec3 c, float t){ if (flatPal == 1) return c/255.; float s = max(.3, min(1., 1. - .6*log(1. + t)/log(81.))); return (c*s + 20.*(1. - s))/255.; }
+uniform int bands;                                               // escape-time bands (Caroline 2026-11-10)
+vec3 shadeT(vec3 c, float t){
+  float s = flatPal == 1 ? 1. : max(.3, min(1., 1. - .6*log(1. + t)/log(81.)));
+  if (bands == 1) s *= .72 + .28*cos(.55*t);
+  return (c*s + 20.*(1. - s))/255.; }
+vec3 greyT(float base, float t){ float v = base; if (bands == 1) v = base*(.78 + .22*cos(.5*t)) + 12.*(1. - exp(-.02*t)); return vec3(v)/255.; }
 vec3 fateColour(vec2 z, bool zi){
   float th[12];
   for (int j = 0; j < 12; j++) { if (j >= nm) break; float m = 1.; for (int i = 0; i < 12; i++) { if (i >= nm) break; if (i != j) m = min(m, chN(mk[j], mi[j], mk[i], mi[i])); } th[j] = delta*m; }
-  vec2 ring[32]; bool ringI[32];
+  vec2 ring[32]; bool ringI[32]; float tconv = -1.;
   for (int it = 0; it < 20000; it++) {
     if (it >= maxIt) break;
     fz(z, zi);
     for (int j = 0; j < 12; j++) { if (j >= nm) break;
-      if (chN(z, zi, mk[j], mi[j]) < th[j]) { int ph = ((j - (it + 1)) % nm + nm) % nm; return shadeT(CAP[ph % 8], float(it + 1)); } }
+      float dj = chN(z, zi, mk[j], mi[j]);
+      if (dj < th[j]) { int ph = ((j - (it + 1)) % nm + nm) % nm;     // smooth capture time (superattracting cycle: distances square)
+        float ts = float(it + 1) - log2(max(1., log(max(dj, 1e-30))/log(th[j]))); return shadeT(CAP[ph % 8], max(ts, 0.)); } }
+    if (tconv < 0. && it > 0 && chN(z, zi, ring[(it - 1) & 31], ringI[(it - 1) & 31]) < 1e-3) tconv = float(it);
+    if (tconv >= 0. && it > 0 && chN(z, zi, ring[(it - 1) & 31], ringI[(it - 1) & 31]) > 1e-2) tconv = -1.;
     ring[it & 31] = z; ringI[it & 31] = zi;
   }
   for (int per = 1; per <= 24; per++) {
     int a = (maxIt - 1 - per + 3200) & 31, b = (maxIt - 1) & 31;
-    if (chN(ring[b], ringI[b], ring[a], ringI[a]) < tolP) return per == 1 ? vec3(85.)/255. : vec3(163.)/255.;
+    if (chN(ring[b], ringI[b], ring[a], ringI[a]) < tolP) return per == 1 ? greyT(85., max(tconv, 0.)) : greyT(163., float(maxIt));
   }
   return vec3(18.)/255.;
 }
@@ -89,7 +98,7 @@ void main(){
   if (fam == 0) {                          // dynamical plane: the pixel is the starting point
     A_ = uA; B_ = uB; C_ = uC; D_ = uD; E_ = uE; F_ = uF; nm = nM;
     for (int j = 0; j < 12; j++) { mk[j] = uMk[j]; mi[j] = uMkI[j] == 1; }
-    z0 = p;
+    z0 = p; if (invz == 1) { if (dot(p, p) < 1e-30) z0i = true; else z0 = cinv(p); }
   } else {
     if (fam == 1) { A_ = vec2(1., 0.); B_ = vec2(0.); C_ = p; D_ = vec2(0.); E_ = vec2(0.); F_ = vec2(1., 0.); nm = 1; mk[0] = vec2(0.); mi[0] = true; om = vec2(0.); }
     else if (fam == 2) { A_ = vec2(1., 0.); B_ = vec2(0.); C_ = -p; D_ = vec2(1., 0.); E_ = vec2(0.); F_ = vec2(-1., 0.); nm = 2;   // (z^2 - c)/(z^2 - 1)

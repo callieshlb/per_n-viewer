@@ -21,7 +21,7 @@ function PlaneView(host, opts) {
   var U = function (n) { return gl.getUniformLocation(prog, n); };
   this.U = U;
   this.ctr = (opts.ctr || [0, 0]).slice(); this.upp = opts.upp || 0.01;
-  this.maxIt = opts.maxIt || 400; this.delta = opts.delta || 1e-3; this.tolP = 1e-5;
+  this.maxIt = opts.maxIt || 400; this.bands = true; this.delta = opts.delta || 1e-3; this.tolP = 1e-5;
   this.setUniforms = opts.setUniforms || function () {};
   this.drawOverlay = opts.drawOverlay || function () {};
   this.onPick = opts.onPick || function () {};
@@ -43,6 +43,7 @@ function PlaneView(host, opts) {
     gl.viewport(0, 0, GW, GH);
     gl.uniform2f(U('res'), GW, GH); gl.uniform2f(U('ctr'), self.ctr[0], self.ctr[1]); gl.uniform1f(U('upp'), self.upp*W/Math.max(1, GW)*1);
     gl.uniform1i(U('maxIt'), interacting ? Math.min(self.maxIt, 150) : self.maxIt); gl.uniform1f(U('delta'), self.delta); gl.uniform1f(U('tolP'), self.tolP);
+    gl.uniform1i(U('bands'), self.bands ? 1 : 0);
     self.setUniforms(gl, U);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     var g = self.overlay; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
