@@ -38,7 +38,7 @@
   the characteristic angles θ± and all their doubling iterates, which land at the roots of the periodic Fatou components.
   Drag to pan, scroll to zoom.</div>
   <div class="ctrl"><span>Polynomial</span><select id="pick"></select>
-    <label><input type="checkbox" id="cRay" checked> rays</label><label><input type="checkbox" id="cLab" checked> ray labels</label>
+    <label><input type="checkbox" id="cRayM" checked> rays of θ− orbit</label><label><input type="checkbox" id="cRayP" checked> rays of θ+ orbit</label><label><input type="checkbox" id="cLab" checked> ray labels</label>
     <label><input type="checkbox" id="cTree" checked> tree</label><button id="reset">Reset view</button></div>
   <div class="legend" id="legend"></div>
   <h2>Angles</h2>
@@ -128,13 +128,14 @@ function label(txt, x, y, colr, bg) {
 function overlay() {
   o2.clearRect(0, 0, ov.width, ov.height);
   const om = new Set(P.orbit_minus);
-  if ($('cRay').checked) for (const [k, pts] of Object.entries(P.rays)) {
+  const rayOn = k => om.has(+k) ? $('cRayM').checked : $('cRayP').checked;          // E96: theta- / theta+ orbits separately
+  for (const [k, pts] of Object.entries(P.rays)) { if (!rayOn(k)) continue;
     const colr = om.has(+k) ? RAYM : RAYP; poly(pts, colr, 1.6);
   }
   if ($('cTree').checked) for (const path of P.tree) poly(path, '#ffffff', 2.4);
-  if ($('cRay').checked && $('cLab').checked) {
+  if ($('cLab').checked) {
     // label each ray where it leaves the visible window (or at its outer end)
-    for (const [k, pts] of Object.entries(P.rays)) {
+    for (const [k, pts] of Object.entries(P.rays)) { if (!rayOn(k)) continue;
       const colr = om.has(+k) ? RAYM : RAYP; let at = null;
       for (let i = 0; i < pts.length; i++) { const [x, y] = toScreen(pts[i][0], pts[i][1]); if (x > 20*dpr && y > 14*dpr && x < ov.width - 50*dpr && y < ov.height - 6*dpr) { at = [x, y]; break; } }
       if (at) label(frac(+k), at[0] + 4*dpr, at[1] - 4*dpr, colr);
@@ -194,7 +195,7 @@ $('view').addEventListener('wheel', e => {
   const f = Math.exp(e.deltaY*0.0015); view.s *= f; view.cx = x + (view.cx - x)*f; view.cy = y + (view.cy - y)*f; overlay(); schedule();
 }, { passive: false });
 let tmr = null; function schedule() { clearTimeout(tmr); tmr = setTimeout(render, 120); }
-for (const id of ['cRay', 'cLab', 'cTree']) $(id).onchange = overlay;
+for (const id of ['cRayM', 'cRayP', 'cLab', 'cTree']) $(id).onchange = overlay;
 $('reset').onclick = () => { fitView(); render(); };
 $('pick').onchange = () => show($('pick').value);
 window.addEventListener('hashchange', () => { const m = location.hash.match(/label=(\d+)/); if (m && (!P || +m[1] !== P.label)) show(m[1]); });

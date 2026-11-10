@@ -47,7 +47,7 @@
     <span>Marker labels</span><input type="checkbox" id="ml" checked>
     <span>Real ovals</span><input type="checkbox" id="ov2" checked>
     <span>G<sub>8</sub>: capture edges</span><input type="checkbox" id="gc">
-    <span>G: violet arrow f &rarr; f&prime; when f&prime; has more factors of 2</span><input type="checkbox" id="g2" checked>
+    <span>G: violet arrow f &rarr; f&prime; when f&prime; has more factors of 2</span><input type="checkbox" id="g2">
     <span>Mark the y = 0 node zone (not resolved)</span><input type="checkbox" id="zn" checked>
     <span style="display:none"></span><input type="checkbox" id="gm" style="display:none">
     <span style="display:none"></span><input type="checkbox" id="gp" style="display:none">
@@ -409,7 +409,7 @@ idImg.onload = () => { const c = document.createElement('canvas'); c.width = c.h
 idImg.src = T.ids;
 // ---------- view ----------
 let V = I2, zoom = 1, tiles = [], dirty = true, anim = null;
-const opt = { ed: true, lt: true, mk: true, ml: true, ov2: true, gc: false, gm: false, gp: false, g2: true, zn: true };
+const opt = { ed: true, lt: true, mk: true, ml: true, ov2: true, gc: false, gm: false, gp: false, g2: false, zn: true };
 ['ed', 'lt', 'mk', 'ml', 'ov2', 'gc', 'gm', 'gp', 'g2', 'zn'].forEach(k => { document.getElementById(k).onchange = e => { opt[k] = e.target.checked; dirty = true; }; });
 let W_ = 0, H_ = 0, Rpx = 1, dpr = 1;
 function resize() { dpr = window.devicePixelRatio || 1; W_ = view.clientWidth*dpr; H_ = view.clientHeight*dpr;
@@ -438,12 +438,12 @@ function drawOverlay() {
   g2.clearRect(0, 0, W_, H_);
   const fs = Math.round(13*dpr);
   const kinds = { capture: opt.gc, mating: opt.gm, puncture: opt.gp };
-  if (G6E.length && (opt.gc || opt.gm || opt.gp)) {
+  if (G6E.length && (opt.gc || opt.gm || opt.gp || opt.g2)) {
     const sty = { capture: ['#ffffff', 2.2], mating: ['#ffd84d', 1.4], puncture: ['#ff6b8a', 2.4] };
     for (const t of tiles) {
       const c0 = ap(t.W, [0, 0]); if (1 - cabs2(c0) < 0.01 && t !== tiles[0]) continue;
       for (const e of G6E) {
-        if (!kinds[e.kind]) continue;
+        if (!kinds[e.kind] && !(opt.g2 && e.vgap)) continue;
         const pts = e.pts.map(q => diskToScreen(ap(t.W, q)));
         let xmin = 1e9, xmax = -1e9, ymin = 1e9, ymax = -1e9;
         for (const q of pts) { xmin = Math.min(xmin, q[0]); xmax = Math.max(xmax, q[0]); ymin = Math.min(ymin, q[1]); ymax = Math.max(ymax, q[1]); }

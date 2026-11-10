@@ -23,7 +23,6 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="live_data.js"></script>
 <script src="conformal_data.js"></script>
 <script src="per6_core.js"></script>
 </head>
@@ -39,6 +38,7 @@
     <span>Marker labels</span><input type="checkbox" id="ml" checked>
     <span>Real ovals</span><input type="checkbox" id="ov2" checked>
     <span>G<sub>6</sub>: capture edges</span><input type="checkbox" id="gc">
+    <span>G: violet arrow f &rarr; f&prime; when f&prime; has more factors of 2</span><input type="checkbox" id="g2">
     <span>G<sub>6</sub>: shared matings</span><input type="checkbox" id="gm">
     <span>G<sub>6</sub>: shared punctures</span><input type="checkbox" id="gp">
   </div>
@@ -53,7 +53,7 @@
   <canvas id="mini" width="632" height="632"></canvas>
   <p style="margin:8px 0 2px"><b>Point</b></p>
   <div class="info" id="info">Click anywhere in the disk.</div>
-  <p><button id="open" disabled>Open this point in the 2-D explorer</button> <button id="obsBtn" style="display:none"></button> <button id="polyBtn" style="display:none"></button></p>
+  <p><button id="open" disabled>Open this point in the 2-D explorer</button></p>
   <details><summary>What this is, and what is exact</summary>
     <p>The hyperbolic metric was computed on the glued mesh of the genus-6 curve (discrete conformal equivalence,
     Bobenko–Pinkall–Springborn), the surface developed into the disk, and its Fuchsian group read off from the
@@ -69,32 +69,11 @@
     (E92-U6), drawn here as exact geodesics. <b>G<sub>6</sub></b> (E91): each edge joins two polynomial centres by the shortest
     geodesic on the surface between them (dashed: the second-shortest, for capture pairs of multiplicity 2). This is a stand-in
     for the capture path, not the path through the shared capture component itself.</p>
-    <p><b>Polynomials:</b> click a white centre marker (or use the button under the point info) for the polynomial's card:
-    the filled Julia set of z² + c with its Hubbard tree and the rays θ± and their doubling iterates, the binary expansions and
-    doubling orbits, the kneading sequence, the internal and angled internal address, and the checks behind them
-    (poly_info.py: E90's kneading, address and limb reproduced, tree endpoints equal E91's leaf test, 27/27).</p>
-    <p><b>Punctures:</b> click a red puncture marker (or use the button under the point info) to see its Thurston obstruction
-    Γ(θ) from Caroline's Obstructed Puzzles. Every polynomial has exactly one puncture; a puncture named k belongs to polynomial k
-    (θ = k/63), and k/k' is shared by the conjugate polynomials k and k'. Checked: the page's limb p/q equals the census limb for all
-    27 polynomials, both rays of each polynomial give the same Γ, and the multiplicity is 1 at every puncture, as in the census.</p>
+    <p><b>Violet edges with an arrow</b> (G<sub>6</sub>, checkbox above): the edge joins f to f&prime; where the label of f&prime; (the even
+    numerator k of k/(2<sup>6</sup> &minus; 1)) has more factors of 2 than the label of f; the arrow points to f&prime;, and the line is thicker the larger
+    the difference. White edges: both labels have the same number of factors of 2.</p>
     <p>White dots: polynomial centres (label k means angle k/63). Red: punctures (marked points here).</p>
   </details>
-</div>
-<div id="obsModal" style="display:none;position:fixed;inset:3% 5%;background:#fff;border:1px solid #bbb;border-radius:8px;
-  box-shadow:0 10px 40px rgba(0,0,0,.35);z-index:50;flex-direction:column;overflow:hidden">
-  <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid #ddd;flex-wrap:wrap">
-    <b id="obsTitle"></b><span id="obsTabs"></span><span style="flex:1"></span>
-    <span class="sub" style="margin:0">Γ(θ) from Obstructed Puzzles (exact arithmetic); Esc closes</span><button id="obsClose">Close</button>
-  </div>
-  <iframe id="obsFrame" style="flex:1;border:0;width:100%"></iframe>
-</div>
-<div id="polyModal" style="display:none;position:fixed;inset:3% 4%;background:#fff;border:1px solid #bbb;border-radius:8px;
-  box-shadow:0 10px 40px rgba(0,0,0,.35);z-index:51;flex-direction:column;overflow:hidden">
-  <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-bottom:1px solid #ddd;flex-wrap:wrap">
-    <b id="polyTitle"></b><span id="polyTabs"></span><span style="flex:1"></span>
-    <span class="sub" style="margin:0">Hubbard tree, rays θ± and iterates, kneading, angled internal address; Esc closes</span><button id="polyClose">Close</button>
-  </div>
-  <iframe id="polyFrame" style="flex:1;border:0;width:100%"></iframe>
 </div>
 <script>
 'use strict';
@@ -266,40 +245,7 @@ gl.uniform4fv(U('fA'), new Float32Array(T.faces.flatMap(f => [f.u[0], f.u[1], f.
 gl.uniform4fv(U('fB'), new Float32Array(T.faces.flatMap(f => [f.gi[0], f.gi[1], f.gi[2], f.gi[3]])));
 gl.uniform4fv(U('fC'), new Float32Array(T.faces.flatMap(f => [f.gi[4], f.gi[5], f.gi[6], f.gi[7]])));
 gl.uniform3fv(U('bg'), new Float32Array([0xf4/255, 0xf3/255, 0xef/255]));
-let ready = 0, idData = null, CH = null, CHG = null, CHM = null, G6E = [], POLYANG = null, HITS = [];
-fetch('poly_angles.json').then(r => r.json()).then(j => { POLYANG = j; });
-function openObstruction(label, kind) {
-  // a puncture named "26" belongs to polynomial 26; "8/56" is shared by polynomials 8 and 56 (complex conjugates).
-  // Each polynomial's picture is Gamma(theta) for theta = label/63 (both rays of the polynomial give the same Gamma).
-  const labs = String(label).split('/'), tabs = document.getElementById('obsTabs'), fr = document.getElementById('obsFrame');
-  document.getElementById('obsTitle').textContent = kind === 'puncture' ? `Puncture ${label}:` : `Polynomial ${label}, its puncture:`;
-  tabs.innerHTML = '';
-  labs.forEach((L, i) => {
-    const pr = POLYANG && POLYANG[L], b = document.createElement('button');
-    b.textContent = `polynomial ${L}` + (pr ? ` (rays ${pr[0]}/63, ${pr[1]}/63)` : '') + `: θ = ${L}/63`;
-    b.onclick = () => { fr.src = `obstructed_puzzles_embed.html#p=${L}&q=63`; [...tabs.children].forEach(c => c.style.fontWeight = ''); b.style.fontWeight = '700'; };
-    tabs.appendChild(b); if (i === 0) b.onclick();
-  });
-  document.getElementById('obsModal').style.display = 'flex';
-}
-document.getElementById('obsClose').onclick = () => { document.getElementById('obsModal').style.display = 'none'; };
-function openPoly(label, kind) {
-  // a centre label k opens its card; a puncture k/k' offers the cards of both polynomials that share it
-  const labs = String(label).split('/'), tabs = document.getElementById('polyTabs'), fr = document.getElementById('polyFrame');
-  document.getElementById('polyTitle').textContent = kind === 'puncture' ? `Puncture ${label}:` : `Polynomial ${label}`;
-  tabs.innerHTML = '';
-  labs.forEach((L, i) => {
-    const b = document.createElement('button'), pr = POLYANG && POLYANG[L];
-    b.textContent = `polynomial ${L}` + (pr ? ` (rays ${pr[0]}/63, ${pr[1]}/63)` : '');
-    b.onclick = () => { fr.src = `poly_card.html#label=${L}`; [...tabs.children].forEach(c => c.style.fontWeight = ''); b.style.fontWeight = '700'; };
-    tabs.appendChild(b); if (i === 0) b.onclick();
-  });
-  if (labs.length === 1) tabs.innerHTML = '';
-  document.getElementById('polyModal').style.display = 'flex';
-}
-document.getElementById('polyClose').onclick = () => { document.getElementById('polyModal').style.display = 'none'; };
-window.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('polyModal').style.display = 'none'; });
-window.addEventListener('keydown', e => { if (e.key === 'Escape') document.getElementById('obsModal').style.display = 'none'; });
+let ready = 0, idData = null, CH = null, CHG = null, CHM = null, G6E = [];
 function geodPts(P, Q, n) {             // points along the geodesic segment P -> Q (Poincare disk)
   const Mi = inv(Mq(P)), q = ap(Mi, Q), r = Math.hypot(q[0], q[1]), d = 2*Math.atanh(Math.min(r, 1 - 1e-15)), u = [q[0]/r, q[1]/r], M_ = Mq(P), out = [];
   for (let i = 0; i <= n; i++) { const t = Math.tanh(d*i/n/2); out.push(ap(M_, [u[0]*t, u[1]*t])); }
@@ -307,8 +253,7 @@ function geodPts(P, Q, n) {             // points along the geodesic segment P -
 }
 const LEG = [['#2a78d6', 'captured, phase 0'], ['#eb6834', 'captured, phase 1'], ['#1baf7a', 'captured, phase 2'], ['#eda100', 'captured, phase 3'],
   ['#e87ba4', 'captured, phase 4'], ['#7f3fbf', 'captured, phase 5'], ['#555555', 'attracting fixed point (polynomial components)'],
-  ['#a3a3a3', 'other attracting cycle'], ['#121212', 'undecided: bifurcation locus'], ['#551414', 'too close to a puncture to compute'],
-  ['#00e6ff', 'real oval A (length 15.88): 10 real punctures'], ['#ffdb1a', 'real oval B (length 5.29): 4 real punctures, incl. the rabbit pair R±1/6 (2/62)']];
+  ['#a3a3a3', 'other attracting cycle'], ['#121212', 'undecided: bifurcation locus'], ['#551414', 'too close to a puncture to compute']];
 document.getElementById('legend').innerHTML = LEG.map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
 let liveMode = 1, pit = 600, delta = 1e-3, interacting = false, idleT = null;
 document.getElementById('cmode').onchange = e => { liveMode = +e.target.value; dirty = true; };
@@ -316,9 +261,9 @@ document.getElementById('pit').oninput = e => { pit = +e.target.value; document.
 document.getElementById('del').oninput = e => { delta = Math.pow(10, +e.target.value); document.getElementById('delv').textContent = delta.toExponential(0); dirty = true; };
 function poke() { interacting = true; clearTimeout(idleT); idleT = setTimeout(() => { interacting = false; dirty = true; }, 220); }
 (async () => {
-  const img = new Image(); img.src = embURL('chart_map.png', 'image/png');
+  const img = new Image(); img.src = 'chart_map.png';
   const [meta, buf, core, ovd] = await Promise.all([fetch('chart_meta.json').then(r => r.json()), fetch('chart_grids.bin').then(r => r.arrayBuffer()),
-                                               fetch('data.json').then(r => r.json()), fetch('overlay_data.json').then(r => r.json()), new Promise((ok, bad) => { if (img.complete && img.naturalWidth) ok(); else { img.onload = ok; img.onerror = bad; } })]);
+                                               fetch('data.json').then(r => r.json()), fetch('overlay_data.json').then(r => r.json()), img.decode()]);
   // all GL work below is synchronous (no await), so the mesh-texture onload never sees another active unit
   CORE.init(core); CH = meta; CHG = new Float32Array(buf);
   const t3 = gl.createTexture(); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D_ARRAY, t3);
@@ -350,6 +295,9 @@ function poke() { interacting = true; clearTimeout(idleT); idleT = setTimeout(()
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.uniform1i(U('ovT'), 5); gl.uniform1i(U('nOv'), og.length/4);
   G6E = ovd.edges.map(e => ({ ...e, pts: geodPts(e.P, e.Q, 24) }));
+  { const CL = T.markers.filter(m => m.kind === 'centre').map(m => parseInt(m.label, 10));
+    const v2 = k => { let v = 0; while (k > 0 && k % 2 === 0) { k /= 2; v++; } return v; };
+    G6E.forEach(e => { e.vgap = (e.kind === 'capture' && e.b >= 0 && CL[e.a] > 0 && CL[e.b] > 0) ? v2(CL[e.b]) - v2(CL[e.a]) : 0; }); }
   gl.activeTexture(gl.TEXTURE0);
   gl.uniform1i(U('charts'), 1); gl.uniform1i(U('ptab'), 2); gl.uniform1i(U('ctab'), 3); gl.uniform1i(U('cmapT'), 4);
   gl.uniform1f(U('RU'), meta.RU); gl.uniform1i(U('SS'), meta.S); gl.uniform1f(U('mapSize'), meta.mapSize);
@@ -371,8 +319,8 @@ idImg.onload = () => { const c = document.createElement('canvas'); c.width = c.h
 idImg.src = T.ids;
 // ---------- view ----------
 let V = I2, zoom = 1, tiles = [], dirty = true, anim = null;
-const opt = { ed: true, lt: true, mk: true, ml: true, ov2: true, gc: false, gm: false, gp: false };
-['ed', 'lt', 'mk', 'ml', 'ov2', 'gc', 'gm', 'gp'].forEach(k => { document.getElementById(k).onchange = e => { opt[k] = e.target.checked; dirty = true; }; });
+const opt = { ed: true, lt: true, mk: true, ml: true, ov2: true, gc: false, gm: false, gp: false, g2: false };
+['ed', 'lt', 'mk', 'ml', 'ov2', 'gc', 'gm', 'gp', 'g2'].forEach(k => { document.getElementById(k).onchange = e => { opt[k] = e.target.checked; dirty = true; }; });
 let W_ = 0, H_ = 0, Rpx = 1, dpr = 1;
 function resize() { dpr = window.devicePixelRatio || 1; W_ = view.clientWidth*dpr; H_ = view.clientHeight*dpr;
   cv.width = ov.width = W_; cv.height = ov.height = H_; Rpx = 0.48*Math.min(W_, H_); gl.viewport(0, 0, W_, H_); dirty = true; }
@@ -397,24 +345,33 @@ function enumerateTiles() {
   return out;
 }
 function drawOverlay() {
-  g2.clearRect(0, 0, W_, H_); HITS = [];
+  g2.clearRect(0, 0, W_, H_);
   const fs = Math.round(13*dpr);
   const kinds = { capture: opt.gc, mating: opt.gm, puncture: opt.gp };
-  if (G6E.length && (opt.gc || opt.gm || opt.gp)) {
+  if (G6E.length && (opt.gc || opt.gm || opt.gp || opt.g2)) {
     const sty = { capture: ['#ffffff', 2.2], mating: ['#ffd84d', 1.4], puncture: ['#ff6b8a', 2.4] };
     for (const t of tiles) {
       const c0 = ap(t.W, [0, 0]); if (1 - cabs2(c0) < 0.01 && t !== tiles[0]) continue;
       for (const e of G6E) {
-        if (!kinds[e.kind]) continue;
+        if (!kinds[e.kind] && !(opt.g2 && e.vgap)) continue;
         const pts = e.pts.map(q => diskToScreen(ap(t.W, q)));
         let xmin = 1e9, xmax = -1e9, ymin = 1e9, ymax = -1e9;
         for (const q of pts) { xmin = Math.min(xmin, q[0]); xmax = Math.max(xmax, q[0]); ymin = Math.min(ymin, q[1]); ymax = Math.max(ymax, q[1]); }
         if (xmax < 0 || ymax < 0 || xmin > W_ || ymin > H_ || (xmax - xmin) + (ymax - ymin) < 3*dpr) continue;
-        const [colr, w] = sty[e.kind];
+        let [colr, w] = sty[e.kind]; const up = opt.g2 && e.vgap;
+        if (up) { colr = '#b388ff'; w = Math.min(4.2, 2.2 + 0.6*(Math.abs(e.vgap) - 1)); }
         g2.beginPath(); pts.forEach((q, i) => i ? g2.lineTo(q[0], q[1]) : g2.moveTo(q[0], q[1]));
         g2.setLineDash(e.rank ? [6*dpr, 4*dpr] : []);
         g2.strokeStyle = 'rgba(0,0,0,.7)'; g2.lineWidth = (w + 2)*dpr; g2.stroke();
         g2.strokeStyle = colr; g2.lineWidth = w*dpr; g2.stroke();
+        if (up && (xmax - xmin) + (ymax - ymin) > 36*dpr) {     // arrowhead at the middle, toward the end with more factors of 2 (not on short edges)
+          const m = pts.length >> 1, A = pts[m - 1], B = pts[m + 1], C = pts[m], sg = e.vgap > 0 ? 1 : -1;
+          let dx = (B[0] - A[0])*sg, dy = (B[1] - A[1])*sg; const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+          const h = Math.min((6 + 1.6*w)*dpr, 0.15*((xmax - xmin) + (ymax - ymin)));
+          g2.setLineDash([]); g2.beginPath(); g2.moveTo(C[0] + dx*h, C[1] + dy*h);
+          g2.lineTo(C[0] - dx*h*0.6 - dy*h*0.7, C[1] - dy*h*0.6 + dx*h*0.7); g2.lineTo(C[0] - dx*h*0.6 + dy*h*0.7, C[1] - dy*h*0.6 - dx*h*0.7); g2.closePath();
+          g2.fillStyle = colr; g2.strokeStyle = 'rgba(0,0,0,.85)'; g2.lineWidth = 1.2*dpr; g2.fill(); g2.stroke();
+        }
       }
     }
     g2.setLineDash([]);
@@ -447,7 +404,6 @@ function drawOverlay() {
       const s = ap(t.W, m.p), sc = 1 - cabs2(s); if (sc < 0.02) continue;
       const p = diskToScreen(s); if (p[0] < -10 || p[1] < -10 || p[0] > W_ + 10 || p[1] > H_ + 10) continue;
       const r = Math.max(1.5*dpr, Math.min(7*dpr, 7*dpr*sc*Math.pow(zoom, 0.35)));
-      HITS.push([p[0], p[1], r, m]);
       g2.fillStyle = m.kind === 'centre' ? '#ffffff' : '#e8173a'; g2.strokeStyle = '#141414'; g2.lineWidth = 1.2*dpr;
       g2.beginPath(); g2.arc(p[0], p[1], r, 0, TAU); g2.fill(); g2.stroke();
       if (opt.ml && r > 4*dpr) {
@@ -486,9 +442,6 @@ cv.addEventListener('pointermove', e => {
 });
 cv.addEventListener('pointerup', e => {
   view.classList.remove('drag'); if (!down) return; down = null; if (moved > 4) return;
-  { const rc = cv.getBoundingClientRect(), hx = (e.clientX - rc.left)*dpr, hy = (e.clientY - rc.top)*dpr; let hb = null, hd = 1e9;
-    for (const h of HITS) { const d = Math.hypot(h[0] - hx, h[1] - hy); if (d < Math.max(12*dpr, h[2] + 6*dpr) && d < hd) { hd = d; hb = h; } }
-    if (hb && opt.mk) { inspect(fold(ap(V, screenToDisk(e.clientX, e.clientY))), Infinity); return; } }
   const s = screenToDisk(e.clientX, e.clientY); if (cabs2(s) >= 0.999) return;
   inspect(fold(ap(V, s)), 12*dpr*2/((1 - cabs2(s))*Rpx*zoom));
   const r = Math.hypot(s[0], s[1]); if (r > 1e-9 && window.E96MOVE) anim = { t0: performance.now(), dur: 450, u: [s[0]/r, s[1]/r], d: 2*Math.atanh(r), done: 0 };
@@ -534,14 +487,6 @@ function inspect(p, rpick) {
     const ft = f.kind === 'capture' ? `captured, phase ${f.phase}, time ${f.t}` : f.kind === 'cycle' ? `attracting cycle, period ${f.period}` : 'undecided';
     pick = { y: it.y, x: it.x }; document.getElementById('info').textContent = `${it.title}\n` + it.lines.join('\n') + `\nfree critical point here: ${ft}`; }
   document.getElementById('open').disabled = false; try { parent.postMessage({ e96: 'param', x: pick.x, y: pick.y, info: document.getElementById('info').textContent }, '*'); } catch (e) {} /* E96 hook */ if (window.E96card) E96card(document.getElementById('info').textContent);
-  const ob = document.getElementById('obsBtn');
-  if (bd < 0.4) { ob.style.display = ''; ob.textContent = best.kind === 'puncture' ? `Thurston obstruction of puncture ${best.label}` : `Obstruction picture of polynomial ${best.label}'s puncture`;
-    ob.onclick = () => openObstruction(best.label, best.kind); }
-  else ob.style.display = 'none';
-  const pb = document.getElementById('polyBtn');
-  if (bd < 0.4) { pb.style.display = ''; pb.textContent = best.kind === 'centre' ? `Polynomial ${best.label}: tree, rays, addresses` : `Polynomial cards of puncture ${best.label}`;
-    pb.onclick = () => openPoly(best.label, best.kind); }
-  else pb.style.display = 'none';
 }
 document.getElementById('open').onclick = () => { if (pick) window.open(`per6_explorer.html#y=${pick.y[0]},${pick.y[1]}&x=${pick.x[0]},${pick.x[1]}`, '_blank'); };
 const mini = document.getElementById('mini'), mx = mini.getContext('2d'), MS = mini.width;

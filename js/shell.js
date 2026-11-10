@@ -134,12 +134,14 @@
   function hideCard() { $('dcard').style.display = 'none'; }
   $('dcx').onclick = hideCard;
   $('dovx').onclick = () => { $('dover').style.display = 'none'; $('dovf').src = 'about:blank'; };
+  $('dovm').onclick = () => { const m = $('dover').classList.toggle('min'); $('dovm').textContent = m ? 'Restore' : 'Minimise'; };
+  $('dcm').onclick = () => { const m = $('dcard').classList.toggle('min'); $('dcm').textContent = m ? '+' : '–'; };
   function overlay(title, tabs) {
     $('dovt').textContent = title; $('dovtabs').innerHTML = '';
     tabs.forEach((t, i) => { const b = document.createElement('button'); b.className = 'sm'; b.textContent = t[0];
       b.onclick = () => { $('dovf').src = t[1]; [...$('dovtabs').children].forEach(x => x.style.fontWeight = ''); b.style.fontWeight = '700'; };
       $('dovtabs').appendChild(b); if (i === 0) b.onclick(); });
-    $('dover').style.display = 'block';
+    $('dover').classList.remove('min'); $('dovm').textContent = 'Minimise'; $('dover').style.display = 'block';
   }
   function parseMarker(d) {        // structured (plane / torus pages) or the hyperbolic viewers' info text
     if (d.marker) return d.marker;

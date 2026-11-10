@@ -31,11 +31,13 @@
   #dcard { position:absolute; left:8px; top:8px; max-width:min(440px, 70%); max-height:60%; overflow:auto; display:none; z-index:4;
            background:rgba(255,255,255,.97); border:1px solid #bbb; border-radius:6px; padding:7px 9px; font:12px/1.45 ui-monospace, Menlo, monospace;
            white-space:pre-wrap; color:#222; box-shadow:0 2px 10px rgba(0,0,0,.3); }
+  #dcard.min #dct, #dcard.min #dcb { display:none; } #dcard.min { padding:3px 6px; }
   #dcard b { font-family:-apple-system, system-ui, sans-serif; font-size:13px; }
   #dcb { white-space:normal; margin-top:6px; display:flex; flex-wrap:wrap; gap:4px; font-family:-apple-system, system-ui, sans-serif; }
   #dover { position:absolute; inset:0; display:none; z-index:6; background:#f4f3ef; }
   #dovh { height:30px; display:flex; align-items:center; gap:8px; padding:0 8px; border-bottom:1px solid var(--faint); font-size:12px; }
-  #dovh #dovx { margin-left:auto; } #dovtabs { display:flex; gap:3px; flex-wrap:wrap; }
+  #dovh #dovm { margin-left:auto; }
+  #dover.min { bottom:auto; height:31px; } #dover.min #dovf { display:none; } #dovtabs { display:flex; gap:3px; flex-wrap:wrap; }
   #dovf { position:absolute; top:31px; left:0; right:0; bottom:0; width:100%; height:calc(100% - 31px); border:0; }
   #status { position:absolute; left:0; right:0; bottom:0; height:64px; border-top:1px solid var(--faint); background:#fafaf8;
             font:12px/1.5 ui-monospace, Menlo, monospace; padding:4px 10px; box-sizing:border-box; overflow:auto; white-space:pre; }
@@ -51,8 +53,8 @@
   <div id="left"><iframe id="frame" title="parameter space"></iframe></div>
   <div id="split" title="drag to resize"></div>
   <div id="right"><div id="dyn"></div>
-    <div id="dcard"><button class="sm" id="dcx" style="float:right">×</button><div id="dct"></div><div id="dcb"></div></div>
-    <div id="dover"><div id="dovh"><span id="dovt"></span><span id="dovtabs"></span><button class="sm" id="dovx">Close</button></div><iframe id="dovf" title="card"></iframe></div><div id="dhint">Dynamical plane<br><span style="font-size:12px">click a parameter on the left</span></div>
+    <div id="dcard"><button class="sm" id="dcx" style="float:right">×</button><button class="sm" id="dcm" style="float:right;margin-right:3px" title="minimise">–</button><div id="dct"></div><div id="dcb"></div></div>
+    <div id="dover"><div id="dovh"><span id="dovt"></span><span id="dovtabs"></span><button class="sm" id="dovm" title="shrink to this bar; the card stays open">Minimise</button><button class="sm" id="dovx">Close</button></div><iframe id="dovf" title="card"></iframe></div><div id="dhint">Dynamical plane<br><span style="font-size:12px">click a parameter on the left</span></div>
     <div id="dside">
       <div class="hd"><b>Dynamical plane&nbsp;</b><button class="sm" id="dmin" title="show / hide the controls">–</button></div>
       <div class="ctrl">
