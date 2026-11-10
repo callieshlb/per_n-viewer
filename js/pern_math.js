@@ -159,7 +159,7 @@ var PM = (function () {
     r.period = p; return r;
   }
 
-  // ---- Hubbard tree of a centre z^2 + c (period n): union of the regulated arcs [0, P^j(0)], built recursively from the
+  // ---- Hubbard tree of a center z^2 + c (period n): union of the regulated arcs [0, P^j(0)], built recursively from the
   // kneading sequence nu (nu[i-1] = side of P^i(0), i = 1..n-1, w.r.t. the two preimage rays of the characteristic angle):
   //   [0, P^j]   = the lift through P^j of [c, P^(j+1)] (f is injective on it: 0 is an end point);
   //   [P^i, P^j] = the lift through P^i of [P^(i+1), P^(j+1)] if nu_i == nu_j, else [P^i, 0] + [0, P^j];
@@ -275,9 +275,9 @@ var PM = (function () {
     }
     return { kind: 'undecided' };
   }
-  // the centre of the capture component containing parameter p (plane / torus families): smallest t' <= t such that Newton in
-  // the parameter on G(q) = f_q^t'(omega_q) - a_j'(q) (j' = j - (t - t'), phase-consistent) converges near p to a centre whose
-  // fate is a capture of the same phase. Returns {preperiod t', landing a_j', centre} or null.
+  // the center of the capture component containing parameter p (plane / torus families): smallest t' <= t such that Newton in
+  // the parameter on G(q) = f_q^t'(omega_q) - a_j'(q) (j' = j - (t - t'), phase-consistent) converges near p to a center whose
+  // fate is a capture of the same phase. Returns {preperiod t', landing a_j', center} or null.
   function captureCentre(family, n, p, f) {
     if (!f || f.kind !== 'capture') return null;
     for (var tp = 0; tp <= f.t; tp++) {
@@ -293,7 +293,7 @@ var PM = (function () {
       if (!ok) continue;
       var Mc = mapFrom(family, n, { p: q }); if (!Mc) continue;
       var fc = fate(Mc, Mc.omega, 400, 1e-6, 1e-9);
-      if (fc.kind === 'capture' && fc.phase === f.phase && fc.t <= tp + 1) return { preperiod: tp, j: jp, centre: q, phase: f.phase };
+      if (fc.kind === 'capture' && fc.phase === f.phase && fc.t <= tp + 1) return { preperiod: tp, j: jp, center: q, phase: f.phase };
     }
     return null;
   }

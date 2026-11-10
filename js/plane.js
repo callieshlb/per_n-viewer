@@ -10,10 +10,10 @@
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
   document.title = E.titleText || id;
   $('legend').innerHTML = GLSL.LEGEND(E.n, E.palette).map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
-  if (torus) ['gnl', 'gn', 'sml', 'sm'].forEach(k => { $(k).style.display = ''; });
-  const opt = { mk: true, ml: true, gn: false, sm: true, rc: true };
+  if (torus) ['gnl', 'gn', 'vil', 'vi', 'sml', 'sm'].forEach(k => { $(k).style.display = ''; });
+  const opt = { mk: true, ml: true, gn: false, vi: false, sm: true, rc: true };
   if (E.real) ['rcl', 'rc'].forEach(k => { $(k).style.display = ''; });
-  ['mk', 'ml', 'gn', 'sm', 'rc'].forEach(k => { $(k).onchange = e => { opt[k] = e.target.checked; pv.redraw(); }; });
+  ['mk', 'ml', 'gn', 'vi', 'sm', 'rc'].forEach(k => { $(k).onchange = e => { opt[k] = e.target.checked; pv.redraw(); }; });
   $('minb').onclick = () => { $('side').classList.toggle('min'); $('minb').textContent = $('side').classList.contains('min') ? '+' : '–'; };
   let picked = null; const MARKS = [];
   function lattice(W, H) {           // visible lattice translates (torus)
@@ -23,7 +23,7 @@
     for (let m = m0; m <= m1; m++) for (let l = l0; l <= l1; l++) out.push([m*T5.W1, l*T5.W2]);
     return out;
   }
-  const markers = C.centres.map(c => ({ ...c, kind: 'centre' })).concat(C.punctures.filter(p => p.p).map(p => ({ ...p, kind: 'puncture' })));
+  const markers = C.centers.map(c => ({ ...c, kind: 'centre' })).concat(C.punctures.filter(p => p.p).map(p => ({ ...p, kind: 'puncture' })));
   function drawOverlay(g, W, H) {
     const offs = torus ? lattice(W, H) : [[0, 0]];
     if (torus && opt.sm) {                    // seams: the fundamental rectangle's edges
@@ -50,6 +50,23 @@
         g.strokeStyle = '#ffffff'; g.lineWidth = 2; g.stroke();
       }
     }
+    if (torus && opt.vi && C.edges) {          // violet: lo -> hi with v2(hi) > v2(lo) and v2(hi) maximal among lo's neighbors (ties kept)
+      const v2 = k => { k = +k; let r = 0; while (k > 0 && k % 2 === 0) { k /= 2; r++; } return r; }, MV = {};
+      for (const e of C.edges) { MV[e.a] = Math.max(MV[e.a] ?? -1, v2(e.b)); MV[e.b] = Math.max(MV[e.b] ?? -1, v2(e.a)); }
+      for (const o of offs) for (const e of C.edges) {
+        const d = v2(e.b) - v2(e.a); if (!d) continue;
+        const lo = d > 0 ? e.a : e.b, hi = d > 0 ? e.b : e.a; if (v2(hi) < MV[lo]) continue;
+        let P = [e.P[0] + o[0], e.P[1] + o[1]], Q = [e.Q[0] + o[0], e.Q[1] + o[1]]; if (d < 0) [P, Q] = [Q, P];
+        const a = pv.toScreen(P), b = pv.toScreen(Q);
+        if (Math.max(a[0], b[0]) < 0 || Math.min(a[0], b[0]) > W || Math.max(a[1], b[1]) < 0 || Math.min(a[1], b[1]) > H) continue;
+        const L = Math.hypot(b[0] - a[0], b[1] - a[1]); if (L < 1) continue;
+        const ux = (b[0] - a[0])/L, uy = (b[1] - a[1])/L, tip = [b[0] - 7*ux, b[1] - 7*uy];
+        g.beginPath(); g.moveTo(...a); g.lineTo(...tip); g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = 5; g.stroke();
+        g.strokeStyle = '#b388ff'; g.lineWidth = 2.6; g.stroke();
+        g.beginPath(); g.moveTo(...tip); g.lineTo(tip[0] - 11*ux + 5*uy, tip[1] - 11*uy - 5*ux); g.lineTo(tip[0] - 11*ux - 5*uy, tip[1] - 11*uy + 5*ux); g.closePath();
+        g.fillStyle = '#b388ff'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1; g.stroke();
+      }
+    }
     if (opt.mk) {
       g.font = '600 12px system-ui'; g.textBaseline = 'middle';
       for (const o of offs) for (const m of markers) {
@@ -71,23 +88,43 @@
     if (picked) { const s = pv.toScreen(picked); g.strokeStyle = '#fff'; g.lineWidth = 2;
       g.beginPath(); g.moveTo(s[0] - 9, s[1]); g.lineTo(s[0] + 9, s[1]); g.moveTo(s[0], s[1] - 9); g.lineTo(s[0], s[1] + 9); g.stroke(); }
   }
-  // ---- Per_1: the centres of period n (poly_info_n{n}.json from poly_info_n.py; n = 1 is c = 0)
+  // ---- Per_1: the centers of period n (poly_info_n{n}.json from poly_info_n.py; n = 1 is c = 0)
   let PERN = [], PERNn = 0;
   async function setPerN(n) {
     PERNn = n; PERN = [];
-    if (n === 1) PERN = [{ p: [0, 0], ks: [0, 0], label: '0', n: 1, title: 'centre of period 1: c = 0', lines: ['z^2, angle 0'] }];
+    if (n === 1) PERN = [{ p: [0, 0], ks: [0, 0], label: '0', n: 1, title: 'center of period 1: c = 0', lines: ['z^2, angle 0'] }];
     else if (n >= 2) { const D = await fetch(`poly/poly_info_n${n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); if (!D) return; const Q = 2**n - 1;
       PERN = D.map(P => ({ p: [Number(P.c_str[0]), Number(P.c_str[1])], ks: P.ks, label: String(P.label), n, kind: 'centre',
-        title: `centre ${P.label} of period ${n} (angles ${P.ks[0]}/${Q}, ${P.ks[1]}/${Q})`,
+        title: `center ${P.label} of period ${n} (angles ${P.ks[0]}/${Q}, ${P.ks[1]}/${Q})`,
         lines: [`z^2 + c,  c = ${P.c_str[0]} ${P.c_str[1].startsWith('-') ? '-' : '+'} ${P.c_str[1].replace('-', '')}i`, `angles ${P.ks[0]}/${Q}, ${P.ks[1]}/${Q}`,
                 `kneading ${P.kneading}`, `internal address ${P.address.join(' -> ')}`] })); }
     pv.redraw();
   }
+  let PERSEL = null;                                   // the selected period-n center (its labels and rays highlighted)
+  function perRays(m) {                                // parameter rays of the two characteristic angles (traced once, cached)
+    if (!m.rays && PERNn >= 2) { const Q = BigInt(2**PERNn - 1); m.rays = m.ks.map(k => PM.traceRay('param', { p: BigInt(k), q: Q, text: `${k}/${2**PERNn - 1}` }, null, 8, 30*8).pts); }
+    return m.rays || [];
+  }
   function drawPerN(g, W, H) {
     if (!PERN.length) return; const Q = 2**PERNn - 1; g.font = '600 11px system-ui'; g.textBaseline = 'middle';
+    const label = (m, s, dy) => { const t = PERNn === 1 ? '0' : `${m.ks[0]}/${Q}, ${m.ks[1]}/${Q}`; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, s[0] + 6, s[1] + dy); g.fillStyle = '#fff'; g.fillText(t, s[0] + 6, s[1] + dy); };
+    if ($('perrays').checked) for (const m of PERN) { const sel = m === PERSEL;
+      for (const r of perRays(m)) { g.beginPath(); r.forEach((q, i) => { const s = pv.toScreen(q); i ? g.lineTo(...s) : g.moveTo(...s); });
+        g.strokeStyle = sel ? '#ffe650' : 'rgba(255,255,255,.55)'; g.lineWidth = sel ? 2.2 : 1; g.stroke(); } }
+    const placed = [];                                   // labels: no two within 14 px vertically and 90 px horizontally (staggered)
     for (const m of PERN) { const s = pv.toScreen(m.p); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
-      g.beginPath(); g.arc(s[0], s[1], 4, 0, 2*Math.PI); g.fillStyle = '#fff'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
-      if ($('perang').checked) { const t = PERNn === 1 ? '0' : `${m.ks[0]}/${Q}, ${m.ks[1]}/${Q}`; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, s[0] + 6, s[1]); g.fillStyle = '#fff'; g.fillText(t, s[0] + 6, s[1]); } }
+      g.beginPath(); g.arc(s[0], s[1], m === PERSEL ? 5.5 : 4, 0, 2*Math.PI); g.fillStyle = m === PERSEL ? '#ffe650' : '#fff'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
+      if (m === PERSEL || $('perang').checked) { let dy = 0;
+        for (let tries = 0; tries < 6 && placed.some(q => Math.abs(q[0] - s[0]) < 90 && Math.abs(q[1] - (s[1] + dy)) < 14); tries++) dy += (tries % 2 ? -1 : 1)*14*(tries + 1);
+        if (m === PERSEL || !placed.some(q => Math.abs(q[0] - s[0]) < 90 && Math.abs(q[1] - (s[1] + dy)) < 14)) { label(m, s, dy); placed.push([s[0], s[1] + dy]); } } }
+  }
+  function hitPerRay(s) {                              // a period-n center whose ray passes within 6 px of screen point s
+    if (!$('perrays').checked) return null; let best = null, bd = 6;
+    for (const m of PERN) for (const r of m.rays || []) for (let i = 1; i < r.length; i++) {
+      const a = pv.toScreen(r[i - 1]), b = pv.toScreen(r[i]), dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx*dx + dy*dy || 1;
+      const t = Math.max(0, Math.min(1, ((s[0] - a[0])*dx + (s[1] - a[1])*dy)/L2)), d = Math.hypot(a[0] + t*dx - s[0], a[1] + t*dy - s[1]);
+      if (d < bd) { bd = d; best = m; } }
+    return best;
   }
   // ---- external rays (manifest rays: true; z^2 + c only)
   let RAYS = [];
@@ -133,6 +170,8 @@
       if (opt.mk) { const [W, H] = pv.size(); for (const o of torus ? lattice(W, H) : [[0, 0]]) for (const m of markers) {
         const q = pv.toScreen([m.p[0] + o[0], m.p[1] + o[1]]), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o }; } } }
       if (E.rays) for (const m of PERN) { const q = pv.toScreen(m.p), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o: [0, 0] }; } }
+      if (E.rays && !best) { const r = hitPerRay(s); if (r) best = { m: r, o: [0, 0] }; }
+      PERSEL = best && PERN.includes(best.m) ? best.m : null;
       if (best) pick([best.m.p[0] + best.o[0], best.m.p[1] + best.o[1]], best.m); else pick(p, null);
     } });
   window.PV = pv;
@@ -143,9 +182,9 @@
   $('home').onclick = () => { pv.ctr = E.view.ctr.slice(); pv.upp = E.view.upp; pv.redraw(); };
   function buildList() {
     const q = $('mfilter').value.trim().toLowerCase(), box = $('mlist'); box.innerHTML = '';
-    const all = C.centres.map(c => ({ ...c, kind: 'centre' })).concat(C.punctures.map(p => ({ ...p, kind: 'puncture' })));
+    const all = C.centers.map(c => ({ ...c, kind: 'centre' })).concat(C.punctures.map(p => ({ ...p, kind: 'puncture' })));
     for (const it of all) {
-      const text = `${it.kind} ${it.label}: ${it.summary || ''}`; if (q && !text.toLowerCase().includes(q)) continue;
+      const text = `${it.kind === 'centre' ? 'center' : it.kind} ${it.label}: ${it.summary || ''}`; if (q && !text.toLowerCase().includes(q)) continue;
       const d = document.createElement('div'); d.textContent = text; d.title = it.lines.join('\n');
       d.onclick = () => { if (it.p) { pv.ctr = it.p.slice(); pv.redraw(); pick(it.p, it); } else showCard(it.title, it.lines); };
       box.appendChild(d);
@@ -156,10 +195,14 @@
     if (d && d.e96 === 'mark' && d.p) { MARKS.push({ p: d.p, label: d.label }); pv.redraw(); return; }
     if (d && d.e96 === 'goto' && d.label !== undefined) { const m = markers.find(q => q.kind === 'centre' && q.label === String(d.label)); if (m) { pv.ctr = m.p.slice(); pv.redraw(); pick(m.p, m); } return; }
     if (d && d.e96 === 'goto' && d.p) { pv.ctr = d.p.slice(); pv.redraw(); pick(d.p, null); } });
-  if (E.rays) { $('perbox').style.display = ''; $('pern').onchange = e => setPerN(+e.target.value); $('perang').onchange = () => pv.redraw();
+  if (E.rays) { $('perbox').style.display = ''; $('pern').onchange = e => setPerN(+e.target.value); $('perang').onchange = () => pv.redraw(); $('perrays').onchange = () => pv.redraw();
     $('raybox').style.display = ''; $('raygo').onclick = () => setRays($('rayin').value);
     $('rayin').addEventListener('keydown', e => { if (e.key === 'Enter') setRays(e.target.value); });
     $('rayclr').onclick = () => { RAYS = []; $('rayout').textContent = ''; parent.postMessage({ e96: 'rays', angles: [] }, '*'); pv.redraw(); }; }
   $('minb').onclick();                      // panel starts collapsed (Caroline 2026-11-10); + expands
+  if (E.n < 2) $('matebox').style.display = 'none';
+  $('mgo').onclick = () => parent.postMessage({ e96: 'mateReq', label: $('mf').value, angle: $('mg').value }, '*');
+  $('mg').addEventListener('keydown', e => { if (e.key === 'Enter') $('mgo').click(); });
+  window.addEventListener('keydown', e => { if (e.key === 'm' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') parent.postMessage({ e96: 'key', key: 'm' }, '*'); });
   window.E96READY = true;
 })().catch(e => { document.body.innerHTML = '<pre style="color:#fff;padding:20px">' + e.stack + '</pre>'; console.error(e); });

@@ -39,7 +39,7 @@
 <div id="side">
   <h1>Per<sub>7</sub>(0): conformal model, live dynamics</h1>
   <div style="background:#fff3cd;border:1px solid #e0b84d;border-radius:4px;padding:5px 7px;margin:4px 0 8px;font-size:12px"><b>Check U6 failed for real oval 3</b> (E93): its max distance to its geodesic grew from 3.34e-3 (coarse mesh) to 4.09e-3 (fine mesh) instead of shrinking; the other three ovals, A1-A3 and U1-U5 passed. Shown after a ruling to lift the STOP (see REGISTRATION.md / result.md). Numerical model, not a theorem.</div>
-  <div class="sub">The compact genus-24 curve uniformized: the disk is its universal cover, every tile is the same Dirichlet polygon, and the picture is conformal. The colours are computed afresh at every screen pixel from (a<sub>3</sub>, a<sub>6</sub>) at that point, as in the 2-D explorer, so zooming in sharpens them. Drag to slide, click to centre a point, scroll to magnify.</div>
+  <div class="sub">The compact genus-24 curve uniformized: the disk is its universal cover, every tile is the same Dirichlet polygon, and the picture is conformal. The colors are computed afresh at every screen pixel from (a<sub>3</sub>, a<sub>6</sub>) at that point, as in the 2-D explorer, so zooming in sharpens them. Drag to slide, click to center a point, scroll to magnify.</div>
   <div class="ctrl">
     <span>Tile edges</span><input type="checkbox" id="ed" checked>
     <span>Edge numbers</span><input type="checkbox" id="lt" checked>
@@ -52,19 +52,19 @@
     <span style="display:none"></span><input type="checkbox" id="gp" style="display:none">
   </div>
   <div class="ctrl">
-    <span>Colouring</span><select id="cmode"><option value="1" selected>live dynamics (per pixel)</option><option value="0">mesh colours (old)</option><option value="2">plain surface (no dynamics)</option></select>
+    <span>Coloring</span><select id="cmode"><option value="1" selected>live dynamics (per pixel)</option><option value="0">mesh colors (old)</option><option value="2">plain surface (no dynamics)</option></select>
     <span>Parameter iterates</span><span><input type="range" id="pit" min="50" max="3000" step="50" value="600"> <span id="pitv">600</span></span>
     <span>Capture radius δ</span><span><input type="range" id="del" min="-5" max="-1" step="0.25" value="-3"> <span id="delv">1e-3</span> (relative)</span>
   </div>
   <div class="legend" id="legend"></div>
-  <p><button id="home">Recentre on the base tile</button> <button id="zout">Reset zoom</button></p>
+  <p><button id="home">Recenter on the base tile</button> <button id="zout">Reset zoom</button></p>
   <p style="margin:4px 0"><b>Go to</b> <input id="goto" list="gotolist" size="22" placeholder="angle 7/127, 7, 0.0551, or 26/94">
     <button id="gobtn">Go</button><br><span id="gomsg" class="sub"></span></p>
   <datalist id="gotolist"></datalist>
   <details open><summary><b>Polynomials and punctures</b> (click a row, or click a white / red dot in the picture)</summary>
     <input id="mfilter" size="30" placeholder="filter: 188, puncture, rabbit, 1/3 ..." style="margin:4px 0">
     <div id="mlist"></div></details>
-  <p style="margin:6px 0 2px"><b>Where you are</b> <span class="sub">(the Dirichlet polygon; red cross = view centre; click to jump)</span></p>
+  <p style="margin:6px 0 2px"><b>Where you are</b> <span class="sub">(the Dirichlet polygon; red cross = view center; click to jump)</span></p>
   <canvas id="mini" width="632" height="632"></canvas>
   <p style="margin:8px 0 2px"><b>Point</b></p>
   <div class="info" id="info">Click anywhere in the disk.</div>
@@ -73,25 +73,25 @@
     <p>The hyperbolic metric was computed on the glued mesh of the genus-24 curve (discrete conformal equivalence,
     Bobenko–Pinkall–Springborn), the surface developed into the disk, and its Fuchsian group read off from the
     side pairings. The tile is the Dirichlet polygon of that group about a base point: faces with the same number
-    and colour are glued. Corners of the same colour are one point of the surface.</p>
-    <p><b>Live colouring:</b> each pixel's point is located in one of 112 conformal charts (centres spread over the surface so
+    and color are glued. Corners of the same color are one point of the surface.</p>
+    <p><b>Live coloring:</b> each pixel's point is located in one of 112 conformal charts (centers spread over the surface so
     every point is within 1.2 of one), which store a<sub>3</sub> and a<sub>6</sub>; a<sub>6</sub> is polished by Newton's method on
     the curve where that is well conditioned in single precision (not near the ten branches over y = 0, which are tangent to
-    order 4), then the free critical point is iterated in single precision on the GPU. Pixels near the view centre are read from
-    the chart of the view centre directly (no folding), which keeps zooms sharp. Very deep zooms reach the limits of single
+    order 4), then the free critical point is iterated in single precision on the GPU. Pixels near the view center are read from
+    the chart of the view center directly (no folding), which keeps zooms sharp. Very deep zooms reach the limits of single
     precision and of the chart data.</p>
-    <p>Up to discretization error the picture is conformal: hyperbolic components keep their shape when moved to the centre.
+    <p>Up to discretization error the picture is conformal: hyperbolic components keep their shape when moved to the center.
     Checks (angle sums, area 92π, side pairings, mesh convergence, real ovals geodesic) are in REGISTRATION.md (E93).</p>
     <p><b>Real ovals</b> (cyan, yellow, green, magenta): the four real circles of Per<sub>7</sub>(0); they are closed
     geodesics of this metric (E93-U6), drawn here as exact geodesics. <b>G<sub>7</sub></b> (E91, capture edges): each edge joins two
-    polynomial centres by the shortest geodesic on the surface between them (pairs of multiplicity 2 drawn once). This is a
+    polynomial centers by the shortest geodesic on the surface between them (pairs of multiplicity 2 drawn once). This is a
     stand-in for the capture path, not the path through the shared capture component itself.</p>
-    <p>Click a marker (white dot or red dot) to see its data: for a polynomial centre z<sup>2</sup> + c its c, characteristic
-    angles, internal address and kneading; for a puncture the centres sharing it, k, q, multiplicity and its census loop point.</p>
+    <p>Click a marker (white dot or red dot) to see its data: for a polynomial center z<sup>2</sup> + c its c, characteristic
+    angles, internal address and kneading; for a puncture the centers sharing it, k, q, multiplicity and its census loop point.</p>
     <p><b>Violet edges with an arrow</b> (G<sub>7</sub>, checkbox above): the edge joins f to f&prime; where the label of f&prime; (the even
     numerator k of k/(2<sup>7</sup> &minus; 1)) has more factors of 2 than the label of f; the arrow points to f&prime;, and the line is thicker the larger
     the difference. White edges: both labels have the same number of factors of 2.</p>
-    <p>White dots: polynomial centres (label k means angle k/127). Red: punctures (marked points here).</p>
+    <p>White dots: polynomial centers (label k means angle k/127). Red: punctures (marked points here).</p>
   </details>
 </div>
 <script>
@@ -112,7 +112,7 @@ const inv = m => M(m.d, [-m.b[0], -m.b[1]], [-m.c[0], -m.c[1]], m.a);
 const I2 = M(cx(1), cx(0), cx(0), cx(1));
 const Mq = q => norm(M(cx(1), q, [q[0], -q[1]], cx(1)));
 const hdist = (z, w) => Math.acosh(1 + 2*cabs2(csub(z, w))/((1 - cabs2(z))*(1 - cabs2(w))));
-// faces: Klein half-plane k.u <= t, fold map g^-1; neighbour tile across face a is g_a(D)
+// faces: Klein half-plane k.u <= t, fold map g^-1; neighbor tile across face a is g_a(D)
 const FG = T.faces.map(f => M([f.gi[0], f.gi[1]], [f.gi[2], f.gi[3]], [f.gi[4], f.gi[5]], [f.gi[6], f.gi[7]]));
 const FGf = FG.map(inv);
 function violMax(z) { const s = 1 + cabs2(z), k = [2*z[0]/s, 2*z[1]/s]; let best = -1e9, bi = -1;
@@ -312,7 +312,7 @@ function poke() { interacting = true; clearTimeout(idleT); idleT = setTimeout(()
   // all GL work below is synchronous (no await), so the mesh-texture onload never sees another active unit
   CORE.init(core); CH = meta; CHG = new Float32Array(buf); MI = mki; setTimeout(buildList, 0);
   document.getElementById('gotolist').innerHTML = MI.items.map(it => it.kind === 'centre'
-    ? `<option value="${it.ks[0]}/127">centre ${it.label}</option><option value="${it.ks[1]}/127">centre ${it.label}</option>`
+    ? `<option value="${it.ks[0]}/127">center ${it.label}</option><option value="${it.ks[1]}/127">center ${it.label}</option>`
     : `<option value="puncture ${it.label}">puncture ${it.label}</option>`).join('');
   const t3 = gl.createTexture(); gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D_ARRAY, t3);
   gl.texImage3D(gl.TEXTURE_2D_ARRAY, 0, gl.RGBA32F, meta.S, meta.S, meta.NC, 0, gl.RGBA, gl.FLOAT, CHG);
@@ -333,7 +333,7 @@ function poke() { interacting = true; clearTimeout(idleT); idleT = setTimeout(()
   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false); gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, meta.mapSize, meta.mapSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(CHM.buffer));
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-  // oval geodesics: circle (centre, radius) orthogonal to the unit circle, or a diameter (direction, -1)
+  // oval geodesics: circle (center, radius) orthogonal to the unit circle, or a diameter (direction, -1)
   const og = []; ovd.ovals.forEach((ov, oi) => ov.pieces.forEach(pc => {
     const a = Math.atan2(pc.xi[0][1], pc.xi[0][0]), b = Math.atan2(pc.xi[1][1], pc.xi[1][0]), h = (b - a)/2;
     if (Math.abs(Math.cos(h)) < 1e-9) og.push(Math.cos(a), Math.sin(a), -1, oi);
@@ -424,7 +424,7 @@ function drawOverlay() {
     }
     g2.setLineDash([]);
   }
-  if (opt.ed) {                                  // corners, coloured by the point of the surface they are
+  if (opt.ed) {                                  // corners, colored by the point of the surface they are
     for (const t of tiles) for (let a = 0; a < NF; a++) {
       const s = ap(t.W, T.faces[a].P), sc = 1 - cabs2(s); if (sc < 0.03) continue;
       const p = diskToScreen(s); if (p[0] < -10 || p[1] < -10 || p[0] > W_ + 10 || p[1] > H_ + 10) continue;
@@ -500,27 +500,27 @@ document.getElementById('home').onclick = () => { V = I2; anim = null; dirty = t
 document.getElementById('zout').onclick = () => { zoom = 1; dirty = true; };
 let pick = null;
 const fm = v => (Math.abs(v) < 1e-12 ? 0 : v).toPrecision(6), cs = (re, im) => `${fm(re)} ${im < 0 ? '−' : '+'} ${fm(Math.abs(im))}i`;
-function gotoMarker(text) {          // E93: centre the view on a polynomial (by angle) or a puncture (by name)
+function gotoMarker(text) {          // E93: center the view on a polynomial (by angle) or a puncture (by name)
   const msg = document.getElementById('gomsg'); if (!MI) { msg.textContent = 'data still loading'; return; }
-  let t = text.trim().toLowerCase().replace(/^(centre|center|c)\s*/, ''), i = -1, note = '';
+  let t = text.trim().toLowerCase().replace(/^(center|center|c)\s*/, ''), i = -1, note = '';
   const byAngle = k => MI.items.findIndex(it => it.kind === 'centre' && it.ks.includes(k));
   let m;
   if ((m = t.match(/^(?:puncture|p)\s*(\S+)$/))) i = MI.items.findIndex(it => it.kind === 'puncture' && it.label === m[1]);
   else if ((m = t.match(/^(\d+)\s*\/\s*(\d+)$/))) {
     const a = +m[1], b = +m[2];
-    if ((a*127) % b === 0) { i = byAngle(a*127/b); if (i < 0) note = `no period-7 centre has angle ${a}/${b}`; }
+    if ((a*127) % b === 0) { i = byAngle(a*127/b); if (i < 0) note = `no period-7 center has angle ${a}/${b}`; }
     if (i < 0) { const j = MI.items.findIndex(it => it.kind === 'puncture' && it.label === `${a}/${b}`); if (j >= 0) { i = j; note = ''; } }
-  } else if ((m = t.match(/^(\d+)$/))) { i = byAngle(+m[1]); if (i < 0) note = `no period-7 centre has angle ${m[1]}/127`; }
+  } else if ((m = t.match(/^(\d+)$/))) { i = byAngle(+m[1]); if (i < 0) note = `no period-7 center has angle ${m[1]}/127`; }
   else if ((m = t.match(/^0?\.\d+$/))) { const v = +t, k = Math.round(v*127); i = byAngle(k);
-    note = i >= 0 ? `${t} -> nearest k/127 is ${k}/127 (off by ${Math.abs(v - k/127).toExponential(1)})` : `no centre near ${t}`; }
+    note = i >= 0 ? `${t} -> nearest k/127 is ${k}/127 (off by ${Math.abs(v - k/127).toExponential(1)})` : `no center near ${t}`; }
   if (i < 0) { msg.textContent = note || `not found: "${text}" (try 7/127, 7, 0.0551, or a puncture name like 26/94)`; return; }
   const mk = T.markers[i]; V = Mq(mk.p); anim = null; reduceView(); dirty = true;
   inspect(mk.p, Infinity);
-  msg.textContent = (note ? note + '; ' : '') + `centred on ${MI.items[i].title}`;
+  msg.textContent = (note ? note + '; ' : '') + `centered on ${MI.items[i].title}`;
 }
 document.getElementById('gobtn').onclick = () => gotoMarker(document.getElementById('goto').value);
 document.getElementById('goto').addEventListener('keydown', e => { if (e.key === 'Enter') gotoMarker(e.target.value); });
-function setW0() {             // E93: chart of the view centre, composed with the view (double), for unfolded pixels near the centre
+function setW0() {             // E93: chart of the view center, composed with the view (double), for unfolded pixels near the center
   gl.uniform1i(U('useW'), 0);
   if (!CH || !CHM) return;
   const c = ap(V, [0, 0]), S = CH.mapSize, mx_ = Math.min(S - 1, Math.max(0, Math.floor((.5 + .5*c[0])*S))), my_ = Math.min(S - 1, Math.max(0, Math.floor((.5 - .5*c[1])*S)));
@@ -597,7 +597,7 @@ document.getElementById('mfilter').addEventListener('input', buildList);
 function gotoIndex(i) {
   const mk = T.markers[i]; V = Mq(mk.p); anim = null; reduceView(); dirty = true;
   inspect(mk.p, Infinity);
-  document.getElementById('gomsg').textContent = `centred on ${MI.items[i].title}`;
+  document.getElementById('gomsg').textContent = `centered on ${MI.items[i].title}`;
 }
 document.getElementById('open').onclick = () => { if (pick) window.open(`per7_explorer.html#y=${pick.y[0]},${pick.y[1]}&x=${pick.x[0]},${pick.x[1]}`, '_blank'); };
 const mini = document.getElementById('mini'), mx = mini.getContext('2d'), MS = mini.width;
@@ -633,9 +633,16 @@ body.e96min #side{display:none} body.e96min #view{right:0 !important} body.e96mi
 <button id="e96tog" title="hide / show the side panel">panel ▸</button>
 <label id="e96mv" style="position:absolute;top:8px;left:8px;z-index:9;font:12px system-ui;background:rgba(255,255,255,.9);padding:1px 6px;border-radius:4px;border:1px solid #bbb">
 <input type="checkbox" onchange="window.E96MOVE=this.checked"> move to clicked point</label>
+<div id="e96mate" style="margin:6px 0;font:12px system-ui"><b>Mating</b> f = <input id="e96mf" size="4" placeholder="label"> ⊔ g = <input id="e96mg" size="7" placeholder="angle 1/7">
+<button id="e96mgo">f ⊔ g</button><div style="color:#6b6b6b">f by its label (the even numerator k of its angles k/(2^n − 1)); g: any external angle. Shown in the
+dynamical plane; details in the status line below.</div></div>
 <script>(function(){var b=document.getElementById('e96tog');b.onclick=function(){document.body.classList.toggle('e96min');
 b.textContent=document.body.classList.contains('e96min')?'◂ panel':'panel ▸';window.dispatchEvent(new Event('resize'));};
 if(window.innerWidth<900){b.onclick();}
+(function(){var bx=document.getElementById('e96mate'),sd=document.getElementById('side');if(bx&&sd){sd.insertBefore(bx,sd.children[2]||null);}
+document.getElementById('e96mgo').onclick=function(){parent.postMessage({e96:'mateReq',label:document.getElementById('e96mf').value,angle:document.getElementById('e96mg').value},'*');};
+document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('e96mgo').click();});})();
+window.addEventListener('keydown',function(e){if(e.key==='m'&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:'m'},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
 </body>

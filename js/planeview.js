@@ -1,5 +1,5 @@
 // E96: a pannable / zoomable WebGL2 plane (parameter plane, torus cover, or dynamical plane) with a 2-D overlay canvas.
-// View state in double: centre ctr = [re, im], upp = units per CSS pixel. Drag pans, wheel / pinch zooms, a click
+// View state in double: center ctr = [re, im], upp = units per CSS pixel. Drag pans, wheel / pinch zooms, a click
 // (no drag) calls onPick(point). Low resolution while moving, full resolution when idle.
 'use strict';
 function PlaneView(host, opts) {

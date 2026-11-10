@@ -2,7 +2,7 @@
 // their web workers, and node tests.
 // Curve: P(x, y) = sum_k x^k sum_j coef[k][j] y^j = 0 in Caroline's chart
 //   f(z) = (z - x)(z - w)/z^2,  w = (x + y - 1)/(x - 1);  y = a_3, x = a_{n-1}; marked orbit 0 -> inf -> 1 -> a_3 -> ... -> a_{n-1} = x -> 0.
-// Sheets: the roots x(y), labelled by continuation from the base point y0 along the straight segment, with detours round each
+// Sheets: the roots x(y), labeled by continuation from the base point y0 along the straight segment, with detours round each
 // node (trivial monodromy) on the segment's own side (D.nodes = [[re, im, radius], ...]).
 // n = 7 caveat: over the node y = 0 ten branches meet in two clusters tangent to order 4; in double precision their roots are
 // not separable for |y| < ~0.2 (E93 REGISTRATION). The step test below (correction <= 0.1 x distance to the nearest other root)
@@ -178,7 +178,7 @@ var CORE = (function () {
     for (var i = 1; i < w.length && cur; i++) cur = trackSegment(cur, w[i-1], w[i]);
     return cur;
   }
-  // the globally labelled roots at y (atlas sheets)
+  // the globally labeled roots at y (atlas sheets)
   function globalRoots(y) { return track(D.x0.slice(), D.y0, y); }
   function sheetOf(y, x) {
     var g = globalRoots(y);

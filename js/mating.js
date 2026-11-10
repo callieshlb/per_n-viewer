@@ -1,5 +1,5 @@
 // E96 mating calculator (REGISTRATION addendum 2026-11-10). Depends on pern_math.js (PM).
-// spiderCentre: Hubbard-Schleicher spider algorithm (port of E90 pern.spider) + Newton polish: the centre of period n with angle k/(2^n - 1).
+// spiderCentre: Hubbard-Schleicher spider algorithm (port of E90 pern.spider) + Newton polish: the center of period n with angle k/(2^n - 1).
 // misiurewicz: the landing point of a preperiodic parameter ray (PM.traceRay) + Newton on f^(l+p)(0) = f^l(0).
 // mate: Thurston pullback on the formal mating f ⊔ g (rays theta of f glued to -theta of g), critical points of f, g at 0, inf.
 'use strict';
@@ -72,7 +72,7 @@ var MATE = (function () {
     }
     return null;                                                    // not PCF to this length
   }
-  // Thurston pullback. f: centre c_f; g: PCF c_g. Returns {ok, Z: {f: [...], g: [...]}, R: {v1, v2, mu}, iters, residual, ...}
+  // Thurston pullback. f: center c_f; g: PCF c_g. Returns {ok, Z: {f: [...], g: [...]}, R: {v1, v2, mu}, iters, residual, ...}
   function mate(cf, cg, opts) {
     opts = opts || {}; var S = opts.S || 200, maxIt = opts.maxIt || 4000;
     var Of = orbitOf(cf), Og = orbitOf(cg); if (!Of || !Og) return { ok: false, why: 'not post-critically finite' };

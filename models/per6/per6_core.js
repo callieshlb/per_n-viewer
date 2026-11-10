@@ -1,7 +1,7 @@
 // Per_6(0) explorer core (E92). Double precision. Shared by the page, its web workers, and node tests.
 // Curve: P7(x, y) = sum_k x^k sum_j coef[k][j] y^j = 0 in Caroline's chart
 //   f(z) = (z - x)(z - w)/z^2,  w = (x + y - 1)/(x - 1);  y = a_3, x = a_5; marked orbit 0 -> inf -> 1 -> y -> f(y) -> x -> 0.
-// Sheets: the 5 roots x(y), labelled by continuation from the base point y0 along the straight segment,
+// Sheets: the 5 roots x(y), labeled by continuation from the base point y0 along the straight segment,
 // with a detour around the node at y = 0 (trivial monodromy) on the segment's own side.
 'use strict';
 var CORE = (function () {
@@ -149,7 +149,7 @@ var CORE = (function () {
     for (var i = 1; i < w.length && cur; i++) cur = trackSegment(cur, w[i-1], w[i]);
     return cur;
   }
-  // the 5 globally labelled roots at y (atlas sheets)
+  // the 5 globally labeled roots at y (atlas sheets)
   function globalRoots(y) { return track(D.x0.slice(), D.y0, y); }
   function sheetOf(y, x) {
     var g = globalRoots(y);

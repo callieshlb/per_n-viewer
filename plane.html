@@ -38,35 +38,39 @@
 <div id="side">
   <div id="hdr"><h1 id="title">…</h1><button id="minb" title="hide / show this panel">–</button></div>
   <div class="nf" id="nf"></div>
-  <div class="sub">Each pixel is a parameter; its colour is the fate of the free critical point (computed on the GPU in single
-    precision at every redraw, so zooming sharpens it). Drag to move, scroll to zoom, click a point to open its dynamical plane. Where the critical point is captured only after many (~100+) iterates, single precision cannot follow the orbit and the phase colour there is noise (click a pixel for the double-precision fate).</div>
+  <div class="sub">Each pixel is a parameter; its color is the fate of the free critical point (computed on the GPU in single
+    precision at every redraw, so zooming sharpens it). Drag to move, scroll to zoom, click a point to open its dynamical plane. Where the critical point is captured only after many (~100+) iterates, single precision cannot follow the orbit and the phase color there is noise (click a pixel for the double-precision fate).</div>
   <div class="ctrl">
     <span>Markers</span><input type="checkbox" id="mk" checked>
     <span>Labels</span><input type="checkbox" id="ml" checked>
     <span id="rcl" style="display:none">Real circles</span><input type="checkbox" id="rc" checked style="display:none">
     <span id="gnl" style="display:none">G<sub>n</sub> tip capture edges</span><input type="checkbox" id="gn" style="display:none">
+    <span id="vil" style="display:none" title="from each center, an arrow to its G_n neighbor(s) whose label has the most factors of 2 (when more than its own)">violet arrows (to the more even)</span><input type="checkbox" id="vi" style="display:none">
     <span id="sml" style="display:none">Torus seams</span><input type="checkbox" id="sm" checked style="display:none">
-    <span>Colouring</span><select id="plain"><option value="0" selected>dynamics (per pixel)</option><option value="1">plain surface (no dynamics)</option></select>
+    <span>Coloring</span><select id="plain"><option value="0" selected>dynamics (per pixel)</option><option value="1">plain surface (no dynamics)</option></select>
     <span>Escape-time bands</span><input type="checkbox" id="bands" checked>
     <span>Iterates</span><span><input type="range" id="pit" min="50" max="4000" step="50" value="600"> <span id="pitv">600</span></span>
     <span>Capture δ</span><span><input type="range" id="del" min="-5" max="-1" step="0.25" value="-3"> <span id="delv">1e-3</span> (rel.)</span>
   </div>
+  <div id="matebox" style="margin:4px 0"><b>Mating</b> f = <input id="mf" size="4" placeholder="label"> ⊔ g = <input id="mg" size="7" placeholder="angle 1/7">
+    <button id="mgo">f ⊔ g</button><div class="sub">f: a polynomial of this Per<sub>n</sub> by its label (the even numerator k of its angles
+    k/(2<sup>n</sup> − 1)); g: any external angle. The result is marked with a yellow star; details in the status line.</div></div>
   <div class="legend" id="legend"></div>
   <div class="sub" style="margin-top:-4px">Phase k (capture): the free critical orbit reaches the marked critical value a<sub>1</sub> at times ≡ −k (mod n).</div>
   <p style="margin:4px 0"><button id="home">Reset view</button></p>
-  <div id="perbox" style="display:none;margin:4px 0"><b>Show period-n centres</b>
+  <div id="perbox" style="display:none;margin:4px 0"><b>Show period-n centers</b>
     <select id="pern"><option value="0">none</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option>
     <option>6</option><option>7</option><option>8</option><option value="9" disabled>9 (not yet)</option></select>
-    <label><input type="checkbox" id="perang" checked> angles</label>
-    <div class="sub">White dots: the centres of period n, labelled by their characteristic angles. Click one for its data card,
-      dynamical plane, Hubbard tree and polynomial card.</div></div>
+    <label><input type="checkbox" id="perang"> all angles</label> <label><input type="checkbox" id="perrays"> parameter rays</label>
+    <div class="sub">White dots: the centers of period n; optional: their two parameter rays (which land at the root). Click a dot or a ray
+      for its angles, data card, dynamical plane, Hubbard tree and polynomial card.</div></div>
   <details open id="raybox" style="display:none"><summary><b>External rays</b></summary>
     <div class="sub">Angles as p/q or decimals, separated by commas, e.g. <code>1/3, 2/3, 1/7, 1/6</code>. Parameter rays are drawn
       here; the dynamic rays of the same angles are drawn in the dynamical plane (for the selected c). Rational angles get their
       exact landing point (a root, or a Misiurewicz point).</div>
     <input id="rayin" size="24" value="" placeholder="e.g. 1/3, 2/3, 1/7, 1/6" style="margin:4px 0"> <button id="raygo">Draw</button> <button id="rayclr">Clear</button>
     <div id="rayout" class="sub" style="font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap"></div></details>
-  <details open><summary><b>Polynomial centres and punctures</b></summary>
+  <details open><summary><b>Polynomial centers and punctures</b></summary>
     <input id="mfilter" size="28" placeholder="filter: 1/3, puncture, rabbit …" style="margin:4px 0">
     <div id="mlist"></div></details>
   <details><summary>What this is</summary><div id="about" class="sub"></div></details>

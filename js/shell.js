@@ -24,17 +24,17 @@
     for (const m of man.models) $('b_' + m.id).classList.toggle('on', m.id === id);
     const I = cur.info || {};
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
-      ` · genus ${I.genus} · ${I.centres} polynomial centres · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
+      ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none';
     $('frame').src = cur.page; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
-    FACTS = `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centres} polynomial centre${I.centres === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
+    FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
   }
   // ---- dynamical plane
   const opt = { mk: true, ml: true, orb: false, orbN: 60, omode: false, ok: 20, inv: false, tree: true }; let ORB0 = null, TREE = null;
   // polynomial view (Caroline 2026-11-10): w = T(z), T Moebius with T(a0) = 0, T(omega) = inf, scaled so that T f T^-1 =
-  // (w^2 + B)/(C w^2 + 1) (= w^2 + c at a centre, where omega is fixed). T = s T0, T0(a0) = 0, T0(a1) = 1, T0(omega) = inf.
+  // (w^2 + B)/(C w^2 + 1) (= w^2 + c at a center, where omega is fixed). T = s T0, T0(a0) = 0, T0(a1) = 1, T0(omega) = inf.
   let TV = null;     // { T: z -> w, Ti: w -> z, mat: inverse as 2x2 }
   function polyView() {
     TV = null; if (!opt.inv || !M) return;
@@ -45,7 +45,7 @@
     const T = z => { const w = T0(z); return w === null ? null : PM.cmul(s, w); }, Ti = w => T0i(w === null ? null : PM.cmul(si, w));
     // the inverse as a matrix for the shader: images of 0, 1, inf under Ti give (mA w + mB)/(mC w + mD)
     const z0 = Ti([0, 0]), z1 = Ti([1, 0]), zi = Ti(null), hv = z => z === null ? [[1, 0], [0, 0]] : [z, [1, 0]];
-    // matrix with columns (zi-vector * a, z0-vector * b), a + b normalised so that column sum gives z1
+    // matrix with columns (zi-vector * a, z0-vector * b), a + b normalized so that column sum gives z1
     const P = hv(zi), Q = hv(z0), R = hv(z1), det = PM.csub(PM.cmul(P[0], Q[1]), PM.cmul(P[1], Q[0]));
     const a = PM.cdiv(PM.csub(PM.cmul(R[0], Q[1]), PM.cmul(R[1], Q[0])), det), b = PM.cdiv(PM.csub(PM.cmul(P[0], R[1]), PM.cmul(P[1], R[0])), det);
     TV = { T, Ti, s, m: [PM.cmul(P[0], a), PM.cmul(Q[0], b), PM.cmul(P[1], a), PM.cmul(Q[1], b)] };
@@ -84,7 +84,7 @@
           if (opt.ml && (i === 0 || i === o.length - 1 || o.length <= 12)) { g.font = '600 11px system-ui'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText('z' + i, s[0] + 5, s[1] - 7); g.fillStyle = '#fff'; g.fillText('z' + i, s[0] + 5, s[1] - 7); }
           prev = s; });
       }
-      if (opt.tree && TREE) {                    // Hubbard tree of the clicked centre, moved into this chart
+      if (opt.tree && TREE) {                    // Hubbard tree of the clicked center, moved into this chart
         for (const arc of TREE) { g.beginPath(); let on = false, last = null;
           for (const z of arc) { const s = SC(z); if (!s || (last && Math.hypot(s[0] - last[0], s[1] - last[1]) > W)) { on = false; last = s; continue; }
             if (on) g.lineTo(...s); else g.moveTo(...s); on = true; last = s; }
@@ -115,8 +115,8 @@
     const f = PM.fate(M, M.omega, dv.maxIt, dv.delta, 1e-7);
     let comp = '';
     if (f.kind === 'capture' && cur.kind !== 'hyperbolic' && sel.p) { const C = PM.captureCentre(cur.family, cur.n, sel.p, f);
-      comp = C ? `capture component: at its centre (${cur.param} = ${PM.fmt(C.centre, 6)}) ${C.preperiod === 0 ? 'the free critical point IS a' + C.j : 'the free critical point lands on a' + C.j + ' after ' + C.preperiod + ' step' + (C.preperiod === 1 ? '' : 's')}: preperiod ${C.preperiod}, period ${cur.n} (phase ${C.phase})`
-               : `captured (phase ${f.phase}); centre not found by Newton from here`; }
+      comp = C ? `capture component: at its center (${cur.param} = ${PM.fmt(C.center, 6)}) ${C.preperiod === 0 ? 'the free critical point IS a' + C.j : 'the free critical point lands on a' + C.j + ' after ' + C.preperiod + ' step' + (C.preperiod === 1 ? '' : 's')}: preperiod ${C.preperiod}, period ${cur.n} (phase ${C.phase})`
+               : `captured (phase ${f.phase}); center not found by Newton from here`; }
     else if (f.kind === 'capture') comp = `captured by the marked cycle (phase ${f.phase})`;
     if (f.kind === 'capture' && cur.family === 'quad') comp = 'escapes to ∞ (outside the Mandelbrot set)';
     else if (f.kind === 'cycle') comp = f.period === 1 ? 'hyperbolic component with an attracting fixed point (polynomial-like: the free critical point is attracted to a fixed point)' : `hyperbolic component of period ${f.period} (the free critical point is attracted to a ${f.period}-cycle)`;
@@ -153,6 +153,19 @@
   $('dorb').onchange = e => { opt.orb = e.target.checked; dv.redraw(); };
   $('dorbn').oninput = e => { opt.orbN = Math.max(1, Math.min(2000, +e.target.value || 1)); dv.redraw(); };
   $('dhome').onclick = fit;
+  function keyM() {                                   // 'm' (Caroline 2026-11-10): jump to the mating box of the current center card
+    const box = document.querySelector('#dcb .mang');
+    if (box) { $('dcard').classList.remove('min'); box.focus(); box.select(); }
+    else $('status').textContent = 'm: click a polynomial center first; its card has the mating box (f ⊔ g).';
+  }
+  window.addEventListener('keydown', e => { if (e.key === 'm' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { e.preventDefault(); keyM(); } });
+  window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'm') keyM(); });
+  window.addEventListener('message', async ev => {                 // mating box in a model's side panel: f by label, g by angle
+    const d = ev.data; if (!d || d.e96 !== 'mateReq' || !cur) return; const n = cur.n;
+    const D = n >= 2 ? await loadPoly(n) : null, P = D && D.find(q => String(q.label) === String(d.label).trim());
+    if (!P) { $('status').textContent = `Mating: no polynomial with label ${d.label} in Per_${n} (labels = even numerators k of k/${2**n - 1})`; return; }
+    doMate([Number(P.c_str[0]), Number(P.c_str[1])], n, P.label, d.angle, null);
+  });
   window.addEventListener('keydown', e => {          // 'o': orbit of the point under the cursor (dynamical plane)
     if (e.target.tagName === 'INPUT' || !M || e.key !== 'o' || !dv.mouse) return;
     ORB0 = TV ? (TV.Ti(dv.mouse) || [1e300, 0]) : dv.mouse; opt.omode = true; $('omode').checked = true; dv.redraw(); });
@@ -177,15 +190,15 @@
   function parseMarker(d) {        // structured (plane / torus pages) or the hyperbolic viewers' info text
     if (d.marker) return d.marker;
     if (!d.info) return null;
-    const L = d.info.split('\n'), t = L[0].trim(), m = t.match(/^(centre|puncture) (\S+)/);
+    const L = d.info.split('\n'), t = L[0].trim(), m = t.match(/^(center|center|puncture) (\S+)/);
     if (!m) return null;
-    const mk = { kind: m[1], label: m[2], title: t, lines: L.slice(1) };
-    if (m[1] === 'puncture') { const sh = d.info.match(/shared by centres: ([^\n]+)/); mk.labels = sh ? [...sh[1].matchAll(/(?:^|, )(\d+)/g)].map(x => +x[1]) : []; }
+    const mk = { kind: m[1] === 'puncture' ? 'puncture' : 'centre', label: m[2], title: t, lines: L.slice(1) };   // titles may say center or center
+    if (m[1] === 'puncture') { const sh = d.info.match(/shared by centers: ([^\n]+)/); mk.labels = sh ? [...sh[1].matchAll(/(?:^|, )(\d+)/g)].map(x => +x[1]) : []; }
     return mk;
   }
   const POLY = {};
   function loadPoly(n) { if (!POLY[n]) POLY[n] = fetch(`poly/poly_info_n${n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); return POLY[n]; }
-  async function showTree(mk) {                 // the centre's Hubbard tree (polynomial coordinates, E92/E96 poly_info), via psi:
+  async function showTree(mk) {                 // the center's Hubbard tree (polynomial coordinates, E92/E96 poly_info), via psi:
     TREE = null; const n = mk.n || cur.n, Mc = M; if (n < 2 || !Mc) return;     // 0 -> a0, c -> a1, inf -> omega (Moebius)
     const lab = mk.ks ? (mk.ks.find(k => k % 2 === 0) ?? mk.ks[0]) : +mk.label, D = await loadPoly(n); if (!D || M !== Mc) return;
     const P = D.find(q => q.label === lab); if (!P) return;
@@ -205,14 +218,15 @@
     while (q.length) { const i = q.shift(); if (i === t) break; for (const j of adj[i]) if (!prev.has(j) && v2(L[j]) > v2(L[i])) { prev.set(j, i); q.push(j); } }
     if (!prev.has(t)) return []; const path = []; for (let i = t; i !== -1; i = prev.get(i)) path.unshift(L[i]); return path;
   }
-  function parseC(mk) {                         // the polynomial c of a centre card (census lines 'c = re +/- im i')
+  function parseC(mk) {                         // the polynomial c of a center card (census lines 'c = re +/- im i')
     if (mk.pc) return mk.pc.map(Number);
     const t = (mk.lines || []).join('\n').match(/c = ([-+]?[\d.eE-]+) ([+-]) ([\d.eE-]+)i/); return t ? [Number(t[1]), (t[2] === '-' ? -1 : 1)*Number(t[3])] : null;
   }
   // ---- mating calculator (mating.js; REGISTRATION addendum 2026-11-10, checks M1-M5 in log.md)
   function doMate(cf, n, lab, text, out) {
+    out = out || { set textContent(t) { $('status').textContent = t; } };
     const a = PM.parseAngle(text); if (!a || !cf) { out.textContent = 'enter an angle p/q'; return; }
-    const g = MATE.pcfFromAngle(a), m = MATE.mate(cf, g.c), gname = `g = ${g.kind} of angle ${a.text} (c = ${PM.fmt(g.c, 6)})`;
+    const g = MATE.pcfFromAngle(a), m = MATE.mate(cf, g.c), gname = `g = ${g.kind === 'centre' ? 'center' : g.kind} of angle ${a.text} (c = ${PM.fmt(g.c, 6)})`;
     if (!m.ok) { out.textContent = `not converged: ${m.why} (${gname})`; return; }
     const ch = MATE.toChart(m), label = `${lab} ⊔ ${a.text}`;
     if (!ch || cur.n !== n) { out.textContent = `f ⊔ g lies in Per_${n}; open Per_${n} to place it (coming next)`; return; }
@@ -224,7 +238,15 @@
     handleParam(Object.assign({ e96: 'param', label, keepCard: true }, msg));
     out.textContent = `${label}: converged in ${m.iters} steps, residual ${m.residual.toExponential(1)}; ${gname}` + (cur.kind === 'hyperbolic' ? ' (yellow marker in the disk: next step)' : ' (yellow marker)');
   }
+  // jump to the polynomial with label lab in Per_n (retries until the model has loaded and answers with its card)
+  let GOTO = null;
+  function viewIn(n, lab) {
+    choose('per' + n); clearInterval(GOTO && GOTO.t); let tries = 0;
+    GOTO = { lab: String(lab), t: setInterval(() => { tries++; if (tries > 120) { clearInterval(GOTO.t); GOTO = null; return; }
+      try { $('frame').contentWindow.postMessage({ e96: 'goto', label: lab }, '*'); } catch (e) {} }, 1500) };
+  }
   function showMarker(mk) {
+    if (GOTO && mk.label === GOTO.lab) { clearInterval(GOTO.t); GOTO = null; }
     const n = mk.n || cur.n, D = 2**n - 1, esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(mk.lines.join('\n'));
     const B = $('dcb'); B.innerHTML = '';
@@ -232,6 +254,8 @@
     if (n >= 2) {
       if (mk.kind === 'centre') {
         const lab = mk.ks ? mk.ks.find(k => k % 2 === 0) ?? mk.ks[0] : +mk.label;
+        if (n !== cur.n && man.models.some(q => q.id === 'per' + n && !q.placeholder))
+          btn(`View in Per_${n}`, () => viewIn(n, lab));
         btn('Polynomial card: Hubbard tree, rays, addresses', () => overlay(`Per_${n}: polynomial ${lab}`, [[`${lab}/${D}`, `poly/index.html#n=${n}&label=${lab}`]]));
         btn('Obstruction Γ(θ) of its puncture', () => overlay(`Thurston obstruction Γ(θ), θ = ${lab}/${D}`, [[`θ = ${lab}/${D}`, `obstruction/index.html#p=${lab}&q=${D}`]]));
         const mrow = document.createElement('div'); mrow.style.cssText = 'width:100%;margin-top:4px';
@@ -248,10 +272,10 @@
       } else {
         let labs = mk.labels || (mk.thetas ? mk.thetas.filter(k => k % 2 === 0) : []);
         if (!labs.length && mk.thetas) labs = mk.thetas;
-        const openObs = () => overlay(`Puncture ${mk.label}: Thurston obstruction Γ(θ) (θ = an angle of a centre sharing it)`,
+        const openObs = () => overlay(`Puncture ${mk.label}: Thurston obstruction Γ(θ) (θ = an angle of a center sharing it)`,
           labs.map(L => [`θ = ${L}/${D}`, `obstruction/index.html#p=${L}&q=${D}`]));
         btn("Thurston obstruction Γ(θ)", openObs);
-        btn('Polynomial cards of the sharing centres', () => overlay(`Puncture ${mk.label}: polynomials sharing it`, labs.map(L => [`${L}`, `poly/index.html#n=${n}&label=${L}`])));
+        btn('Polynomial cards of the sharing centers', () => overlay(`Puncture ${mk.label}: polynomials sharing it`, labs.map(L => [`${L}`, `poly/index.html#n=${n}&label=${L}`])));
       }
     }
     $('dcard').style.display = 'block';

@@ -1,12 +1,12 @@
 // E96: fragment shaders (WebGL2, single precision) for the plane / torus parameter panes and the dynamical plane.
-// Same colouring as the E92-E94 live viewers: capture into the marked cycle coloured by phase (j - t) mod n and shaded by
-// time t; attracting fixed point dark grey; other attracting cycle light grey; undecided (bifurcation locus / Julia set)
+// Same coloring as the E92-E94 live viewers: capture into the marked cycle colored by phase (j - t) mod n and shaded by
+// time t; attracting fixed point dark gray; other attracting cycle light gray; undecided (bifurcation locus / Julia set)
 // near-black; degenerate / overflow dark red. Port of PM.fz / PM.fate (pern_math.js, double) with infinity flags.
 'use strict';
 var GLSL = (function () {
   var HEAD = `#version 300 es
 precision highp float;
-uniform vec2 res; uniform vec2 ctr; uniform float upp;           // view: centre, units per pixel
+uniform vec2 res; uniform vec2 ctr; uniform float upp;           // view: center, units per pixel
 uniform int maxIt; uniform float delta; uniform float tolP; uniform int fam; uniform int nM;
 uniform vec2 uA, uB, uC, uD, uE, uF; uniform vec2 uMk[12]; uniform int uMkI[12];   // dynamical-plane map (mode 0)
 uniform float W1, W2, qn, e1; uniform int invz; uniform vec2 mA, mB, mC, mD;   // invz: pixel w -> z = (mA w + mB)/(mC w + mD)                                    // Per_5 torus
