@@ -23,8 +23,8 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261110020233"></script>
-<script src="per6_core.js?v=20261110020233"></script>
+<script src="conformal_data.js?v=20261110021841"></script>
+<script src="per6_core.js?v=20261110021841"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
@@ -597,6 +597,8 @@ function e96locate(x,y){
 (function(){var _do=drawOverlay;drawOverlay=function(){_do();if(!E96MARKS.length)return;var fs=Math.round(13*dpr);g2.textAlign='left';g2.textBaseline='middle';
   for(var ti=0;ti<tiles.length;ti++)for(var mi=0;mi<E96MARKS.length;mi++){var m=E96MARKS[mi],s=ap(tiles[ti].W,m.p),sc=1-cabs2(s);if(sc<0.02)continue;
     var p=diskToScreen(s);if(p[0]<-10||p[1]<-10||p[0]>W_+10||p[1]>H_+10)continue;var r=Math.max(2*dpr,Math.min(9*dpr,9*dpr*sc*Math.pow(zoom,0.35)));
+    if(m.vein){var rv=Math.max(1.5*dpr,r*.42);g2.beginPath();g2.arc(p[0],p[1],rv,0,TAU);g2.fillStyle='#ffe600';g2.fill();g2.strokeStyle='#141414';g2.lineWidth=dpr;g2.stroke();
+      if(opt.ml&&r>5*dpr){g2.font='500 '+Math.round(10*dpr)+'px system-ui';g2.lineWidth=2.5*dpr;g2.strokeStyle='rgba(0,0,0,.85)';g2.strokeText(m.label,p[0]+rv+2*dpr,p[1]);g2.fillStyle='#ffe600';g2.fillText(m.label,p[0]+rv+2*dpr,p[1]);}continue;}
     g2.beginPath();for(var k=0;k<10;k++){var rr=k%2?r*.45:r,t=-Math.PI/2+k*Math.PI/5;g2.lineTo(p[0]+rr*Math.cos(t),p[1]+rr*Math.sin(t));}g2.closePath();
     g2.fillStyle='#ffe600';g2.fill();g2.strokeStyle='#141414';g2.lineWidth=1.2*dpr;g2.stroke();
     if(opt.ml&&r>4*dpr&&m.label){g2.font='600 '+fs+'px system-ui';g2.lineWidth=3*dpr;g2.strokeStyle='rgba(0,0,0,.85)';g2.strokeText(m.label,p[0]+r+3*dpr,p[1]);g2.fillStyle='#ffe600';g2.fillText(m.label,p[0]+r+3*dpr,p[1]);}}};

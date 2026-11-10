@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261110020233').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261110021841').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261110020233').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261110021841').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -81,6 +81,9 @@
     if (E.rays) drawPerN(g, W, H);
     for (const mk of MARKS) for (const o of torus ? lattice(W, H) : [[0, 0]]) {        // matings (yellow)
       const s = pv.toScreen([mk.p[0] + o[0], mk.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
+      if (mk.vein) { g.beginPath(); g.arc(s[0], s[1], 3.2, 0, 2*Math.PI); g.fillStyle = '#ffe600'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1; g.stroke();
+        if (opt.ml) { g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(mk.label, s[0] + 6, s[1]); g.fillStyle = '#ffe600'; g.fillText(mk.label, s[0] + 6, s[1]); }
+        continue; }
       g.beginPath(); for (let k = 0; k < 10; k++) { const r = k % 2 ? 3 : 7, t = -Math.PI/2 + k*Math.PI/5; g.lineTo(s[0] + r*Math.cos(t), s[1] + r*Math.sin(t)); } g.closePath();
       g.fillStyle = '#ffe600'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
       if (opt.ml) { g.font = '600 12px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(mk.label, s[0] + 9, s[1]); g.fillStyle = '#ffe600'; g.fillText(mk.label, s[0] + 9, s[1]); }
@@ -192,7 +195,8 @@
   }
   $('mfilter').oninput = buildList; buildList();
   window.addEventListener('message', ev => { const d = ev.data;
-    if (d && d.e96 === 'mark' && d.p) { MARKS.push({ p: d.p, label: d.label }); pv.redraw(); return; }
+    if (d && d.e96 === 'clearMarks') { MARKS.length = 0; pv.redraw(); return; }
+    if (d && d.e96 === 'mark' && d.p) { MARKS.push({ p: d.p, label: d.label, vein: !!d.vein }); pv.redraw(); return; }
     if (d && d.e96 === 'goto' && d.label !== undefined) { const m = markers.find(q => q.kind === 'centre' && q.label === String(d.label)); if (m) { pv.ctr = m.p.slice(); pv.redraw(); pick(m.p, m); } return; }
     if (d && d.e96 === 'goto' && d.p) { pv.ctr = d.p.slice(); pv.redraw(); pick(d.p, null); } });
   if (E.rays) { $('perbox').style.display = ''; $('pern').onchange = e => setPerN(+e.target.value); $('perang').onchange = () => pv.redraw(); $('perrays').onchange = () => pv.redraw();

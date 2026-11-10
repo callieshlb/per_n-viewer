@@ -50,15 +50,15 @@ var MATE = (function () {
       var k = Number(p*((2n**BigInt(n) - 1n)/q));
       return { c: spiderCentre(k, n), kind: 'centre', period: n, preperiod: 0, k: k };
     }
-    var r = PM.traceRay('param', a, null), c = r.pts[r.pts.length - 1];
+    var r = PM.traceRay('param', a, null), c = r.pts[r.pts.length - 1]; var c0 = c;
     // period m of the eventual cycle of the angle, preperiod l (exact in the angle; the critical value's preperiod is l)
     var odd = q, m = 1; while ((2n**BigInt(m) - 1n) % odd !== 0n && m < 60) m++;
-    for (var it2 = 0; it2 < 60; it2++) {                            // Newton on f^(l+m)(0) - f^l(0)
+    for (var it2 = 0; it2 < 60; it2++) {                            // Newton on f^(l+1+m)(0) - f^(l+1)(0)
       var z = [0, 0], dz = [0, 0], zl = null, dzl = null;
-      for (var i = 0; i < l + m; i++) { dz = cadd(cmul([2*z[0], 2*z[1]], dz), [1, 0]); z = cadd(cmul(z, z), c); if (i === l - 1) { zl = z; dzl = dz; } }
+      for (var i = 0; i < l + 1 + m; i++) { dz = cadd(cmul([2*z[0], 2*z[1]], dz), [1, 0]); z = cadd(cmul(z, z), c); if (i === l) { zl = z; dzl = dz; } }   // FIX 2026-11-10: the critical VALUE has preperiod l, so f^(l+1+m)(0) = f^(l+1)(0)
       var F = csub(z, zl), dF = csub(dz, dzl), d = cdiv(F, dF); c = csub(c, d); if (cabs(d) < 1e-15) break;
     }
-    return { c: c, kind: 'misiurewicz', period: m, preperiod: l, rayLanded: r.landed };
+    return { c: c, kind: 'misiurewicz', period: m, preperiod: l, rayLanded: r.landed, rayEnd: c0, moved: cabs(csub(c, c0)) };
   }
   // critical orbit data: list of points (index 0 = critical point 0, then c, ...), F[i] = index of the image
   function orbitOf(c, maxLen) {
@@ -132,6 +132,23 @@ var MATE = (function () {
     else out.family = n === 5 ? 'torus5' : 'cor';
     return out;
   }
-  return { spiderCentre: spiderCentre, pcfFromAngle: pcfFromAngle, orbitOf: orbitOf, mate: mate, toChart: toChart, newtonCentre: newtonCentre };
+  // Vein of theta = a.p/a.q (REGISTRATION addendum 2026-11-10 (b), M7): the centers of period 2..8 whose wake (k0/Q, k1/Q) strictly contains theta,
+  // i.e. the hyperbolic components the combinatorial arc from 0 to the landing point of theta passes through. The K of lowest period
+  // (ties: wider wake first) are kept and returned in order along the arc (widest wake first). polys[n] = poly_info_n<n>.json.
+  function veinList(a, polys, K) {
+    var out = [];
+    for (var n = 2; n <= 8; n++) { var D = polys[n]; if (!D) continue; var Q = BigInt(Math.pow(2, n) - 1);
+      D.forEach(function (P) { var k0 = BigInt(Math.min(P.ks[0], P.ks[1])), k1 = BigInt(Math.max(P.ks[0], P.ks[1]));
+        if (k0*a.q < a.p*Q && a.p*Q < k1*a.q) out.push({ n: n, label: P.label, k0: Number(k0), k1: Number(k1), Q: Number(Q), width: Number(k1 - k0)/Number(Q),
+          c: [Number(P.c_str[0]), Number(P.c_str[1])] }); }); }
+    out.sort(function (u, v) { return u.n - v.n || v.width - u.width; });
+    if (K !== undefined && K !== null) out = out.slice(0, K);
+    out.sort(function (u, v) { return v.width - u.width; });
+    return out;
+  }
+  // period of the free critical point (infinity) under the mated map m.R (chordal tolerance), or 0
+  function omegaPeriod(m, maxP) { var z = null;
+    for (var i = 1; i <= (maxP || 40); i++) { z = m.R(z); if (z === null || PM.chord(z, [1e9, 0]) < 1e-7) return i; } return 0; }
+  return { veinList: veinList, omegaPeriod: omegaPeriod, spiderCentre: spiderCentre, pcfFromAngle: pcfFromAngle, orbitOf: orbitOf, mate: mate, toChart: toChart, newtonCentre: newtonCentre };
 })();
 if (typeof module !== 'undefined') module.exports = MATE;
