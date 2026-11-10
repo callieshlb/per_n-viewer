@@ -105,7 +105,7 @@ function render() {
                          const v = 236 - 26*t; col = [v, v, v - 4]; break; }
         let hit = -1;
         for (let k = 0; k < NN; k++) { const dx = zr - X[k][0], dy = zi - X[k][1]; if (dx*dx + dy*dy < 1e-6) { hit = k; break; } }
-        if (hit >= 0) { const ph = (((hit + 1 - m) % NN) + NN) % NN; const base = PALRGB[ph]; const sh = Math.max(0.55, 1 - 0.012*m);
+        if (hit >= 0) { const ph = (((hit - m) % NN) + NN) % NN;   /* 2026-11-10 (Caroline): same convention as the parameter pane: the component of x_j is PAL[(j - 1) mod n], x_1 = c is phase 0 */ const base = PALRGB[ph]; const sh = Math.max(0.55, 1 - 0.012*m);
                         col = [base[0]*sh, base[1]*sh, base[2]*sh]; break; }
         const t = zr*zr - zi*zi + cr; zi = 2*zr*zi + ci; zr = t;
       }
@@ -179,7 +179,7 @@ function show(lbl) {
   $('param').innerHTML = `<b>c</b><span class="mono">${P.c_str[0]}<br>${P.c_str[1].startsWith('-') ? '' : '+'}${P.c_str[1]} i</span>
     <b>critical orbit</b><span class="mono">x1 = c → x2 → … → x${NN} = 0 → x1</span>`;
   $('checks').innerHTML = Object.entries(P.checks).map(([k, v]) => `${k}: ${typeof v === 'number' ? (Number.isInteger(v) ? v : v.toExponential(2)) : v}`).join('<br>');
-  $('legend').innerHTML = PAL.map((c, i) => `<span class="sw" style="background:${c}"></span><span>Fatou components of phase ${i}: map onto U<sub>${i === 0 ? NN : i}</sub> (x<sub>${i === 0 ? NN : i}</sub>) in step with the cycle</span>`).join('')
+  $('legend').innerHTML = PAL.map((c, i) => `<span class="sw" style="background:${c}"></span><span>Fatou components of phase ${i}: map onto U<sub>${i + 1}</sub> (x<sub>${i + 1}</sub>) in step with the cycle${i === 0 ? ' (same colors as the parameter pane: phase 0 is the critical value x<sub>1</sub> = c)' : ''}</span>`).join('')
     + `<span class="sw" style="background:${RAYM}"></span><span>rays of the θ− orbit</span>` + (P.satellite ? '' : `<span class="sw" style="background:${RAYP}"></span><span>rays of the θ+ orbit</span>`)
     + `<span class="sw" style="background:#fff;border:1px solid #999"></span><span>Hubbard tree; squares: its branch points</span>`;
   if (location.hash !== `#n=${NN}&label=${P.label}`) history.replaceState(null, '', `#n=${NN}&label=${P.label}`);
