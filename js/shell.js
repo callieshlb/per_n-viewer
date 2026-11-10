@@ -33,13 +33,30 @@
   }
   // ---- dynamical plane
   const opt = { mk: true, ml: true, orb: false, orbN: 60, omode: false, ok: 20, inv: false, tree: true }; let ORB0 = null, TREE = null;
-  const J = z => !opt.inv ? z : (z === null ? [0, 0] : (PM.cabs(z) < 1e-300 ? null : PM.cdiv([1, 0], z)));     // plane point of z
+  // polynomial view (Caroline 2026-11-10): w = T(z), T Moebius with T(a0) = 0, T(omega) = inf, scaled so that T f T^-1 =
+  // (w^2 + B)/(C w^2 + 1) (= w^2 + c at a centre, where omega is fixed). T = s T0, T0(a0) = 0, T0(a1) = 1, T0(omega) = inf.
+  let TV = null;     // { T: z -> w, Ti: w -> z, mat: inverse as 2x2 }
+  function polyView() {
+    TV = null; if (!opt.inv || !M) return;
+    const T0 = PM.moebius3([M.marked[0], M.marked[1], M.omega], [[0, 0], [1, 0], null]), T0i = PM.moebius3([[0, 0], [1, 0], null], [M.marked[0], M.marked[1], M.omega]);
+    const g0 = w => T0(PM.fz(M, T0i(w))), b0 = g0([0, 0]), aI = g0(null), g1 = g0([1, 0]);
+    let A; if (aI === null) A = PM.csub(g1, b0); else { const C = PM.cdiv(PM.csub(g1, b0), PM.csub(aI, g1)); A = PM.cmul(aI, C); }
+    const s = A, si = PM.cdiv([1, 0], s);
+    const T = z => { const w = T0(z); return w === null ? null : PM.cmul(s, w); }, Ti = w => T0i(w === null ? null : PM.cmul(si, w));
+    // the inverse as a matrix for the shader: images of 0, 1, inf under Ti give (mA w + mB)/(mC w + mD)
+    const z0 = Ti([0, 0]), z1 = Ti([1, 0]), zi = Ti(null), hv = z => z === null ? [[1, 0], [0, 0]] : [z, [1, 0]];
+    // matrix with columns (zi-vector * a, z0-vector * b), a + b normalised so that column sum gives z1
+    const P = hv(zi), Q = hv(z0), R = hv(z1), det = PM.csub(PM.cmul(P[0], Q[1]), PM.cmul(P[1], Q[0]));
+    const a = PM.cdiv(PM.csub(PM.cmul(R[0], Q[1]), PM.cmul(R[1], Q[0])), det), b = PM.cdiv(PM.csub(PM.cmul(P[0], R[1]), PM.cmul(P[1], R[0])), det);
+    TV = { T, Ti, s, m: [PM.cmul(P[0], a), PM.cmul(Q[0], b), PM.cmul(P[1], a), PM.cmul(Q[1], b)] };
+  }
+  const J = z => !TV ? z : TV.T(z);                                                       // plane point of z
   const SC = z => { const w = J(z); return w === null ? null : dv.toScreen(w); };
   const dv = new PlaneView($('dyn'), {
     ctr: [0, 0], upp: 0.01, maxIt: 500, delta: 1e-3,
     setUniforms: (gl, U) => {
       if (!M) { gl.uniform1i(U('fam'), 1); gl.uniform1i(U('maxIt'), 0); return; }
-      gl.uniform1i(U('fam'), 0); gl.uniform1i(U('invz'), opt.inv ? 1 : 0); GLSL.setPalette(gl, U, cur && cur.palette, cur && cur.flat);
+      gl.uniform1i(U('fam'), 0); gl.uniform1i(U('invz'), TV ? 1 : 0); if (TV) { gl.uniform2f(U('mA'), ...TV.m[0]); gl.uniform2f(U('mB'), ...TV.m[1]); gl.uniform2f(U('mC'), ...TV.m[2]); gl.uniform2f(U('mD'), ...TV.m[3]); } GLSL.setPalette(gl, U, cur && cur.palette, cur && cur.flat);
       ['A', 'B', 'C', 'D', 'E', 'F'].forEach(k => gl.uniform2f(U('u' + k), M[k][0], M[k][1]));
       const mk = new Float32Array(24), mi = new Int32Array(12);
       M.marked.forEach((a, j) => { if (a === null) mi[j] = 1; else { mk[2*j] = a[0]; mk[2*j + 1] = a[1]; } });
@@ -81,7 +98,7 @@
       dot(M.omega, '#ffe650', 'ω');
     },
     onPick: p => {
-      if (!M) return; p = J(p) || [1e300, 0]; if (opt.omode) { ORB0 = p; dv.redraw(); }
+      if (!M) return; p = TV ? (TV.Ti(p) || [1e300, 0]) : p; if (opt.omode) { ORB0 = p; dv.redraw(); }
       const f = PM.fate(M, p, dv.maxIt, dv.delta, 1e-7);
       $('status').textContent = statusText() + `\nclicked z = ${PM.fmt(p)}: ${PM.fateText(f)}`;
     } });
@@ -114,7 +131,7 @@
       const mk0 = parseMarker(d); if (mk0) showMarker(mk0); TREE = null; dv.redraw(); return; }
     M = m; sel = { p: d.p || null, x: d.x || (m.x || null), y: d.y || (m.y || null), label: d.label };
     if (cur.family === 'quad' || cur.family === 'per2') { sel.x = null; sel.y = null; }
-    $('dhint').style.display = 'none'; dynRays(); fit(); $('status').textContent = statusText(); ORB0 = null;
+    $('dhint').style.display = 'none'; dynRays(); polyView(); fit(); $('status').textContent = statusText(); ORB0 = null;
     TREE = null; const mk = parseMarker(d); if (mk) { showMarker(mk); if (mk.kind === 'centre') showTree(mk); } else hideCard();
   });
   window.SHELL = { get M() { return M; }, get sel() { return sel; }, dv, choose };
@@ -127,7 +144,7 @@
   $('dorbn').oninput = e => { opt.orbN = Math.max(1, Math.min(2000, +e.target.value || 1)); dv.redraw(); };
   $('dhome').onclick = fit;
   $('dbands').onchange = e => { dv.bands = e.target.checked; dv.redraw(); };
-  $('dinv').onchange = e => { opt.inv = e.target.checked; fit(); };
+  $('dinv').onchange = e => { opt.inv = e.target.checked; polyView(); fit(); };
   $('dtree').onchange = e => { opt.tree = e.target.checked; dv.redraw(); };
   $('omode').onchange = e => { opt.omode = e.target.checked; if (!opt.omode) ORB0 = null; dv.redraw(); };
   $('ok').oninput = e => { opt.ok = +e.target.value; $('okv').textContent = opt.ok; dv.redraw(); };

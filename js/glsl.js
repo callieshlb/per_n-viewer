@@ -9,7 +9,7 @@ precision highp float;
 uniform vec2 res; uniform vec2 ctr; uniform float upp;           // view: centre, units per pixel
 uniform int maxIt; uniform float delta; uniform float tolP; uniform int fam; uniform int nM;
 uniform vec2 uA, uB, uC, uD, uE, uF; uniform vec2 uMk[12]; uniform int uMkI[12];   // dynamical-plane map (mode 0)
-uniform float W1, W2, qn, e1; uniform int invz;                 // invz: dynamical plane drawn in w = 1/z                                    // Per_5 torus
+uniform float W1, W2, qn, e1; uniform int invz; uniform vec2 mA, mB, mC, mD;   // invz: pixel w -> z = (mA w + mB)/(mC w + mD)                                    // Per_5 torus
 out vec4 o;
 vec2 cm(vec2 a, vec2 b){ return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
 vec2 cd(vec2 a, vec2 b){ return vec2(a.x*b.x + a.y*b.y, a.y*b.x - a.x*b.y)/dot(b, b); }
@@ -99,7 +99,7 @@ void main(){
   if (fam == 0) {                          // dynamical plane: the pixel is the starting point
     A_ = uA; B_ = uB; C_ = uC; D_ = uD; E_ = uE; F_ = uF; nm = nM;
     for (int j = 0; j < 12; j++) { mk[j] = uMk[j]; mi[j] = uMkI[j] == 1; }
-    z0 = p; if (invz == 1) { if (dot(p, p) < 1e-30) z0i = true; else z0 = cinv(p); }
+    z0 = p; if (invz == 1) { vec2 nu = cm(mA, p) + mB, de = cm(mC, p) + mD; if (dot(de, de) < 1e-30*max(dot(nu, nu), 1e-30)) z0i = true; else z0 = cd(nu, de); }
   } else {
     if (fam == 1) { A_ = vec2(1., 0.); B_ = vec2(0.); C_ = p; D_ = vec2(0.); E_ = vec2(0.); F_ = vec2(1., 0.); nm = 1; mk[0] = vec2(0.); mi[0] = true; om = vec2(0.); }
     else if (fam == 2) { A_ = vec2(1., 0.); B_ = vec2(0.); C_ = -p; D_ = vec2(1., 0.); E_ = vec2(0.); F_ = vec2(-1., 0.); nm = 2;   // (z^2 - c)/(z^2 - 1)
