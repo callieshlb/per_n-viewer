@@ -78,7 +78,7 @@ vec3 fateColour(vec2 z, bool zi){
     fz(z, zi);
     for (int j = 0; j < 12; j++) { if (j >= nm) break;
       float dj = chN(z, zi, mk[j], mi[j]);
-      if (dj < th[j]) { int ph = ((j - (it + 1)) % nm + nm) % nm;     // smooth capture time (superattracting cycle: distances square)
+      if (dj < th[j]) { int ph = ((j - 1 - (it + 1)) % nm + nm) % nm;   // critical-value convention     // smooth capture time (superattracting cycle: distances square)
         float ts = float(it + 1) - log2(max(1., log(max(dj, 1e-30))/log(th[j]))); return shadeT(CAP[ph % 8], max(ts, 0.)); } }
     if (tconv < 0. && it > 0 && chN(z, zi, ring[(it - 1) & 31], ringI[(it - 1) & 31]) < 1e-3) tconv = float(it);
     if (tconv >= 0. && it > 0 && chN(z, zi, ring[(it - 1) & 31], ringI[(it - 1) & 31]) > 1e-2) tconv = -1.;

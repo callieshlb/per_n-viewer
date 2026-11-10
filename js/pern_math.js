@@ -250,7 +250,7 @@ var PM = (function () {
     var n = M.marked.length, ring = new Array(32), th = M.scale.map(function (s) { return delta*s; });
     for (var it = 0; it < maxIt; it++) {
       z = fz(M, z);
-      for (var j = 0; j < n; j++) if (chord(z, M.marked[j]) < th[j]) return { kind: 'capture', j: j, t: it+1, phase: ((j-(it+1)) % n + n) % n };
+      for (var j = 0; j < n; j++) if (chord(z, M.marked[j]) < th[j]) return { kind: 'capture', j: j, t: it+1, phase: ((j-1-(it+1)) % n + n) % n };   // phase convention (Caroline 2026-11-10): the orbit reaches the critical value a_1 at times = -phase mod n
       ring[it % 32] = z;
     }
     for (var per = 1; per <= 24; per++) {

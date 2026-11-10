@@ -232,7 +232,7 @@ var CORE = (function () {
     for (var it = 0; it < maxIt; it++) {
       z = fz(M, z);
       for (var j = 0; j < NM; j++) {
-        if (chordN(z, M.marked[j]) < th[j]) return { kind: 'capture', j: j, t: it+1, phase: ((j-(it+1)) % NM + NM) % NM };
+        if (chordN(z, M.marked[j]) < th[j]) return { kind: 'capture', j: j, t: it+1, phase: ((j-1-(it+1)) % NM + NM) % NM };
       }
       if (cycle) {
         for (var q = 0; q < cycle.pts.length; q++)

@@ -178,7 +178,7 @@ vec3 liveColour(vec2 z){
     if (zi) { zc = one; zi = false; }
     else { float r2 = dot(zc, zc); if (r2 < 1e-24) zi = true; else { vec2 iz = cinv(zc); zc = one - cm(s, iz) + cm(p, cm(iz, iz)); if (dot(zc, zc) > 1e30) zi = true; } }
     for (int j = 0; j < 6; j++) if (chN(zc, zi, mk[j], mi6[j]) < th[j]) {
-      int ph = ((j - (it + 1)) % 6 + 6) % 6; return shadeT(CAP[ph], float(it + 1)); }
+      int ph = ((j - 1 - (it + 1)) % 6 + 6) % 6;   /* E96: critical-value phase */ return shadeT(CAP[ph], float(it + 1)); }
     ring[it & 31] = zc; ringI[it & 31] = zi;
   }
   for (int per = 1; per <= 24; per++) {

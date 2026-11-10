@@ -38,8 +38,9 @@
         for (let k = Math.floor(a[1]/h2) - 1; k <= Math.ceil(b[1]/h2) + 1; k++) lines.push(k*h2); }
       else lines.push(0);
       for (const im of lines) { const y = pv.toScreen([0, im])[1]; if (y < -5 || y > H + 5) continue;
+        const comp = torus ? ((Math.round(im/(T5.W2/2)) % 2) + 2) % 2 : 0;           // torus: Im u = 0 and Im u = W2/2 are the two real circles
         g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.strokeStyle = 'rgba(0,0,0,.75)'; g.lineWidth = 4.5; g.stroke();
-        g.strokeStyle = '#00e5ff'; g.lineWidth = 2.2; g.stroke(); }
+        g.strokeStyle = ['#00e5ff', '#ffdb1a'][comp]; g.lineWidth = 2.2; g.stroke(); }
     }
     if (torus && opt.gn && C.edges) {
       for (const o of offs) for (const e of C.edges) {
