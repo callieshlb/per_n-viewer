@@ -31,8 +31,8 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261111080056"></script>
-<script src="per8_core.js?v=20261111080056"></script>
+<script src="conformal_data.js?v=20261111192901"></script>
+<script src="per8_core.js?v=20261111192901"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -749,7 +749,7 @@ body.e96min #side{display:none} body.e96min #view{right:0 !important} body.e96mi
 <input type="checkbox" onchange="window.E96MOVE=this.checked"> move to clicked point</label>
 <div id="e96mate" style="margin:6px 0;font:12px system-ui"><b>Mating</b> f = <input id="e96mf" size="4" placeholder="angle or k"> ⊔ g = <input id="e96mg" size="7" placeholder="angle 1/7">
 <button id="e96mgo">f ⊔ g</button><div style="color:#6b6b6b">f by its label (the even numerator k of its angles k/(2^n − 1)); g: any external angle. Shown in the
-dynamical plane; details in the status line below.</div><label style="display:block;margin-top:5px"><input type="checkbox" id="e96pc" onchange="window.E96PERCOL=this.checked;dirty=true;"> color components by period <span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(214,170,170)">2</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(170,205,175)">3</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(170,185,225)">4</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(225,212,160)">5</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(200,172,220)">6</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(160,210,212)">7</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(228,190,150)">8</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(190,200,140)">9</span></label><label style="display:block;margin-top:3px" title="centers where the free critical point sits on the marked cycle, labeled by the polynomial and periodic component whose capture gives them"><input type="checkbox" id="e96bt" onchange="e96btToggle(this.checked)"> bitransitive centers = periodic captures f·x_i (j)<span id="e96btn"></span></label></div>
+dynamical plane; details in the status line below.</div><label style="display:block;margin-top:5px"><input type="checkbox" id="e96pc" onchange="window.E96PERCOL=this.checked;dirty=true;"> color components by period <span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(214,170,170)">2</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(170,205,175)">3</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(170,185,225)">4</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(225,212,160)">5</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(200,172,220)">6</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(160,210,212)">7</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(228,190,150)">8</span><span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(190,200,140)">9</span></label><label style="display:block;margin-top:3px" title="centers where the free critical point sits on the marked cycle, labeled by the polynomial and periodic component whose capture gives them"><input type="checkbox" id="e96bt" onchange="e96btToggle(this.checked)"> bitransitive centers = periodic captures f·x_i (j)<span id="e96btn"></span></label><div style="margin-top:3px" title="with a bitransitive center selected (click a diamond): internal angle, optionally followed by the triangle 0, 1 or 2 (light, medium, dark shade); all three if omitted. Enter to run.">internal ray → boundary point: angle [triangle] (a) <input id="e96bta" size="7" placeholder="1/4 2" style="width:64px"> <button id="e96btac">clear</button><div id="e96btao" style="white-space:pre-wrap;font-size:11px"></div></div></div>
 <script>(function(){var b=document.getElementById('e96tog');b.onclick=function(){document.body.classList.toggle('e96min');
 b.textContent=document.body.classList.contains('e96min')?'◂ panel':'panel ▸';window.dispatchEvent(new Event('resize'));};
 if(window.innerWidth<900){b.onclick();}
@@ -759,21 +759,70 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
+<script src="../../js/pern_math.js?v=20261111192901"></script><script src="../../js/bitri.js?v=20261111192901"></script>
 <script>/* E96 bitransitive centers from periodic captures (REGISTRATION addendum 2026-11-10 (h)); key j */
-var E96BT=null,E96BTON=false;
+var E96BT=null,E96BTON=false,E96TRI=null;
+/* triangles of the clicked bitransitive component (REGISTRATION addendum 2026-11-11 (l)) */
+function e96triMap(b){var Mb=Mq(b.pd);return function(s){if(s[0]*s[0]+s[1]*s[1]>=0.97)return null;var L=chartLookup(fold(ap(Mb,s)));if(!L||!isFinite(L.x[0]+L.x[1]+L.y[0]+L.y[1]))return null;
+  try{return PM.mapFrom('cor',8,{x:L.x,y:L.y});}catch(e){return null;}};}
+function e96tri(b){var mapOf=e96triMap(b),R=BTRI.fill(mapOf,[0,0],b.slot,{N:8>=8?141:225,half:1e-3});if(R.fail){E96TRI=null;dirty=true;return 'triangles: '+R.fail;}
+  /* guard (L1): winding number of Phi around the center must be 3 and the maps must close; otherwise nothing is drawn */
+  var rad=R.half/60,wind=0,prev=null,clo=0,bad=0;for(var kq=0;kq<=96;kq++){var aq=2*Math.PI*kq/96,Mq_=mapOf([rad*Math.cos(aq),rad*Math.sin(aq)]),Fq=Mq_&&PM.bitransFactors(Mq_,b.slot);if(!Fq){bad++;continue;}clo=Math.max(clo,PM.closure(Mq_));
+    var Pq=PM.bitransPhiFrom(Fq,Fq.r.map(function(r){return Math.atan2(r[1],r[0]);})),ar=Math.atan2(Pq[1],Pq[0]);if(prev!==null){var dq=ar-prev;dq-=2*Math.PI*Math.round(dq/(2*Math.PI));wind+=dq;}prev=ar;}
+  wind=Math.round(wind/(2*Math.PI)*1000)/1000;window.E96TRICHK={wind:wind,clo:clo,bad:bad,sup:R.sup,count:R.count,rejDisc:R.rejDisc,half:R.half};
+  if(wind!==3||!(clo<1e-7)||bad){E96TRI=null;dirty=true;return 'triangles not drawn: the chart data are not accurate enough at this component (winding number of Φ around the center '+wind+', expected 3; marked cycle closes to '+clo.toExponential(1)+')';}
+  var N=R.N,cvs=document.createElement('canvas');cvs.width=cvs.height=N;var g=cvs.getContext('2d'),im=g.createImageData(N,N),PAL=[[42,120,214],[235,104,52],[27,175,122],[237,161,0],[232,123,164],[127,63,191],[160,82,45],[0,150,160]];
+  var base=PAL[(b.slot-1)%8],col=[base.map(function(v){return Math.round(v+0.45*(255-v));}),base,base.map(function(v){return Math.round(0.55*v);})],NP=16,occ=new Uint8Array(NP*NP);
+  for(var iy=0;iy<N;iy++)for(var ix=0;ix<N;ix++){var i=iy*N+ix,py=N-1-iy,o=4*(py*N+ix);if(R.st[i]!==1)continue;var wx=R.W[2*i],wy=R.W[2*i+1],m=Math.hypot(wx,wy),kt=BTRI.tri(wx,wy),k=kt[0],t=kt[1];
+    var c=col[k],a=215,d0=Math.min(t,1-t),dh=Math.abs(t-0.5),ph=m*m*m;
+    if(d0*m<0.006){c=[255,255,255];a=255;}else if(dh*m<0.004){c=[20,20,20];a=220;}else if(Math.abs(ph-0.5)<0.012||Math.abs(ph-0.25)<0.008||Math.abs(ph-0.75)<0.012){c=c.map(function(v){return Math.round(0.8*v);});a=235;}
+    im.data[o]=c[0];im.data[o+1]=c[1];im.data[o+2]=c[2];im.data[o+3]=a;occ[Math.min(NP-1,Math.floor(py*NP/N))*NP+Math.min(NP-1,Math.floor(ix*NP/N))]=1;}
+  g.putImageData(im,0,0);E96TRI={cvs:cvs,N:N,x0:R.x0,y0:R.y0,dx:R.dx,Mb:Mq(b.pd),b:b,NP:NP,occ:occ,R:R,mapOf:mapOf,rays:[]};dirty=true;
+  return 'triangles (W = Φ^(1/3)): light / medium / dark shade of the phase color of the component, white lines = internal rays of angle 0, dark = angle 1/2, rings |Φ| = 1/4, 1/2, 3/4; '+R.count+' grid points, sup |W| = '+R.sup.toFixed(3);}
+/* image pixel corner (px, py) -> s; s -> screen in tile W */
+function e96triS(T3,px,py){return[T3.x0+(px-0.5)*T3.dx,T3.y0+(T3.N-1-py+0.5)*T3.dx];}
+function e96triDraw(){var T3=E96TRI,N=T3.N,NP=T3.NP,err=0;
+  for(var ti=0;ti<tiles.length;ti++){var Wt=tiles[ti].W,c0=ap(Wt,ap(T3.Mb,[0,0])),sc=1-cabs2(c0);if(sc<0.02)continue;var pc=diskToScreen(c0);if(pc[0]<-W_||pc[1]<-H_||pc[0]>2*W_||pc[1]>2*H_)continue;
+    var S=function(px,py){return diskToScreen(ap(Wt,ap(T3.Mb,e96triS(T3,px,py))));};
+    for(var j=0;j<NP;j++)for(var i=0;i<NP;i++){if(!T3.occ[j*NP+i])continue;var a0=Math.floor(i*N/NP),a1=Math.floor((i+1)*N/NP),b0=Math.floor(j*N/NP),b1=Math.floor((j+1)*N/NP);
+      var P00=S(a0,b0),P10=S(a1,b0),P01=S(a0,b1),ux=(P10[0]-P00[0])/(a1-a0),uy=(P10[1]-P00[1])/(a1-a0),vx=(P01[0]-P00[0])/(b1-b0),vy=(P01[1]-P00[1])/(b1-b0);
+      if(!isFinite(ux+uy+vx+vy))continue;if(window.E96TRIERR){var mx=(a0+a1)/2,my=(b0+b1)/2,Pm=S(a1,b1),ex=P00[0]+ux*(a1-a0)+vx*(b1-b0)-Pm[0],ey=P00[1]+uy*(a1-a0)+vy*(b1-b0)-Pm[1];err=Math.max(err,Math.hypot(ex,ey));}
+      g2.save();g2.setTransform(ux,uy,vx,vy,P00[0]-ux*a0-vx*b0,P00[1]-uy*a0-vy*b0);g2.imageSmoothingEnabled=true;g2.drawImage(T3.cvs,a0,b0,a1-a0+0.5,b1-b0+0.5,a0,b0,a1-a0+0.5,b1-b0+0.5);g2.restore();}}
+  if(window.E96TRIERR)window.E96TRIERR.max=err;}
+/* internal rays (REGISTRATION addendum 2026-11-11 (m)) */
+function e96rayDraw(){var T3=E96TRI;g2.textAlign='left';g2.textBaseline='middle';
+  for(var ti=0;ti<tiles.length;ti++){var Wt=tiles[ti].W,c0=ap(Wt,ap(T3.Mb,[0,0]));if(1-cabs2(c0)<0.02)continue;var S=function(q){return diskToScreen(ap(Wt,ap(T3.Mb,q)));};
+    T3.rays.forEach(function(r){g2.beginPath();r.pts.forEach(function(q,i){var p=S([q[1],q[2]]);if(i)g2.lineTo(p[0],p[1]);else g2.moveTo(p[0],p[1]);});var e=S(r.point);g2.lineTo(e[0],e[1]);
+      g2.lineWidth=3.5*dpr;g2.strokeStyle='rgba(0,0,0,.8)';g2.stroke();g2.lineWidth=1.6*dpr;g2.strokeStyle='#ffe14d';g2.stroke();
+      g2.beginPath();g2.arc(e[0],e[1],5*dpr,0,2*Math.PI);g2.fillStyle=r.exact?'#ffe14d':'rgba(0,0,0,0)';g2.fill();g2.lineWidth=2*dpr;g2.strokeStyle=r.exact?'#141414':'#ffe14d';g2.stroke();
+      var t='△'+r.k+' '+r.text;g2.font='500 '+Math.round(10*dpr)+'px system-ui';g2.lineWidth=2.5*dpr;g2.strokeStyle='rgba(0,0,0,.85)';g2.strokeText(t,e[0]+8*dpr,e[1]);g2.fillStyle='#ffe14d';g2.fillText(t,e[0]+8*dpr,e[1]);});}}
+function e96ray(text){var out=document.getElementById('e96btao');if(!E96TRI){out.textContent='select a bitransitive center first (toggle j, click a diamond; the triangles must be drawn)';return[];}
+  var m=String(text).trim().match(/^(\S+)(?:\s+([012]))?$/),ang=m?PM.parseAngle(m[1]==='0'?'0/1':m[1]==='1'?'1/1':m[1]):null;if(!ang){out.textContent='enter: angle [triangle 0, 1 or 2], e.g. 1/4 2';return[];}
+  var T3=E96TRI,b=T3.b,ks=m[2]!==undefined?[+m[2]]:[0,1,2],lines=[],first=null,res=[];
+  ks.forEach(function(k){var r=BTRI.boundaryPoint(T3.mapOf,[0,0],b.slot,k,ang,8>=7?{kappa:T3.R.kappa,dx:T3.R.dx,tol:1e-8,hrel:1e-4,resTol:1e-6,pstep:1e-5*T3.R.half}:{kappa:T3.R.kappa,dx:T3.R.dx});/* Per_7, Per_8: the chart data limit the precision (log.md 2026-11-11) */if(r.fail){lines.push('triangle '+k+': '+r.fail);return;}
+    var L=chartLookup(fold(ap(T3.Mb,r.point)));if(!L||!isFinite(L.x[0]+L.x[1]+L.y[0]+L.y[1])){lines.push('triangle '+k+': the end of the ray is outside the charts');return;}
+    r.text=m[1];r.x=L.x;r.y=L.y;var Mm=T3.mapOf(r.point);r.clo=Mm?PM.closure(Mm):NaN;T3.rays.push(r);res.push(r);if(!first)first=r;
+    lines.push('triangle '+k+', angle '+m[1]+': '+(r.exact?'boundary point x = '+PM.fmt(r.x,10)+', y = '+PM.fmt(r.y,10)+' (critical orbit lands on a repelling cycle after '+r.pp[0]+' return'+(r.pp[0]>1?'s':'')+'; |multiplier| '+r.mult.toFixed(3)+', residual '+r.res.toExponential(1)+', '+r.gap.toExponential(1)+' from the end of the ray in the disk coordinate)'
+      :(1-r.rho>1e-3?'NO boundary point: the ray could not be continued beyond |W| = '+r.rho.toFixed(3)+' (precision of the chart data); it stops at x = ':'ray followed to 1 − |W| = '+(1-r.rho).toExponential(1)+': x = ')+PM.fmt(r.x,8)+', y = '+PM.fmt(r.y,8)+'; still moving ('+(r.drift===null?'?':r.drift.toExponential(1))+' over the last decade)'+(r.pp&&r.pp[0]===0?'; periodic angle: exact landing point not solved':'')));});
+  out.textContent=lines.join('\n');dirty=true;
+  if(first)parent.postMessage({e96:'param',x:first.x,y:first.y,label:'internal ray of the bitransitive component ω = a'+b.slot+'\n'+lines.join('\n')},'*');return res;}
+window.E96TEST_ray=function(t){return e96ray(t).map(function(r){return{k:r.k,exact:r.exact,x:r.x,y:r.y,rho:r.rho,drift:r.drift,mult:r.mult,res:r.res,gap:r.gap,clo:r.clo,why:r.why};});};
+(function(){var el=document.getElementById('e96bta');el.addEventListener('keydown',function(e){if(e.key==='Enter'){e96ray(el.value);e.preventDefault();}else if(e.key==='Escape')el.blur();e.stopPropagation();});
+  document.getElementById('e96btac').onclick=function(){if(E96TRI)E96TRI.rays=[];document.getElementById('e96btao').textContent='';dirty=true;};})();
+window.E96TEST_tri=function(i){var b=E96BT[i];if(!b)return null;window.E96TRICHK=null;var t=e96tri(b);return{text:t,chk:window.E96TRICHK,drawn:!!E96TRI,pd:b.pd,slot:b.slot};};
 function e96btText(b){var by={};b.src.forEach(function(s){var k=s.f+'·x'+s.i;(by[k]=by[k]||[]).push(s.side);});
   return 'bitransitive center (ω = a'+b.slot+'): periodic captures '+Object.keys(by).map(function(k){return k+' ('+by[k].join(',')+')';}).join(', ');}
-function e96btToggle(on){E96BTON=on;dirty=true;var el=document.getElementById('e96btn');
+function e96btToggle(on){E96BTON=on;dirty=true;if(!on)E96TRI=null;var el=document.getElementById('e96btn');
   if(!on||E96BT)return;E96BT=[];fetch('../bitrans_n8.json').then(function(r){return r.ok?r.json():[];}).then(function(D){var i=0,bad=0;
     (function next(){var t0=performance.now();while(i<D.length&&performance.now()-t0<60){var b=D[i++];if(!b.x||!b.y)continue;var L=e96locate(b.x,b.y);if(L&&L.res<1e-4){b.pd=L.p;b.first=b.src[0].f+'·x'+b.src[0].i+(b.src.length>1?'…':'');E96BT.push(b);}else bad++;}
       if(el&&!D.length){el.textContent=' (table for this model not computed yet)';return;}if(el)el.textContent=' '+E96BT.length+' placed'+(bad?', '+bad+' not located':'')+(i<D.length?' ('+i+'/'+D.length+'…)':' of '+D.length);dirty=true;if(i<D.length)setTimeout(next,0);})();});}
-(function(){var _d2=drawOverlay;drawOverlay=function(){_d2();if(!E96BTON||!E96BT)return;g2.textAlign='left';g2.textBaseline='middle';
+(function(){var _d2=drawOverlay;drawOverlay=function(){_d2();if(!E96BTON||!E96BT)return;if(E96TRI){e96triDraw();if(E96TRI.rays.length)e96rayDraw();}g2.textAlign='left';g2.textBaseline='middle';
   for(var ti=0;ti<tiles.length;ti++)for(var bi=0;bi<E96BT.length;bi++){var b=E96BT[bi],s=ap(tiles[ti].W,b.pd),sc=1-cabs2(s);if(sc<0.02)continue;var p=diskToScreen(s);if(p[0]<-10||p[1]<-10||p[0]>W_+10||p[1]>H_+10)continue;
     var r=Math.max(1.5*dpr,Math.min(6*dpr,6*dpr*sc*Math.pow(zoom,0.35)));g2.beginPath();g2.moveTo(p[0],p[1]-r);g2.lineTo(p[0]+r,p[1]);g2.lineTo(p[0],p[1]+r);g2.lineTo(p[0]-r,p[1]);g2.closePath();
     g2.fillStyle='#00e5ff';g2.fill();g2.strokeStyle='#141414';g2.lineWidth=dpr;g2.stroke();
     if(opt.ml&&r>4.5*dpr){g2.font='500 '+Math.round(10*dpr)+'px system-ui';g2.lineWidth=2.5*dpr;g2.strokeStyle='rgba(0,0,0,.85)';g2.strokeText(b.first,p[0]+r+2*dpr,p[1]);g2.fillStyle='#9ff3ff';g2.fillText(b.first,p[0]+r+2*dpr,p[1]);}}};
 cv.addEventListener('click',function(e){if(!E96BTON||!E96BT||!E96BT.length)return;var s=screenToDisk(e.clientX,e.clientY);if(cabs2(s)>=1)return;var q=fold(ap(V,s)),best=null,bd=12*dpr*2/((1-cabs2(s))*Rpx*zoom);
-  E96BT.forEach(function(b){var d=hdist(q,b.pd);if(d<bd){bd=d;best=b;}});if(best)setTimeout(function(){parent.postMessage({e96:'param',x:best.x,y:best.y,label:e96btText(best)},'*');},50);});})();
+  E96BT.forEach(function(b){var d=hdist(q,b.pd);if(d<bd){bd=d;best=b;}});if(best)setTimeout(function(){var tt='';try{tt='\n'+e96tri(best);}catch(err){tt='\ntriangles: '+err.message;}parent.postMessage({e96:'param',x:best.x,y:best.y,label:e96btText(best)+tt},'*');},50);});})();
 </script>
 <script>/* E96: Shift + drag = zoom to the dragged rectangle (Caroline 2026-11-11). Capture phase, so the viewer's own pan / click handlers do not see it. */
 (function(){var r0=null,box=document.createElement('div');box.style.cssText='position:absolute;border:1.5px dashed #fff;outline:1px dashed #000;pointer-events:none;display:none;z-index:8';view.appendChild(box);
@@ -789,9 +838,10 @@ Object.keys(K).forEach(function(k){var el=document.getElementById(K[k]);if(!el)r
 var pi=document.getElementById('pit');if(pi&&pi.parentNode.previousElementSibling)pi.parentNode.previousElementSibling.innerHTML+=' (+ / −)';
 function key(k){if(K[k]){var el=document.getElementById(K[k]);if(!el)return true;el.checked=!el.checked;if(el.onchange)el.onchange({target:el});else el.dispatchEvent(new Event('change'));return true;}
 if(k==='+'||k==='='||k==='-'){if(!pi)return true;pi.value=Math.max(+pi.min,Math.min(+pi.max,+pi.value+(k==='-'?-1:1)*100));pi.dispatchEvent(new Event('input'));if(pi.oninput)0;return true;}
+if(k==='a'){if(document.body.classList.contains('e96min'))document.getElementById('e96tog').click();window.focus();var ia=document.getElementById('e96bta');if(ia){ia.focus();ia.select();}return true;}
 if(k==='t'||k==='i'||k==='u'||k==='c'){parent.postMessage({e96:'key',key:k},'*');return true;}return false;}
 window.addEventListener('keydown',function(e){var t=e.target;if((t.tagName==='INPUT'&&t.type!=='checkbox'&&t.type!=='range')||t.tagName==='SELECT'||e.metaKey||e.ctrlKey||e.altKey)return;if(key(e.key))e.preventDefault();});
-window.addEventListener('message',function(ev){var d=ev.data;if(d&&d.e96==='key'&&'rgepj'.indexOf(d.key)>=0)key(d.key);});})();
+window.addEventListener('message',function(ev){var d=ev.data;if(d&&d.e96==='key'&&'rgepja'.indexOf(d.key)>=0)key(d.key);});})();
 </script>
 <script>/* E96: chart inversion + mating markers (REGISTRATION addendum 2026-11-10 (b)) */
 var E96MARKS=[];

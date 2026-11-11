@@ -33,7 +33,7 @@ var BTRI = (function () {
   function tri(wx, wy) { var a = Math.atan2(wy, wx); if (a < 0) a += 2*Math.PI; var s = a/(2*Math.PI/3), k = Math.min(2, Math.floor(s)); return [k, s - k]; }
   // ---- internal ray (REGISTRATION addendum 2026-11-11 (k)). k: triangle (0, 1, 2); t: internal angle in [0, 1). opts.kappa, opts.dx: from fill (same labels as the overlay).
   function ray(mapOf, b, j, k, t, opts) {
-    opts = opts || {}; var KU = 48, TWO = 2*Math.PI, th = TWO*(k + t)/3, dir = [Math.cos(th), Math.sin(th)];
+    opts = opts || {}; var KU = 48, TOL = opts.tol || 1e-11, HREL = opts.hrel || 1e-6, TWO = 2*Math.PI, th = TWO*(k + t)/3, dir = [Math.cos(th), Math.sin(th)];
     var fac = function (p) { var M = mapOf(p); return M ? PM.bitransFactors(M, j, KU) : null; };
     var roots = function (P) { var m = Math.cbrt(Math.hypot(P[0], P[1])), a0 = Math.atan2(P[1], P[0]), a = (a0 < -Math.PI + 1e-6 ? a0 + TWO : a0)/3, o = []; for (var i = 0; i < 3; i++) o.push([m*Math.cos(a + TWO*i/3), m*Math.sin(a + TWO*i/3)]); return o; };
     // W at p: arguments continued from Aref (null: principal), cube root nearest to Wpred
@@ -53,14 +53,14 @@ var BTRI = (function () {
     for (var s = 1; s <= ns; s++) { var be = al*s/ns; p = [b[0] + dx*Math.cos(be), b[1] + dx*Math.sin(be)]; var pred = [kappa[0]*(p[0] - b[0]) - kappa[1]*(p[1] - b[1]), kappa[0]*(p[1] - b[1]) + kappa[1]*(p[0] - b[0])];
       e0 = ev(p, A, pred); if (!e0) return { fail: 'no value on the small circle' }; A = e0.A; W = e0.W; }
     // march in rho
-    var rho = Math.hypot(W[0], W[1]), pts = [], hs = 1e-6/Math.sqrt(kap2), step = 0.02, nev = 0, why = 'reached 1 - rho < 1e-8';
+    var rho = Math.hypot(W[0], W[1]), pts = [], hs = HREL/Math.sqrt(kap2), step = 0.02, nev = 0, why = 'reached 1 - rho < 1e-8';
     var newton = function (p0, A0, Wt) { var q = p0.slice(), cur = ev(q, A0, Wt); nev++; if (!cur) return null;
-      for (var i = 0; i < 12; i++) { var r = [cur.W[0] - Wt[0], cur.W[1] - Wt[1]], rm = Math.hypot(r[0], r[1]); if (rm < 1e-11) return { p: q, A: cur.A, W: cur.W, res: rm };
+      for (var i = 0; i < 12; i++) { var r = [cur.W[0] - Wt[0], cur.W[1] - Wt[1]], rm = Math.hypot(r[0], r[1]); if (rm < TOL) return { p: q, A: cur.A, W: cur.W, res: rm };
         var h = hs*Math.max(1e-3, Math.min(1, 1 - Math.hypot(Wt[0], Wt[1]))), e1 = ev([q[0] + h, q[1]], cur.A, cur.W); nev++; if (!e1) return null;
         var D = [(e1.W[0] - cur.W[0])/h, (e1.W[1] - cur.W[1])/h], dd = D[0]*D[0] + D[1]*D[1]; if (!(dd > 0)) return null;
         var dp = [(r[0]*D[0] + r[1]*D[1])/dd, (r[1]*D[0] - r[0]*D[1])/dd]; q = [q[0] - dp[0], q[1] - dp[1]];
-        var nx = ev(q, cur.A, Wt); nev++; if (!nx || nx.jump > 1.5) return null; if (i >= 3 && Math.hypot(nx.W[0] - Wt[0], nx.W[1] - Wt[1]) > 0.5*rm && rm > 1e-9) return null; cur = nx; }
-      r = Math.hypot(cur.W[0] - Wt[0], cur.W[1] - Wt[1]); return r < 1e-8 ? { p: q, A: cur.A, W: cur.W, res: r } : null; };
+        var nx = ev(q, cur.A, Wt); nev++; if (!nx || nx.jump > 1.5) return null; if (i >= 3 && Math.hypot(nx.W[0] - Wt[0], nx.W[1] - Wt[1]) > 0.5*rm && rm > 100*TOL) return null; cur = nx; }
+      r = Math.hypot(cur.W[0] - Wt[0], cur.W[1] - Wt[1]); return r < 1000*TOL ? { p: q, A: cur.A, W: cur.W, res: r } : null; };
     // first: correct the starting point onto the ray at its own rho
     var st = newton(p, A, [rho*dir[0], rho*dir[1]]); if (!st) return { fail: 'could not get onto the ray near the center' }; p = st.p; A = st.A; pts.push([rho, p[0], p[1]]);
     for (var guard = 0; guard < 4000; guard++) { if (1 - rho < 1e-8) break; var dr = Math.min(step, (1 - rho)/4), r1 = rho + dr, sN = newton(p, A, [r1*dir[0], r1*dir[1]]);
@@ -73,8 +73,8 @@ var BTRI = (function () {
   // preperiod a and period q of the angle {p, q} (BigInt) under doubling
   function prePer(ang) { var seen = new Map(), x = ang.p % ang.q, i = 0; while (!seen.has(x)) { seen.set(x, i++); x = (2n*x) % ang.q; if (i > 4000) return null; } var a = seen.get(x); return [a, i - a]; }
   // Newton on F^(a+q)(v) = F^a(v) from p0
-  function polish(mapOf, j, a, q, p0) {
-    var g = function (p) { var M = mapOf(p); return M ? PM.bitransDiff(M, j, a, q) : null; }, p = p0.slice(), sc = 1e-7*(1 + Math.hypot(p0[0], p0[1])), r = null;
+  function polish(mapOf, j, a, q, p0, step) {
+    var g = function (p) { var M = mapOf(p); return M ? PM.bitransDiff(M, j, a, q) : null; }, p = p0.slice(), sc = step || 1e-7*(1 + Math.hypot(p0[0], p0[1])), r = null;
     for (var i = 0; i < 40; i++) { var g0 = g(p); if (!g0) return null; r = Math.hypot(g0[0], g0[1]); if (r < 1e-13) break; var g1 = g([p[0] + sc, p[1]]); if (!g1) return null;
       var D = [(g1[0] - g0[0])/sc, (g1[1] - g0[1])/sc], dd = D[0]*D[0] + D[1]*D[1]; if (!(dd > 0)) return null; var dp = [(g0[0]*D[0] + g0[1]*D[1])/dd, (g0[1]*D[0] - g0[0]*D[1])/dd];
       p = [p[0] - dp[0], p[1] - dp[1]]; if (!isFinite(p[0] + p[1])) return null; if (Math.hypot(dp[0], dp[1]) < 1e-15*(1 + Math.hypot(p[0], p[1]))) { var gl = g(p); r = gl ? Math.hypot(gl[0], gl[1]) : NaN; break; } }
@@ -101,8 +101,8 @@ var BTRI = (function () {
   // close to the ray end). Periodic angles: the ray end only (polishPar is NOT validated and not used: log.md 2026-11-11 (d)).
   function boundaryPoint(mapOf, b, j, k, ang, opts) {
     var t = Number(ang.p)/Number(ang.q), r = ray(mapOf, b, j, k, t, opts); if (r.fail) return r; var pp = prePer(ang); r.t = t; r.k = k; r.pp = pp; r.exact = false; r.point = r.end;
-    if (pp && pp[0] > 0) { var P = polish(mapOf, j, pp[0], pp[1], r.end);
-      if (P && P.res < 1e-10 && Math.hypot(P.p[0] - r.end[0], P.p[1] - r.end[1]) <= 100*(r.drift || 0) + 1e-9) { var M = mapOf(P.p), n = M.marked.length, z = M.omega, i; for (i = 0; i < n - j + n*pp[0]; i++) z = PM.fz(M, z);
+    if (pp && pp[0] > 0) { var P = polish(mapOf, j, pp[0], pp[1], r.end, opts && opts.pstep);
+      if (P && P.res < ((opts && opts.resTol) || 1e-10) && Math.hypot(P.p[0] - r.end[0], P.p[1] - r.end[1]) <= 100*(r.drift || 0) + 1e-9) { var M = mapOf(P.p), n = M.marked.length, z = M.omega, i; for (i = 0; i < n - j + n*pp[0]; i++) z = PM.fz(M, z);
         var Fq = function (w) { for (var i = 0; i < n*pp[1] && w; i++) w = PM.fz(M, w); return w; }, h = 1e-6*(Math.hypot(z[0], z[1]) || 1), z2 = Fq([z[0] + h, z[1]]), z3 = Fq([z[0] - h, z[1]]);
         var mult = z2 && z3 ? Math.hypot(z2[0] - z3[0], z2[1] - z3[1])/(2*h) : NaN; if (mult > 1) { r.exact = true; r.point = P.p; r.mult = mult; r.res = P.res; r.gap = Math.hypot(P.p[0] - r.end[0], P.p[1] - r.end[1]); } } }
     return r;

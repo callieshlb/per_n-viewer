@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261111080056').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261111192901').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261111080056').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261111192901').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -59,7 +59,7 @@
     for (const k of ks) { const r = BTRI.boundaryPoint(TRI.mapOf, b.p, b.slot, k, ang, { kappa: TRI.kappa, dx: TRI.dx });
       if (r.fail) { lines.push(`triangle ${k}: ${r.fail}`); continue; } r.text = m[1]; IRAYS.push(r); if (!first) first = r;
       lines.push(`triangle ${k}, angle ${m[1]}: ` + (r.exact ? `boundary point ${PM.fmt(r.point, 10)} (critical orbit lands on a repelling cycle after ${r.pp[0]} return${r.pp[0] > 1 ? 's' : ''}; |multiplier| ${r.mult.toFixed(3)}, residual ${r.res.toExponential(1)}, ${r.gap.toExponential(1)} from the ray's end)`
-        : `ray followed to 1 − |W| = ${(1 - r.rho).toExponential(1)}: ${PM.fmt(r.end, 8)}; still moving (${r.drift === null ? '?' : r.drift.toExponential(1)} over the last decade)` + (r.pp && r.pp[0] === 0 ? '; periodic angle: exact landing point not solved' : ''))); }
+        : (1 - r.rho > 1e-3 ? `NO boundary point: the ray could not be continued beyond |W| = ${r.rho.toFixed(3)}; it stops at ` : `ray followed to 1 − |W| = ${(1 - r.rho).toExponential(1)}: `) + `${PM.fmt(r.end, 8)}; still moving (${r.drift === null ? '?' : r.drift.toExponential(1)} over the last decade)` + (r.pp && r.pp[0] === 0 ? '; periodic angle: exact landing point not solved' : ''))); }
     out.textContent = lines.join('\n'); pv.redraw();
     if (first) { picked = first.point; let x = null, y = null; if (torus) { const P = PM.torusXY(first.point); x = P.x; y = P.y; }
       parent.postMessage({ e96: 'param', model: id, p: first.point, x, y, label: `internal ray of the bitransitive component ω = a${b.slot} at ${PM.fmt(b.p, 5)}\n` + lines.join('\n') }, '*'); }
