@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261111025023').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261111080056').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261111025023').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261111080056').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -21,11 +21,12 @@
   function paneKey(key) {
     if (PKEY[key]) { const el = $(PKEY[key]); if (!el || el.style.display === 'none') return true; el.checked = !el.checked; el.dispatchEvent(new Event('change')); return true; }
     if (key === '+' || key === '=' || key === '-') { const el = $('pit'); el.value = Math.max(+el.min, Math.min(+el.max, +el.value + (key === '-' ? -1 : 1)*100)); el.dispatchEvent(new Event('input')); return true; }
+    if (key === 'a') { $('side').classList.remove('min'); $('minb').textContent = '–'; window.focus(); $('bta').focus(); $('bta').select(); return true; }
     if (key === 't' || key === 'i' || key === 'u' || key === 'c') { parent.postMessage({ e96: 'key', key }, '*'); return true; }
     return false;
   }
   window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return; if (paneKey(e.key)) e.preventDefault(); });
-  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && 'rgepj'.includes(d.key)) paneKey(d.key); });
+  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && 'rgepja'.includes(d.key)) paneKey(d.key); });
   window.E96TEST_bt = pk => { if (!BT || !BT.length) return null; let b = BT[0]; if (pk) b = BT.reduce((u, v) => Math.hypot(v.p[0] - pk[0], v.p[1] - pk[1]) < Math.hypot(u.p[0] - pk[0], u.p[1] - pk[1]) ? v : u); pv.ctr = b.p.slice(); pv.redraw(); return pv.toScreen(b.p); };
   window.E96TEST_view = () => ({ ctr: pv.ctr, upp: pv.upp });
   $('minb').onclick = () => { $('side').classList.toggle('min'); $('minb').textContent = $('side').classList.contains('min') ? '+' : '–'; };
@@ -45,10 +46,32 @@
       else if (dh*m < 0.004) { c = [20, 20, 20]; a = 220; }                            // internal rays of angle 1/2
       else if (Math.abs(ph - 0.5) < 0.012 || Math.abs(ph - 0.25) < 0.008 || Math.abs(ph - 0.75) < 0.012) { c = c.map(v => Math.round(0.8*v)); a = 235; }   // |Phi| = 1/4, 1/2, 3/4
       im.data[o] = c[0]; im.data[o + 1] = c[1]; im.data[o + 2] = c[2]; im.data[o + 3] = a; }
-    g.putImageData(im, 0, 0); TRI = { cvs, x0: R.x0, y0: R.y0, size: (R.N - 1)*R.dx, b };
+    g.putImageData(im, 0, 0); TRI = { cvs, x0: R.x0, y0: R.y0, size: (R.N - 1)*R.dx, b, kappa: R.kappa, dx: R.dx, mapOf }; IRAYS = [];
     return `triangles (W = Φ^(1/3)): light / medium / dark shade of the component's phase color, white lines = internal rays of angle 0, dark = angle 1/2, rings |Φ| = 1/4, 1/2, 3/4; ${R.count} grid points, sup |W| = ${R.sup.toFixed(3)}`;
   }
-  $('bt').onchange = async e => { BTON = e.target.checked; if (!BTON) TRI = null;
+  // (d) boundary point of the selected bitransitive component from an internal angle and a triangle index (REGISTRATION addendum 2026-11-11 (k)); key a
+  let IRAYS = [];
+  function internalRay(text) {
+    const out = $('btao');
+    if (!TRI) { out.textContent = 'select a bitransitive center first (toggle j, click a diamond)'; return; }
+    const m = String(text).trim().match(/^(\S+)(?:\s+([012]))?$/), ang = m ? PM.parseAngle(m[1] === '0' ? '0/1' : m[1] === '1' ? '1/1' : m[1]) : null; if (!ang) { out.textContent = 'enter: angle [triangle 0, 1 or 2], e.g. 1/4 2'; return; }
+    const ks = m[2] !== undefined ? [+m[2]] : [0, 1, 2], b = TRI.b, lines = []; let first = null;
+    for (const k of ks) { const r = BTRI.boundaryPoint(TRI.mapOf, b.p, b.slot, k, ang, { kappa: TRI.kappa, dx: TRI.dx });
+      if (r.fail) { lines.push(`triangle ${k}: ${r.fail}`); continue; } r.text = m[1]; IRAYS.push(r); if (!first) first = r;
+      lines.push(`triangle ${k}, angle ${m[1]}: ` + (r.exact ? `boundary point ${PM.fmt(r.point, 10)} (critical orbit lands on a repelling cycle after ${r.pp[0]} return${r.pp[0] > 1 ? 's' : ''}; |multiplier| ${r.mult.toFixed(3)}, residual ${r.res.toExponential(1)}, ${r.gap.toExponential(1)} from the ray's end)`
+        : `ray followed to 1 − |W| = ${(1 - r.rho).toExponential(1)}: ${PM.fmt(r.end, 8)}; still moving (${r.drift === null ? '?' : r.drift.toExponential(1)} over the last decade)` + (r.pp && r.pp[0] === 0 ? '; periodic angle: exact landing point not solved' : ''))); }
+    out.textContent = lines.join('\n'); pv.redraw();
+    if (first) { picked = first.point; let x = null, y = null; if (torus) { const P = PM.torusXY(first.point); x = P.x; y = P.y; }
+      parent.postMessage({ e96: 'param', model: id, p: first.point, x, y, label: `internal ray of the bitransitive component ω = a${b.slot} at ${PM.fmt(b.p, 5)}\n` + lines.join('\n') }, '*'); }
+  }
+  function drawIRays(g, W, H, offs) { for (const o of offs) for (const r of IRAYS) { g.beginPath(); r.pts.forEach((q, i) => { const s = pv.toScreen([q[1] + o[0], q[2] + o[1]]); if (i) g.lineTo(s[0], s[1]); else g.moveTo(s[0], s[1]); });
+      const e = pv.toScreen([r.point[0] + o[0], r.point[1] + o[1]]); g.lineTo(e[0], e[1]); g.lineWidth = 3.5; g.strokeStyle = 'rgba(0,0,0,.8)'; g.stroke(); g.lineWidth = 1.6; g.strokeStyle = '#ffe14d'; g.stroke();
+      g.beginPath(); g.arc(e[0], e[1], 5, 0, 2*Math.PI); g.fillStyle = r.exact ? '#ffe14d' : 'rgba(0,0,0,0)'; g.fill(); g.lineWidth = 2; g.strokeStyle = r.exact ? '#141414' : '#ffe14d'; g.stroke();
+      g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; const t = `△${r.k} ${r.text}`; g.strokeText(t, e[0] + 8, e[1]); g.fillStyle = '#ffe14d'; g.fillText(t, e[0] + 8, e[1]); } }
+  window.E96TEST_iray = t => { internalRay(t); return IRAYS.map(r => ({ k: r.k, t: r.t, exact: r.exact, point: r.point, rho: r.rho, n: r.pts.length })); };
+  $('bta').addEventListener('keydown', e => { if (e.key === 'Enter') { internalRay($('bta').value); e.preventDefault(); } else if (e.key === 'Escape') $('bta').blur(); e.stopPropagation(); });
+  $('btac').onclick = () => { IRAYS = []; $('btao').textContent = ''; pv.redraw(); };
+  $('bt').onchange = async e => { BTON = e.target.checked; if (!BTON) { TRI = null; IRAYS = []; }
     if (BTON && !BT) { const D = await fetch(`models/bitrans_n${E.n}.json`).then(r => r.ok ? r.json() : []).catch(() => []); BT = D.filter(b => b.p);
       $('btn').textContent = `${BT.length} shown` + (D.length > BT.length ? `, ${D.length - BT.length} at ∞ of this chart` : ''); }
     pv.redraw(); };
@@ -117,6 +140,7 @@
     if (BTON && BT) { for (const o of offs) for (const b of BT) { const s = pv.toScreen([b.p[0] + o[0], b.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
         g.beginPath(); g.moveTo(s[0], s[1] - 5); g.lineTo(s[0] + 5, s[1]); g.lineTo(s[0], s[1] + 5); g.lineTo(s[0] - 5, s[1]); g.closePath(); g.fillStyle = '#00e5ff'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1; g.stroke();
         if (opt.ml) { const t = b.src[0].f + '·x' + b.src[0].i + (b.src.length > 1 ? '…' : ''); g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, s[0] + 7, s[1]); g.fillStyle = '#9ff3ff'; g.fillText(t, s[0] + 7, s[1]); } } }
+    if (BTON && IRAYS.length) drawIRays(g, W, H, offs);
     if (RAYS.length) drawRays(g, W, H);
     if (E.rays) drawPerN(g, W, H);
     const VL = [];                                        // vein labels already drawn (skip overlapping ones)

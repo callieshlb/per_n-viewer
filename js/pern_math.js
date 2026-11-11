@@ -370,27 +370,46 @@ var PM = (function () {
   }
   // ---- bitransitive coordinate Phi (REGISTRATION addendum 2026-11-11 (j)). M: map; j: omega is in the immediate basin component of a_j (1 <= j <= n-1).
   // Returns Phi = Boettcher coordinate (of f^n at a_0) of v = f^(n-j)(omega), or null.
-  function bitransFactors(M, j) {
+  function bitransFactors(M, j, ku) {
     var n = M.marked.length, T = M.marked[0] === null || M.marked[1] !== null ? moebius3([M.marked[0], M.marked[1], n >= 3 ? M.marked[2] : M.omega], [[0, 0], null, [1, 0]]) : function (z) { return z; };
     var Ti = M.marked[0] === null || M.marked[1] !== null ? moebius3([[0, 0], null, [1, 0]], [M.marked[0], M.marked[1], n >= 3 ? M.marked[2] : M.omega]) : function (z) { return z; };
     var F = function (w) { var z = Ti(w); for (var i = 0; i < n; i++) z = fz(M, z); return T(z); };
-    var h = 1e-4, fp = F([h, 0]), fm = F([-h, 0]); if (fp === null || fm === null) return null; var c2 = cscale(cadd(fp, fm), 1/(2*h*h));
+    // c_2 (F(w) = c_2 w^2 + ...) by a 16-point Cauchy sum on a circle that F maps well inside itself (addendum (k): the earlier central difference with
+    // h = 1e-4 carried ~1e-8 relative rounding noise, which stopped the Newton continuation along internal rays; FAILURE kept in log.md)
+    var c2 = null, h = 0.1, NC = 16, CM = null, m;
+    for (var tr = 0; tr < 12 && !c2; tr++, h /= 2) { var S = [], ok = true; for (m = 0; m < 10; m++) S.push([0, 0]);
+      for (var q = 0; q < NC; q++) { var v = F([h*Math.cos(2*Math.PI*q/NC), h*Math.sin(2*Math.PI*q/NC)]); if (v === null || !(cabs(v) < 0.5*h)) { ok = false; break; }
+        for (m = 0; m < 10; m++) { var cm = Math.cos(2*Math.PI*q*m/NC), sm = Math.sin(2*Math.PI*q*m/NC); S[m][0] += v[0]*cm + v[1]*sm; S[m][1] += v[1]*cm - v[0]*sm; } }
+      if (ok) { CM = S.map(function (x, mm) { return cscale(x, 1/(NC*Math.pow(h, mm))); }); c2 = CM[2]; } }
+    if (!c2) return null;
+    var hT = h*2/40, RT = CM.slice(2).map(function (x) { return cdiv(x, c2); });      // h was halved once more by the loop header; Taylor evaluation below |w| < hT
+    var rTay = function (w) { var acc = RT[7]; for (var mm = 6; mm >= 0; mm--) acc = cadd(cmul(acc, w), RT[mm]); return acc; };     // F(w)/(c_2 w^2) = sum_(m>=2) (c_m/c_2) w^(m-2)
     if (!(cabs(c2) > 0) || !isFinite(c2[0] + c2[1])) return null;
     var z = M.omega; for (var i = 0; i < n - j; i++) z = fz(M, z); var w = T(z); if (w === null) return null;
     // phi(w) = u_0 prod_k r_k^(1/2^(k+1)), r_k = u_(k+1)/u_k^2. Returned raw: u0, the first KU factors r_k (their arguments must be chosen by
     // continuity in the PARAMETER, starting from 0 at the center: BTRI does that), and the principal product of the remaining factors.
     // FAILURES kept in log.md: principal arguments throughout (wrong when r_k has turned past the negative axis); unwrapping along the segment s w in the
     // dynamical plane (wrong for some parameters); iterating below |u| ~ 1e-9 (rounding).
-    var KU = 4, u = cmul(c2, w), u0 = u, rs = [], tail = [1, 0], e = 0.5, k;
-    for (k = 0; k < 60; k++) { if (!isFinite(u[0] + u[1]) || cabs(u) > 1e6) return null; if (cabs(u) < 1e-5) break;
-      w = F(w); if (w === null) return null; var u1 = cmul(c2, w), r = cdiv(u1, cmul(u, u)); if (!(cabs(r) > 0) || !isFinite(r[0] + r[1])) return null;
-      if (k < KU) rs.push(r); else { var m = Math.pow(cabs(r), e), t = Math.atan2(r[1], r[0])*e; tail = cmul(tail, [m*Math.cos(t), m*Math.sin(t)]); }
+    var KU = ku || 4, u = cmul(c2, w), u0 = u, rs = [], tail = [1, 0], e = 0.5, k;
+    // addendum (k): near 0, F is evaluated by its Taylor polynomial (relative precision kept), so the product can run to |u| < 1e-13 without rounding noise
+    for (k = 0; k < 70; k++) { if (!isFinite(u[0] + u[1]) || cabs(u) > 1e6) return null; if (cabs(u) < 1e-13) break;
+      var r, u1;
+      if (cabs(w) < hT) { r = rTay(w); u1 = cmul(r, cmul(u, u)); w = cdiv(u1, c2); }
+      else { w = F(w); if (w === null) return null; u1 = cmul(c2, w); r = cdiv(u1, cmul(u, u)); }
+      if (!(cabs(r) > 0) || !isFinite(r[0] + r[1])) return null;
+      if (k < KU) rs.push(r); else { var mg = Math.pow(cabs(r), e), tg = Math.atan2(r[1], r[0])*e; tail = cmul(tail, [mg*Math.cos(tg), mg*Math.sin(tg)]); }
       u = u1; e /= 2; }
     if (cabs(u) >= 1e-3) return null; while (rs.length < KU) rs.push([1, 0]);
     return { u0: u0, r: rs, tail: tail };
   }
   // Phi from the raw factors and chosen arguments A[k] of r_k
   function bitransPhiFrom(Fc, A) { var phi = cmul(Fc.u0, Fc.tail), e = 0.5; for (var k = 0; k < Fc.r.length; k++) { var m = Math.pow(cabs(Fc.r[k]), e), t = A[k]*e; phi = cmul(phi, [m*Math.cos(t), m*Math.sin(t)]); e /= 2; } return phi; }
+  // (addendum (k)) (T(F^(a+q)(v)) - T(F^a(v))) / T(F^a(v)), v = f^(n-j)(omega), F = f^n, in the coordinate a_0 = 0, a_1 = inf; null if an orbit point is at infinity there
+  function bitransDiff(M, j, a, q) {
+    var n = M.marked.length, id = !(M.marked[0] === null || M.marked[1] !== null), T = id ? function (z) { return z; } : moebius3([M.marked[0], M.marked[1], n >= 3 ? M.marked[2] : M.omega], [[0, 0], null, [1, 0]]);
+    var z = M.omega, i; for (i = 0; i < n - j; i++) z = fz(M, z); for (i = 0; i < n*a; i++) z = fz(M, z); var z1 = z; for (i = 0; i < n*q; i++) z1 = fz(M, z1);
+    var w0 = T(z), w1 = T(z1); if (w0 === null || w1 === null || !isFinite(w0[0] + w0[1] + w1[0] + w1[1]) || !(cabs(w0) > 0)) return null; return cdiv(csub(w1, w0), w0);   // divided by w0: removes the solution F^a(v) = a_0 (the center itself for a = 0)
+  }
   function orbit(M, z, N) { var out = [z]; for (var i = 0; i < N; i++) { z = fz(M, z); out.push(z); } return out; }
   function closure(M) { var a = M.marked[0], z = a; for (var i = 0; i < M.n; i++) z = fz(M, z); return chord(z, a); }
   function fmt(z, d) { d = d || 6; if (z === null) return '∞'; var f = function (v) { return (Math.abs(v) < 1e-12 ? 0 : v).toPrecision(d); };
@@ -398,6 +417,6 @@ var PM = (function () {
   function fateText(f) { return f.kind === 'capture' ? 'captured by the marked cycle, phase ' + f.phase + ', time ' + f.t
     : f.kind === 'cycle' ? 'attracting cycle, period ' + f.period : 'undecided (bifurcation locus)'; }
   return { cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY, torusLocate: torusLocate,
-           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, bitransFactors: bitransFactors, bitransPhiFrom: bitransPhiFrom, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
+           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, bitransFactors: bitransFactors, bitransPhiFrom: bitransPhiFrom, bitransDiff: bitransDiff, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
 })();
 if (typeof module !== 'undefined') module.exports = PM;
