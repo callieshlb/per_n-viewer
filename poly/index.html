@@ -40,6 +40,7 @@
   <div class="ctrl"><span>Polynomial</span><select id="pick"></select>
     <label><input type="checkbox" id="cRayM" checked> rays of θ− orbit</label><label><input type="checkbox" id="cRayP" checked> rays of θ+ orbit</label><label><input type="checkbox" id="cLab" checked> ray labels</label>
     <label><input type="checkbox" id="cTree" checked> tree</label><button id="reset">Reset view</button></div>
+    <div style="margin:4px 0"><label title="click a ray, or a point inside a bounded Fatou component: the capture of this polynomial there is computed and marked in the Per_n parameter pane"><input type="checkbox" id="cCap" checked> click = capture</label> <span id="capmsg" style="color:#6b6b6b;font-size:12px"></span></div>
   <div class="legend" id="legend"></div>
   <h2>Angles</h2>
   <div id="angles"></div>
@@ -189,7 +190,18 @@ function show(lbl) {
 let drag = null;
 $('view').addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY, view.cx, view.cy]; $('view').classList.add('drag'); $('view').setPointerCapture(e.pointerId); });
 $('view').addEventListener('pointermove', e => { if (!drag) return; view.cx = drag[2] - (e.clientX - drag[0])*view.s; view.cy = drag[3] + (e.clientY - drag[1])*view.s; overlay(); schedule(); });
-$('view').addEventListener('pointerup', () => { drag = null; $('view').classList.remove('drag'); });
+$('view').addEventListener('pointerup', e => { const d0 = drag; drag = null; $('view').classList.remove('drag');
+  // E96 (a): a click (no drag) = capture request to the atlas: on a drawn ray -> capture along that ray; elsewhere -> capture at the Fatou component of the point
+  if (!d0 || !P || !$('cCap').checked || Math.hypot(e.clientX - d0[0], e.clientY - d0[1]) > 4) return;
+  const r = ov.getBoundingClientRect(), sx = (e.clientX - r.left)*dpr, sy = (e.clientY - r.top)*dpr, om = new Set(P.orbit_minus);
+  let best = null, bd = 7*dpr;
+  for (const [k, pts] of Object.entries(P.rays)) { if (!(om.has(+k) ? $('cRayM').checked : $('cRayP').checked)) continue;
+    for (let i = 1; i < pts.length; i++) { const a = toScreen(pts[i - 1][0], pts[i - 1][1]), b = toScreen(pts[i][0], pts[i][1]), dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx*dx + dy*dy;
+      const t = L2 > 0 ? Math.max(0, Math.min(1, ((sx - a[0])*dx + (sy - a[1])*dy)/L2)) : 0, dd = Math.hypot(sx - a[0] - t*dx, sy - a[1] - t*dy); if (dd < bd) { bd = dd; best = +k; } } }
+  if (best !== null) { const im = P.orbit_minus.indexOf(best), ip = P.orbit_plus.indexOf(best), m = im >= 0 ? im : ip;
+    parent.postMessage({ e96: 'capReq', n: NN, label: P.label, angle: best + '/' + DD, comp: m + 1 }, '*'); $('capmsg').textContent = `capture along the ray ${best}/${DD} (root of U${m + 1}) sent to the atlas`; }
+  else { const z = toPlane(sx, sy); parent.postMessage({ e96: 'capReq', n: NN, label: P.label, point: z }, '*'); $('capmsg').textContent = `capture at the Fatou component of ${z[0].toFixed(4)} ${z[1] < 0 ? '−' : '+'} ${Math.abs(z[1]).toFixed(4)}i sent to the atlas`; }
+});
 $('view').addEventListener('wheel', e => {
   e.preventDefault(); const r = $('view').getBoundingClientRect(), [x, y] = toPlane((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr);
   const f = Math.exp(e.deltaY*0.0015); view.s *= f; view.cx = x + (view.cx - x)*f; view.cy = y + (view.cy - y)*f; overlay(); schedule();

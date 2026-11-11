@@ -82,6 +82,7 @@ var CAP = (function () {
     opts = opts || {}; var cyc = cycle(c, n), L = landing(c, a); if (L.moved > 1e-3) L = landing(c, a, true); if (L.moved > 0.05) return { ok: false, why: 'the dynamic ray did not land well (Newton moved ' + L.moved.toExponential(1) + ')' };
     var comps = componentsAt(c, n, L.z); if (!comps.length) return { ok: false, why: 'the ray lands at a point that is not on the boundary of a Fatou component (no component fills an arc around the landing point)', landing: L.z };
     var V = comps[Math.min(opts.choice || 0, comps.length - 1)];
+    if (opts.wantCenter) { V = null; comps.forEach(function (v) { if (cabs(csub(v.x, opts.wantCenter)) < 1e-6) V = v; }); if (!V) return { ok: false, why: 'the ray does not land on the boundary of the chosen component', comps: comps, landing: L.z }; }
     if (opts.wantCyc !== undefined) { V = null; comps.forEach(function (v) { if (v.cycIndex === opts.wantCyc) V = v; }); if (!V) return { ok: false, why: 'the ray does not land on the boundary of U_' + opts.wantCyc, comps: comps, landing: L.z }; }
     var typeII = V.cycIndex >= 0, i, j;
     if (typeII && V.cycIndex === 1) return { ok: false, why: 'the ray lands on the critical value component U_1 of f itself: no capture', landing: L.z, comps: comps };
@@ -131,6 +132,23 @@ var CAP = (function () {
     if (!m.ok) m.why = 'did not converge (change ' + change.toExponential(1) + ', residual ' + res.toExponential(1) + ')';
     return m;
   }
-  return { capture: capture, componentsAt: componentsAt, landing: landing, cycle: cycle };
+  // the bounded Fatou component containing the point w: {x, t, k, cycIndex} or null
+  function componentOf(c, n, w) { var cyc = cycle(c, n), dmin = Infinity, i, j; for (i = 0; i < n; i++) for (j = i + 1; j < n; j++) dmin = Math.min(dmin, cabs(csub(cyc[i], cyc[j])));
+    var R = centerOf(c, n, cyc, w, 0.02*dmin); if (!R) return null; var per = -1; for (i = 0; i < n; i++) if (cabs(csub(R.x, cyc[i])) < 1e-8) per = i; return { x: R.x, t: R.t, k: R.k, cycIndex: per }; }
+  // the two rays landing at the root of the component V (center V.x, reaching the cycle at a_k after t steps). ks = [k-, k+] numerators over 2^n - 1.
+  // Returns {minus: {p, q, text}, plus: {...}, root: point} (BigInt angles), or {why}
+  function rootRays(c, n, ks, V) {
+    var Q = 2n**BigInt(n) - 1n, k = V.k === 0 ? n : V.k, out = {}, orb = [V.x], i; for (i = 0; i < V.t; i++) orb.push(fc(orb[i], c));
+    var sides = [['minus', BigInt(Math.min(ks[0], ks[1]))], ['plus', BigInt(Math.max(ks[0], ks[1]))]];
+    for (var si = 0; si < 2; si++) { var a = { p: (sides[si][1]*(2n**BigInt(k - 1))) % Q, q: Q }, L = landing(c, a), r = L.z; if (L.moved > 1e-3) { L = landing(c, a, true); r = L.z; } if (L.moved > 0.05) return { why: 'a root ray did not land well' };
+      for (var lev = V.t - 1; lev >= 0; lev--) {                          // lift the root and the angle one step back along the orbit of the center
+        var rt = csqrt(csub(r, c)); if (cabs(csub(rt, orb[lev])) > cabs(cadd(rt, orb[lev]))) rt = [-rt[0], -rt[1]]; r = rt;
+        var h1 = { p: a.p, q: a.q*2n }, h2 = { p: a.p + a.q, q: a.q*2n }, L1 = landing(c, h1); if (L1.moved > 1e-3) L1 = landing(c, h1, true);
+        var d1 = cabs(csub(L1.z, r)), d2 = cabs(cadd(L1.z, r)); if (Math.min(d1, d2) > 1e-4) return { why: 'could not follow the root ray back (landing point ' + Math.min(d1, d2).toExponential(1) + ' from the lifted root)' };
+        a = d1 <= d2 ? h1 : h2; }
+      var g = function (x, y) { return y ? g(y, x % y) : x; }, gg = g(a.p, a.q); a = { p: a.p/gg, q: a.q/gg }; a.text = a.p + '/' + a.q; out[sides[si][0]] = a; out.root = r; }
+    return out;
+  }
+  return { capture: capture, componentsAt: componentsAt, componentOf: componentOf, rootRays: rootRays, landing: landing, cycle: cycle };
 })();
 if (typeof module !== 'undefined') module.exports = CAP;

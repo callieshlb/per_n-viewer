@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261111001436').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261111003741').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261111001436'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261111003741'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -316,6 +316,37 @@
     handleParam(Object.assign({ e96: 'param', label, keepCard: true }, msg));
     st(base + (cur.kind === 'hyperbolic' ? ' (locating it in the disk…)' : ' (yellow star)')); if (cur.kind === 'hyperbolic') MATEOUT = { out: { set textContent(t) { $('status').textContent = t; } }, base, label };
   }
+  // (a) captures requested by a click in the polynomial card (REGISTRATION addendum 2026-11-11 (i))
+  const PEND = new Map();                               // label -> interval: marks waiting for the pane (after a model switch)
+  function placeMark(n, ch, label) {                    // returns a short text; switches to Per_n if needed
+    if (!cur || cur.n !== n) choose('per' + n);
+    let msg; if (cur.kind === 'plane') { if (!ch.p || !isFinite(ch.p[0] + ch.p[1])) return 'at ∞ of the Per_' + n + ' chart (not drawn)'; msg = { p: ch.p }; }
+    else if (cur.kind === 'torus') { const L = PM.torusLocate(ch.x, ch.y); if (!L) return 'torus point not found'; msg = { p: L.u }; } else msg = { x: ch.x, y: ch.y };
+    handleParam(Object.assign({ e96: 'param', label, keepCard: true }, msg)); clearInterval(PEND.get(label)); let tries = 0;
+    const post = () => { if (++tries > 150) { clearInterval(PEND.get(label)); PEND.delete(label); return; } try { $('frame').contentWindow.postMessage(Object.assign({ e96: 'mark', label, go: true }, msg), '*'); } catch (e) {} };
+    PEND.set(label, setInterval(post, 1200)); post(); return 'yellow star';
+  }
+  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'markDone' && PEND.has(d.label)) { clearInterval(PEND.get(d.label)); PEND.delete(d.label);
+    if (!d.ok) $('status').textContent += `\n${d.label}: not located in the disk (best chart residual ${d.res != null ? d.res.toExponential(1) : '?'})`; } });
+  window.addEventListener('message', async ev => { const d = ev.data; if (!d || d.e96 !== 'capReq') return;
+    const n = d.n, D = await loadPoly(n), P = D && D.find(q => String(q.label) === String(d.label)); if (!P) return; const c = [Number(P.c_str[0]), Number(P.c_str[1])], lines = [];
+    const kindOf = m => m.typeII ? `bitransitive (ω in place of x${m.predicted.slot})` : `capture, ω reaches the cycle after ${m.predicted.t} steps`;
+    if (d.angle) { const a = PM.parseAngle(d.angle); if (d.comp === 1) { $('status').textContent = `${P.label} ^ ${d.angle}: this ray lands at the root of U1, the critical value component of f itself: no capture`; return; }
+      const m = CAP.capture(c, n, a, { wantCyc: d.comp % n }), label = `${P.label} ^ ${d.angle}`;
+      if (!m.ok) { $('status').textContent = `${label} (ray at the root of U${d.comp}): no capture: ${m.why}`; return; }
+      const where = placeMark(n, MATE.toChart(m), label); $('status').textContent = `${label} (ray at the root of U${d.comp}): ${kindOf(m)}; ${m.iters} pullbacks, residual ${m.residual.toExponential(1)}; ${where}`; return; }
+    const V = CAP.componentOf(c, n, d.point), zt = PM.fmt(d.point, 5); if (!V) { $('status').textContent = `Polynomial ${P.label}: the point ${zt} is not in a bounded Fatou component (click inside one, or on a ray)`; return; }
+    const vname = V.cycIndex >= 0 ? `U${V.cycIndex === 0 ? n : V.cycIndex} (periodic)` : `the component with center ${PM.fmt(V.x, 5)} (reaches the cycle after ${V.t} step${V.t === 1 ? '' : 's'})`;
+    if (V.cycIndex === 1) { $('status').textContent = `Polynomial ${P.label}: ${zt} is in U1, the critical value component of f itself: no capture`; return; }
+    const R = CAP.rootRays(c, n, P.ks, V); if (R.why) { $('status').textContent = `Polynomial ${P.label}, ${vname}: ${R.why}`; return; }
+    const res = {}; for (const side of ['minus', 'plus']) { const m = CAP.capture(c, n, R[side], { wantCenter: V.x }); res[side] = m.ok ? { m, ch: MATE.toChart(m) } : { why: m.why }; }
+    const keyOf = r => r.ch.x && n >= 5 ? [r.ch.x, r.ch.y] : [r.ch.p], same = res.minus.ch && res.plus.ch && keyOf(res.minus).every((v, i) => PM.chord(v, keyOf(res.plus)[i]) < 1e-7);
+    const head = `Polynomial ${P.label}, click at ${zt}: ${vname}; its root rays are ${R.minus.text} (−) and ${R.plus.text} (+).`;
+    if (same) { const label = `${P.label} ^ ${R.minus.text}`, where = placeMark(n, res.minus.ch, label); $('status').textContent = `${head}\nBoth sides give the same map: ${kindOf(res.minus.m)}; residual ${res.minus.m.residual.toExponential(1)}; ${where} "${label}"`; return; }
+    for (const side of ['minus', 'plus']) { const r = res[side], sg = side === 'minus' ? '−' : '+'; if (!r.ch) { lines.push(`side ${sg} (${R[side].text}): no capture: ${r.why}`); continue; }
+      const label = `${P.label} ^ ${R[side].text}`, where = placeMark(n, r.ch, label); lines.push(`side ${sg}: ${kindOf(r.m)}; residual ${r.m.residual.toExponential(1)}; ${where} "${label}"`); }
+    $('status').textContent = head + '\n' + lines.join('\n');
+  });
   $('cdf').addEventListener('keydown', e => { if (e.key === 'Enter') $('cdg').focus(); });
   $('cdg').addEventListener('keydown', e => { if (e.key === 'Enter') { $('cdlg').style.display = 'none'; doCapture($('cdf').value.trim() || $('cdf').dataset.def || '', $('cdg').value, +$('cdc').value); } });
   $('cdlg').addEventListener('keydown', e => { if (e.key === 'Escape') $('cdlg').style.display = 'none'; });
