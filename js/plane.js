@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261110042027').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261111001436').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261110042027').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261111001436').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -17,7 +17,7 @@
   $('pcl').innerHTML = GLSL.PERPAL.map((c, i) => `<span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(${c.join(',')})">${i + 2}</span>`).join('');
   $('pc').onchange = e => { pv.perCol = e.target.checked; pv.redraw(); };
   // hotkeys (Caroline 2026-11-10): r real circles, g G_n edges, e violet arrows, p period colors, l labels, k markers, b bands, s seams, +/- iterates; t, i go to the dynamical pane
-  const PKEY = { r: 'rc', g: 'gn', e: 'vi', p: 'pc', l: 'ml', k: 'mk', b: 'bands', s: 'sm' };
+  const PKEY = { r: 'rc', g: 'gn', e: 'vi', p: 'pc', l: 'ml', k: 'mk', b: 'bands', s: 'sm', j: 'bt' };
   function paneKey(key) {
     if (PKEY[key]) { const el = $(PKEY[key]); if (!el || el.style.display === 'none') return true; el.checked = !el.checked; el.dispatchEvent(new Event('change')); return true; }
     if (key === '+' || key === '=' || key === '-') { const el = $('pit'); el.value = Math.max(+el.min, Math.min(+el.max, +el.value + (key === '-' ? -1 : 1)*100)); el.dispatchEvent(new Event('input')); return true; }
@@ -25,9 +25,17 @@
     return false;
   }
   window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return; if (paneKey(e.key)) e.preventDefault(); });
-  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && 'rgep'.includes(d.key)) paneKey(d.key); });
+  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && 'rgepj'.includes(d.key)) paneKey(d.key); });
   $('minb').onclick = () => { $('side').classList.toggle('min'); $('minb').textContent = $('side').classList.contains('min') ? '+' : '–'; };
   let picked = null; const MARKS = [];
+  // bitransitive centers from periodic captures (REGISTRATION addendum 2026-11-10 (h)); key j
+  let BT = null, BTON = false;
+  const btText = b => { const by = {}; for (const s of b.src) (by[s.f + '·x' + s.i] = by[s.f + '·x' + s.i] || []).push(s.side);
+    return `bitransitive center (ω = a${b.slot}): periodic captures ` + Object.keys(by).map(k => `${k} (${by[k].join(',')})`).join(', '); };
+  $('bt').onchange = async e => { BTON = e.target.checked;
+    if (BTON && !BT) { const D = await fetch(`models/bitrans_n${E.n}.json`).then(r => r.ok ? r.json() : []).catch(() => []); BT = D.filter(b => b.p);
+      $('btn').textContent = `${BT.length} shown` + (D.length > BT.length ? `, ${D.length - BT.length} at ∞ of this chart` : ''); }
+    pv.redraw(); };
   function lattice(W, H) {           // visible lattice translates (torus)
     const a = pv.toPlane(0, H), b = pv.toPlane(W, 0), out = [];
     const m0 = Math.floor(a[0]/T5.W1) - 1, m1 = Math.ceil(b[0]/T5.W1) + 1, l0 = Math.floor(a[1]/T5.W2) - 1, l1 = Math.ceil(b[1]/T5.W2) + 1;
@@ -89,6 +97,9 @@
           g.fillStyle = m.kind === 'centre' ? '#fff' : '#ffd0d8'; g.fillText(m.label, s[0] + 8, s[1]); }
       }
     }
+    if (BTON && BT) { for (const o of offs) for (const b of BT) { const s = pv.toScreen([b.p[0] + o[0], b.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
+        g.beginPath(); g.moveTo(s[0], s[1] - 5); g.lineTo(s[0] + 5, s[1]); g.lineTo(s[0], s[1] + 5); g.lineTo(s[0] - 5, s[1]); g.closePath(); g.fillStyle = '#00e5ff'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1; g.stroke();
+        if (opt.ml) { const t = b.src[0].f + '·x' + b.src[0].i + (b.src.length > 1 ? '…' : ''); g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, s[0] + 7, s[1]); g.fillStyle = '#9ff3ff'; g.fillText(t, s[0] + 7, s[1]); } } }
     if (RAYS.length) drawRays(g, W, H);
     if (E.rays) drawPerN(g, W, H);
     const VL = [];                                        // vein labels already drawn (skip overlapping ones)
@@ -182,6 +193,9 @@
       gl.uniform1f(U('W1'), T5.W1); gl.uniform1f(U('W2'), T5.W2); gl.uniform1f(U('qn'), Math.exp(-Math.PI*T5.W2/T5.W1)); gl.uniform1f(U('e1'), 0.75); },
     drawOverlay,
     onPick: (p, s) => {
+      if (BTON && BT) { const [W0, H0] = pv.size(); for (const o of torus ? lattice(W0, H0) : [[0, 0]]) for (const b of BT) { const q = pv.toScreen([b.p[0] + o[0], b.p[1] + o[1]]);
+          if (Math.hypot(q[0] - s[0], q[1] - s[1]) < 9) { picked = b.p; pv.redraw(); $('card').style.display = 'none'; let x = null, y = null; if (torus) { const P = PM.torusXY(b.p); x = P.x; y = P.y; }
+            parent.postMessage({ e96: 'param', model: id, p: b.p, x, y, label: btText(b) }, '*'); return; } } }
       let best = null, bd = 12;
       if (opt.mk) { const [W, H] = pv.size(); for (const o of torus ? lattice(W, H) : [[0, 0]]) for (const m of markers) {
         const q = pv.toScreen([m.p[0] + o[0], m.p[1] + o[1]]), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o }; } } }

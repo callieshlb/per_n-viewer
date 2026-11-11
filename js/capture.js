@@ -6,8 +6,8 @@ var CAP = (function () {
   var fc = function (z, c) { return cadd(cmul(z, z), c); };
   function cycle(c, n) { var o = [[0, 0]]; for (var i = 1; i < n; i++) o.push(fc(o[i - 1], c)); return o; }
   // exact landing point of the dynamic ray of angle a (periodic or preperiodic): ray end + Newton on f^(l+m)(z) = f^l(z)
-  function landing(c, a) {
-    var r = PM.traceRay('dyn', a, c), z = r.pts[r.pts.length - 1], q = a.q, l = 0; while (q % 2n === 0n) { q /= 2n; l++; }
+  function landing(c, a, deep) {
+    var r = PM.traceRay('dyn', a, c, 8, deep ? 2400 : undefined), z = r.pts[r.pts.length - 1], q = a.q, l = 0; while (q % 2n === 0n) { q /= 2n; l++; }
     var m = 1; while ((2n**BigInt(m) - 1n) % q !== 0n && m < 60) m++;
     for (var it = 0; it < 60; it++) { var w = z, dw = [1, 0], wl = null, dl = null;
       for (var i = 0; i < l + m; i++) { if (i === l) { wl = w; dl = dw; } dw = cmul([2*w[0], 2*w[1]], dw); w = fc(w, c); }
@@ -79,9 +79,11 @@ var CAP = (function () {
   }
   // capture of z^2 + c (period n) at the angle a (BigInt p/q), optional choice among several components. opts: R0 (start radius), sub (path refinement)
   function capture(c, n, a, opts) {
-    opts = opts || {}; var cyc = cycle(c, n), L = landing(c, a); if (L.moved > 0.05) return { ok: false, why: 'the dynamic ray did not land well (Newton moved ' + L.moved.toExponential(1) + ')' };
+    opts = opts || {}; var cyc = cycle(c, n), L = landing(c, a); if (L.moved > 1e-3) L = landing(c, a, true); if (L.moved > 0.05) return { ok: false, why: 'the dynamic ray did not land well (Newton moved ' + L.moved.toExponential(1) + ')' };
     var comps = componentsAt(c, n, L.z); if (!comps.length) return { ok: false, why: 'the ray lands at a point that is not on the boundary of a Fatou component (no component fills an arc around the landing point)', landing: L.z };
-    var V = comps[Math.min(opts.choice || 0, comps.length - 1)], typeII = V.cycIndex >= 0, i, j;
+    var V = comps[Math.min(opts.choice || 0, comps.length - 1)];
+    if (opts.wantCyc !== undefined) { V = null; comps.forEach(function (v) { if (v.cycIndex === opts.wantCyc) V = v; }); if (!V) return { ok: false, why: 'the ray does not land on the boundary of U_' + opts.wantCyc, comps: comps, landing: L.z }; }
+    var typeII = V.cycIndex >= 0, i, j;
     if (typeII && V.cycIndex === 1) return { ok: false, why: 'the ray lands on the critical value component U_1 of f itself: no capture', landing: L.z, comps: comps };
     if (typeII && V.cycIndex === 0 && n === 1) return { ok: false, why: 'period 1' };
     var th = 2*Math.PI*Number(a.p)/Number(a.q), R0 = opts.R0 || 1e8, beta = [];

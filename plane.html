@@ -28,9 +28,9 @@
   details summary { cursor:pointer; color:var(--muted); }
   .nf { font-size:12px; background:#fff; border:1px solid var(--faint); padding:4px 6px; margin:4px 0; }
 </style>
-<script src="js/pern_math.js?v=20261110042027"></script>
-<script src="js/glsl.js?v=20261110042027"></script>
-<script src="js/planeview.js?v=20261110042027"></script>
+<script src="js/pern_math.js?v=20261111001436"></script>
+<script src="js/glsl.js?v=20261111001436"></script>
+<script src="js/planeview.js?v=20261111001436"></script>
 </head>
 <body>
 <div id="view"></div>
@@ -45,6 +45,7 @@
     <span>Labels (l)</span><input type="checkbox" id="ml" checked>
     <span id="rcl" style="display:none">Real circles (r)</span><input type="checkbox" id="rc" style="display:none">
     <span title="tint the components where the free critical point has its own attracting cycle by the period of that cycle">Color components by period (p)</span><span><input type="checkbox" id="pc"> <span id="pcl"></span></span>
+    <span title="centers where the free critical point sits on the marked cycle, labeled by the polynomial and periodic component whose capture gives them">Bitransitive centers = periodic captures f·x<sub>i</sub> (j)</span><span><input type="checkbox" id="bt"> <span id="btn"></span></span>
     <span id="gnl" style="display:none">G<sub>n</sub> tip capture edges (g)</span><input type="checkbox" id="gn" style="display:none">
     <span id="vil" style="display:none" title="from each center, an arrow to its G_n neighbor(s) whose label has the most factors of 2 (when more than its own)">violet arrows, to the more even (e)</span><input type="checkbox" id="vi" style="display:none">
     <span id="sml" style="display:none">Torus seams (s)</span><input type="checkbox" id="sm" checked style="display:none">
@@ -76,6 +77,6 @@
     <div id="mlist"></div></details>
   <details><summary>What this is</summary><div id="about" class="sub"></div></details>
 </div>
-<script src="js/plane.js?v=20261110042027"></script>
+<script src="js/plane.js?v=20261111001436"></script>
 </body>
 </html>
