@@ -48,23 +48,30 @@ function PlaneView(host, opts) {
     gl.drawArrays(gl.TRIANGLES, 0, 3);
     var g = self.overlay; g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, W, H);
     self.drawOverlay(g, W, H);
+    if (rect) { g.setLineDash([5, 4]); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.strokeRect(Math.min(rect[0], rect[2]), Math.min(rect[1], rect[3]), Math.abs(rect[2] - rect[0]), Math.abs(rect[3] - rect[1]));
+      g.strokeStyle = '#000'; g.lineDashOffset = 4.5; g.strokeRect(Math.min(rect[0], rect[2]), Math.min(rect[1], rect[3]), Math.abs(rect[2] - rect[0]), Math.abs(rect[3] - rect[1])); g.setLineDash([]); g.lineDashOffset = 0; }
     self.onView();
   }
   function loop() { if (dirty && W > 0 && H > 0) { dirty = false; render(); } requestAnimationFrame(loop); }
   requestAnimationFrame(loop);
   var down = null, last = null, moved = 0, pts = new Map(), pinch0 = null;
+  var rect = null;                // Shift + drag: zoom to the dragged rectangle (Caroline 2026-11-11)
   gc.addEventListener('pointerdown', function (e) { pts.set(e.pointerId, [e.clientX, e.clientY]); gc.setPointerCapture(e.pointerId);
-    if (pts.size === 1) { down = [e.clientX, e.clientY]; last = down; moved = 0; } else { pinch0 = null; moved = 99; } });
+    if (pts.size === 1) { down = [e.clientX, e.clientY]; last = down; moved = 0; if (e.shiftKey) { var r0 = gc.getBoundingClientRect(); rect = [e.clientX - r0.left, e.clientY - r0.top, e.clientX - r0.left, e.clientY - r0.top]; } } else { pinch0 = null; moved = 99; rect = null; } });
   gc.addEventListener('pointermove', function (e) {
     if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
     if (pts.size === 2) { var a = Array.from(pts.values()), d = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]);
       if (pinch0) { self.upp *= pinch0/d; dirty = true; poke(); } pinch0 = d; return; }
     if (!down) return;
+    if (rect) { var r1 = gc.getBoundingClientRect(); rect[2] = e.clientX - r1.left; rect[3] = e.clientY - r1.top; moved = 99; dirty = true; return; }
     moved = Math.max(moved, Math.hypot(e.clientX - down[0], e.clientY - down[1]));
     self.ctr[0] -= (e.clientX - last[0])*self.upp; self.ctr[1] += (e.clientY - last[1])*self.upp; last = [e.clientX, e.clientY];
     dirty = true; poke(); });
   gc.addEventListener('pointerup', function (e) { pts.delete(e.pointerId); if (pts.size) return;
-    var wasDown = down; down = null; if (!wasDown || moved > 4) return;
+    var wasDown = down; down = null;
+    if (rect) { var rw = Math.abs(rect[2] - rect[0]), rh = Math.abs(rect[3] - rect[1]), rc = rect; rect = null; dirty = true;
+      if (rw > 8 && rh > 8) { self.ctr = self.toPlane((rc[0] + rc[2])/2, (rc[1] + rc[3])/2); self.upp *= Math.max(rw/W, rh/H); poke(); } return; }
+    if (!wasDown || moved > 4) return;
     var r = gc.getBoundingClientRect(); self.onPick(self.toPlane(e.clientX - r.left, e.clientY - r.top), [e.clientX - r.left, e.clientY - r.top]); });
   // hotkeys (Caroline 2026-11-10): z = zoom in, x = zoom out, at the cursor; self.mouse = plane point under the cursor
   self.mouse = null; var lastXY = null;

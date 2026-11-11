@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261111003741').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261111010031').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261111003741').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261111010031').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -26,13 +26,29 @@
   }
   window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return; if (paneKey(e.key)) e.preventDefault(); });
   window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && 'rgepj'.includes(d.key)) paneKey(d.key); });
+  window.E96TEST_bt = pk => { if (!BT || !BT.length) return null; let b = BT[0]; if (pk) b = BT.reduce((u, v) => Math.hypot(v.p[0] - pk[0], v.p[1] - pk[1]) < Math.hypot(u.p[0] - pk[0], u.p[1] - pk[1]) ? v : u); pv.ctr = b.p.slice(); pv.redraw(); return pv.toScreen(b.p); };
+  window.E96TEST_view = () => ({ ctr: pv.ctr, upp: pv.upp });
   $('minb').onclick = () => { $('side').classList.toggle('min'); $('minb').textContent = $('side').classList.contains('min') ? '+' : '–'; };
   let picked = null; const MARKS = [];
   // bitransitive centers from periodic captures (REGISTRATION addendum 2026-11-10 (h)); key j
   let BT = null, BTON = false;
   const btText = b => { const by = {}; for (const s of b.src) (by[s.f + '·x' + s.i] = by[s.f + '·x' + s.i] || []).push(s.side);
     return `bitransitive center (ω = a${b.slot}): periodic captures ` + Object.keys(by).map(k => `${k} (${by[k].join(',')})`).join(', '); };
-  $('bt').onchange = async e => { BTON = e.target.checked;
+  // the three triangles of a bitransitive component (REGISTRATION addendum 2026-11-11 (j)): overlay image for the clicked center
+  let TRI = null;
+  function triangles(b) {
+    const mapOf = p => { try { return PM.mapFrom(E.family, E.n, { p }); } catch (e) { return null; } }, R = BTRI.fill(mapOf, b.p, b.slot, { N: 281 }); if (R.fail) { TRI = null; return 'triangles: ' + R.fail; }
+    const cvs = document.createElement('canvas'); cvs.width = cvs.height = R.N; const g = cvs.getContext('2d'), im = g.createImageData(R.N, R.N), col = [[255, 235, 59], [0, 229, 255], [255, 64, 129]]; let cnt = [0, 0, 0];
+    for (let iy = 0; iy < R.N; iy++) for (let ix = 0; ix < R.N; ix++) { const i = iy*R.N + ix, o = 4*((R.N - 1 - iy)*R.N + ix); if (R.st[i] !== 1) continue; const wx = R.W[2*i], wy = R.W[2*i + 1], m = Math.hypot(wx, wy), [k, t] = BTRI.tri(wx, wy); cnt[k]++;
+      let c = col[k], a = 120; const dr = Math.min(t, 1 - t)*m*2*Math.PI/3/ (R.dx*Math.max(1e-9, m > 0 ? 1 : 1)), d0 = Math.min(t, 1 - t), dh = Math.abs(t - 0.5), ph = m*m*m;
+      if (d0*m < 0.006) { c = [255, 255, 255]; a = 255; }                              // internal rays of angle 0 (triangle sides)
+      else if (dh*m < 0.004) { c = [20, 20, 20]; a = 220; }                            // internal rays of angle 1/2
+      else if (Math.abs(ph - 0.5) < 0.012 || Math.abs(ph - 0.25) < 0.008 || Math.abs(ph - 0.75) < 0.012) a = 190;   // |Phi| = 1/4, 1/2, 3/4
+      im.data[o] = c[0]; im.data[o + 1] = c[1]; im.data[o + 2] = c[2]; im.data[o + 3] = a; }
+    g.putImageData(im, 0, 0); TRI = { cvs, x0: R.x0, y0: R.y0, size: (R.N - 1)*R.dx, b };
+    return `triangles (W = Φ^(1/3)): yellow / cyan / pink sectors, white lines = internal rays of angle 0, dark = angle 1/2, rings |Φ| = 1/4, 1/2, 3/4; ${R.count} grid points, sup |W| = ${R.sup.toFixed(3)}`;
+  }
+  $('bt').onchange = async e => { BTON = e.target.checked; if (!BTON) TRI = null;
     if (BTON && !BT) { const D = await fetch(`models/bitrans_n${E.n}.json`).then(r => r.ok ? r.json() : []).catch(() => []); BT = D.filter(b => b.p);
       $('btn').textContent = `${BT.length} shown` + (D.length > BT.length ? `, ${D.length - BT.length} at ∞ of this chart` : ''); }
     pv.redraw(); };
@@ -97,6 +113,7 @@
           g.fillStyle = m.kind === 'centre' ? '#fff' : '#ffd0d8'; g.fillText(m.label, s[0] + 8, s[1]); }
       }
     }
+    if (BTON && TRI) { for (const o of offs) { const a = pv.toScreen([TRI.x0 + o[0], TRI.y0 + TRI.size + o[1]]), q = pv.toScreen([TRI.x0 + TRI.size + o[0], TRI.y0 + o[1]]); if (q[0] < 0 || a[0] > W || q[1] < 0 || a[1] > H) continue; g.imageSmoothingEnabled = true; g.drawImage(TRI.cvs, a[0], a[1], q[0] - a[0], q[1] - a[1]); } }
     if (BTON && BT) { for (const o of offs) for (const b of BT) { const s = pv.toScreen([b.p[0] + o[0], b.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
         g.beginPath(); g.moveTo(s[0], s[1] - 5); g.lineTo(s[0] + 5, s[1]); g.lineTo(s[0], s[1] + 5); g.lineTo(s[0] - 5, s[1]); g.closePath(); g.fillStyle = '#00e5ff'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1; g.stroke();
         if (opt.ml) { const t = b.src[0].f + '·x' + b.src[0].i + (b.src.length > 1 ? '…' : ''); g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, s[0] + 7, s[1]); g.fillStyle = '#9ff3ff'; g.fillText(t, s[0] + 7, s[1]); } } }
@@ -195,7 +212,7 @@
     onPick: (p, s) => {
       if (BTON && BT) { const [W0, H0] = pv.size(); for (const o of torus ? lattice(W0, H0) : [[0, 0]]) for (const b of BT) { const q = pv.toScreen([b.p[0] + o[0], b.p[1] + o[1]]);
           if (Math.hypot(q[0] - s[0], q[1] - s[1]) < 9) { picked = b.p; pv.redraw(); $('card').style.display = 'none'; let x = null, y = null; if (torus) { const P = PM.torusXY(b.p); x = P.x; y = P.y; }
-            parent.postMessage({ e96: 'param', model: id, p: b.p, x, y, label: btText(b) }, '*'); return; } } }
+            const tt = triangles(b); pv.redraw(); parent.postMessage({ e96: 'param', model: id, p: b.p, x, y, label: btText(b) + '\n' + tt }, '*'); return; } } }
       let best = null, bd = 12;
       if (opt.mk) { const [W, H] = pv.size(); for (const o of torus ? lattice(W, H) : [[0, 0]]) for (const m of markers) {
         const q = pv.toScreen([m.p[0] + o[0], m.p[1] + o[1]]), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o }; } } }

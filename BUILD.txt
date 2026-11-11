@@ -1,4 +1,4 @@
-Per_n(0) atlas, built by runs/2026-11-09-E96-pern-site/make_site.py at commit 54a554c
+Per_n(0) atlas, built by runs/2026-11-09-E96-pern-site/make_site.py at commit 2f919a3
 n 3 puncture 0 loop0 x = -10003.0001 + 0i -> inf (distance 1e+04) -> c = 2 + 0i
 n 3 puncture 1 loop0 x = 4.99900005e-05 + 0.009997875474i -> 0 (distance 0.01) -> c = 0 + 0i
 n 4 puncture 0 loop0 y = -40013.00078 + 0i -> inf (distance 4e+04) -> c = 0 + 0i
@@ -14,4 +14,4 @@ per7 tiling: 282-gon, 141 pairs, 94 vertex cycles, genus 24 (Euler check passed)
 per8 tiling: 822-gon, 411 pairs, 274 vertex cycles, genus 69 (Euler check passed)
 American English applied to 27 files
 no src/intro.md: no intro page
-cache-busting stamp 20261111003741
+cache-busting stamp 20261111010031

@@ -221,7 +221,7 @@ var PM = (function () {
   }
   // ---- maps
   function corMap(x, y, n) {
-    var w = cdiv([x[0]+y[0]-1, x[1]+y[1]], [x[0]-1, x[1]]);
+    var w = (n === 3 && y[0] === 0 && y[1] === 0) ? [1, 0] : cdiv([x[0]+y[0]-1, x[1]+y[1]], [x[0]-1, x[1]]);   // n = 3: w = 1 identically (0/0 at x = 1, the bitransitive center c = 1)
     var s = cadd(x, w), p = cmul(x, w);
     var M = { n: n, A: [1, 0], B: [-s[0], -s[1]], C: p, D: [1, 0], E: [0, 0], F: [0, 0], x: x, y: y, w: w };
     M.omega = cdiv(cscale(p, 2), s);
@@ -368,6 +368,29 @@ var PM = (function () {
     else out.family = m === 5 ? 'torus5' : 'cor';
     return out;
   }
+  // ---- bitransitive coordinate Phi (REGISTRATION addendum 2026-11-11 (j)). M: map; j: omega is in the immediate basin component of a_j (1 <= j <= n-1).
+  // Returns Phi = Boettcher coordinate (of f^n at a_0) of v = f^(n-j)(omega), or null.
+  function bitransFactors(M, j) {
+    var n = M.marked.length, T = M.marked[0] === null || M.marked[1] !== null ? moebius3([M.marked[0], M.marked[1], n >= 3 ? M.marked[2] : M.omega], [[0, 0], null, [1, 0]]) : function (z) { return z; };
+    var Ti = M.marked[0] === null || M.marked[1] !== null ? moebius3([[0, 0], null, [1, 0]], [M.marked[0], M.marked[1], n >= 3 ? M.marked[2] : M.omega]) : function (z) { return z; };
+    var F = function (w) { var z = Ti(w); for (var i = 0; i < n; i++) z = fz(M, z); return T(z); };
+    var h = 1e-4, fp = F([h, 0]), fm = F([-h, 0]); if (fp === null || fm === null) return null; var c2 = cscale(cadd(fp, fm), 1/(2*h*h));
+    if (!(cabs(c2) > 0) || !isFinite(c2[0] + c2[1])) return null;
+    var z = M.omega; for (var i = 0; i < n - j; i++) z = fz(M, z); var w = T(z); if (w === null) return null;
+    // phi(w) = u_0 prod_k r_k^(1/2^(k+1)), r_k = u_(k+1)/u_k^2. Returned raw: u0, the first KU factors r_k (their arguments must be chosen by
+    // continuity in the PARAMETER, starting from 0 at the center: BTRI does that), and the principal product of the remaining factors.
+    // FAILURES kept in log.md: principal arguments throughout (wrong when r_k has turned past the negative axis); unwrapping along the segment s w in the
+    // dynamical plane (wrong for some parameters); iterating below |u| ~ 1e-9 (rounding).
+    var KU = 4, u = cmul(c2, w), u0 = u, rs = [], tail = [1, 0], e = 0.5, k;
+    for (k = 0; k < 60; k++) { if (!isFinite(u[0] + u[1]) || cabs(u) > 1e6) return null; if (cabs(u) < 1e-5) break;
+      w = F(w); if (w === null) return null; var u1 = cmul(c2, w), r = cdiv(u1, cmul(u, u)); if (!(cabs(r) > 0) || !isFinite(r[0] + r[1])) return null;
+      if (k < KU) rs.push(r); else { var m = Math.pow(cabs(r), e), t = Math.atan2(r[1], r[0])*e; tail = cmul(tail, [m*Math.cos(t), m*Math.sin(t)]); }
+      u = u1; e /= 2; }
+    if (cabs(u) >= 1e-3) return null; while (rs.length < KU) rs.push([1, 0]);
+    return { u0: u0, r: rs, tail: tail };
+  }
+  // Phi from the raw factors and chosen arguments A[k] of r_k
+  function bitransPhiFrom(Fc, A) { var phi = cmul(Fc.u0, Fc.tail), e = 0.5; for (var k = 0; k < Fc.r.length; k++) { var m = Math.pow(cabs(Fc.r[k]), e), t = A[k]*e; phi = cmul(phi, [m*Math.cos(t), m*Math.sin(t)]); e /= 2; } return phi; }
   function orbit(M, z, N) { var out = [z]; for (var i = 0; i < N; i++) { z = fz(M, z); out.push(z); } return out; }
   function closure(M) { var a = M.marked[0], z = a; for (var i = 0; i < M.n; i++) z = fz(M, z); return chord(z, a); }
   function fmt(z, d) { d = d || 6; if (z === null) return '∞'; var f = function (v) { return (Math.abs(v) < 1e-12 ? 0 : v).toPrecision(d); };
@@ -375,6 +398,6 @@ var PM = (function () {
   function fateText(f) { return f.kind === 'capture' ? 'captured by the marked cycle, phase ' + f.phase + ', time ' + f.t
     : f.kind === 'cycle' ? 'attracting cycle, period ' + f.period : 'undecided (bifurcation locus)'; }
   return { cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY, torusLocate: torusLocate,
-           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
+           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, bitransFactors: bitransFactors, bitransPhiFrom: bitransPhiFrom, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
 })();
 if (typeof module !== 'undefined') module.exports = PM;

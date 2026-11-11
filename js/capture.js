@@ -80,6 +80,9 @@ var CAP = (function () {
   // capture of z^2 + c (period n) at the angle a (BigInt p/q), optional choice among several components. opts: R0 (start radius), sub (path refinement)
   function capture(c, n, a, opts) {
     opts = opts || {}; var cyc = cycle(c, n), L = landing(c, a); if (L.moved > 1e-3) L = landing(c, a, true); if (L.moved > 0.05) return { ok: false, why: 'the dynamic ray did not land well (Newton moved ' + L.moved.toExponential(1) + ')' };
+    if (opts.stopAtLanding) {                                           // addendum (j), T3: the path stops at the landing point: critical value on the Julia set
+      var th0 = 2*Math.PI*Number(a.p)/Number(a.q), bt = []; for (var e0 = Math.log10(opts.R0 || 1e8); e0 > 2.01; e0 -= 0.25) bt.push([Math.pow(10, e0)*Math.cos(th0), Math.pow(10, e0)*Math.sin(th0)]);
+      return pull(c, n, cyc, { x: L.z, t: -1, k: -1, cycIndex: -1 }, false, bt.concat(L.ray, [L.z]), opts, [], L); }
     var comps = componentsAt(c, n, L.z); if (!comps.length) return { ok: false, why: 'the ray lands at a point that is not on the boundary of a Fatou component (no component fills an arc around the landing point)', landing: L.z };
     var V = comps[Math.min(opts.choice || 0, comps.length - 1)];
     if (opts.wantCenter) { V = null; comps.forEach(function (v) { if (cabs(csub(v.x, opts.wantCenter)) < 1e-6) V = v; }); if (!V) return { ok: false, why: 'the ray does not land on the boundary of the chosen component', comps: comps, landing: L.z }; }
@@ -92,6 +95,10 @@ var CAP = (function () {
     beta = beta.concat(L.ray, V.path); var sub = opts.sub || 1;
     if (sub > 1) { var fine = [beta[0]]; for (i = 1; i < beta.length; i++) for (j = 1; j <= sub; j++) fine.push(lerp(beta[i - 1], beta[i], j/sub)); beta = fine; }
     if (sub < 1) { var coarse = []; for (i = 0; i < beta.length; i += Math.round(1/sub)) coarse.push(beta[i]); coarse.push(beta[beta.length - 1]); beta = coarse; }
+    return pull(c, n, cyc, V, typeII, beta, opts, comps, L);
+  }
+  function pull(c, n, cyc, V, typeII, beta, opts, comps, L) {
+    var i, j;
     // marked points: names + positions in the plane of f, images
     var P = [], img = [], crit2 = -1;                                    // P[i] = position (null = inf); img[i] = index of G(P[i]); crit2 = index of the second critical point (inf)
     if (!typeII) { for (i = 0; i < n; i++) { P.push(cyc[i]); img.push((i + 1) % n); }
