@@ -23,8 +23,8 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261112212315"></script>
-<script src="per9_core.js?v=20261112212315"></script>
+<script src="conformal_data.js?v=20261112213907"></script>
+<script src="per9_core.js?v=20261112213907"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
@@ -148,7 +148,7 @@ const vec3 CAP[9] = vec3[9](vec3(42., 120., 214.), vec3(235., 104., 52.), vec3(2
 vec3 shadeT(vec3 c, float t){ float s = max(.3, min(1., 1. - .6*log(1. + t)/log(81.))); return (c*s + 20.*(1. - s))/255.; }
 vec3 liveColourU(int k, vec2 u);
 void walk(inout int k, inout vec2 u){        // E95: move to the chart whose center is nearest (neighbor lists nbT)
-  for (int it = 0; it < 16; it++) {
+  for (int it = 0; it < 64; it++) {
     float uu = dot(u, u); if (uu >= 1.) break;
     float best = uu/(1. - uu)*(1. - 1e-4); int bi = -1;
     for (int i = 0; i < 64; i++) { if (i >= NB) break;
@@ -211,45 +211,9 @@ void main(){
   vec2 s = (gl_FragCoord.xy - .5*res)/(Rpx*zoom);
   float r2 = dot(s, s);
   if (r2 >= 1.) { o = vec4(bg, 1.); return; }
-  vec2 z = cd(cm(Va, s) + Vb, cm(Vc, s) + Vd);
-  bool ok = false;
-  for (int it = 0; it < 120; it++) {
-    vec2 k = 2.*z/(1. + dot(z, z)); float best = 0.; int bi = -1;
-    for (int a = 0; a < ${MAXF}; a++) { if (a >= nF) break; float v = dot(k, FA(a).xy) - FA(a).z; if (v > 0.) { bi = a; break; } }   // E95: first violated face (texture sorted by t)
-    if (bi < 0) { ok = true; break; }
-    z = cd(cm(FB(bi).xy, z) + FB(bi).zw, cm(FC(bi).xy, z) + FC(bi).zw);
-  }
-  float zz = dot(z, z);
   float pxh = 2./((1. - r2)*Rpx*zoom);
-  float g = .5*(1. - zz)/((1. - r2)*Rpx*zoom);
-  vec3 col;
-  vec2 u0 = cd(cm(Wa, s) + Wb, cm(Wc, s) + Wd);
-  if (live == 1 && useW == 1 && length(u0) < .95*RU) col = liveColourU(k0, u0);
-  else if (live == 1) col = liveColour(z); else col = textureGrad(tex, vec2(.5 + .5*z.x, .5 - .5*z.y), vec2(g, 0.), vec2(0., g)).rgb;
-  if (edges == 1) {
-    float bestd = 1e9; float bp = 0.;
-    for (int a = 0; a < ${MAXF}; a++) {
-      if (a >= nF) break;
-      float t = FA(a).z, rm = t/(1. + sqrt(1. - t*t)), Dc = (1. + rm*rm)/(2.*rm), rho = (1. - rm*rm)/(2.*rm);
-      vec2 C = Dc*FA(a).xy; float d = asinh(abs(dot(z - C, z - C) - rho*rho)/(rho*(1. - zz)));
-      if (d < bestd) { bestd = d; bp = FA(a).w; }
-    }
-    float wh = lineW*pxh*clamp(4.*(1. - r2), .3, 1.);
-    float a1 = clamp((wh - bestd)/pxh + .5, 0., 1.), ad = clamp((wh*1.9 - bestd)/pxh + .5, 0., 1.);
-    col = mix(col, vec3(.08), ad*.85); col = mix(col, hue(fract(bp*0.61803398875)), a1);
-  }
-  if (showOv == 1) {
-    float wo = lineW*pxh*1.6*clamp(4.*(1. - r2), .3, 1.);
-    for (int q = 0; q < 512; q++) {
-      if (q >= nOv) break;
-      vec4 o = texelFetch(ovT, ivec2(q, 0), 0); float d;
-      if (o.z < 0.) d = asinh(2.*abs(o.y*z.x - o.x*z.y)/(1. - zz));
-      else d = asinh(abs(dot(z - o.xy, z - o.xy) - o.z*o.z)/(o.z*(1. - zz)));
-      vec3 oc = o.w < .5 ? vec3(0., .9, 1.) : o.w < 1.5 ? vec3(1., .86, .1) : o.w < 2.5 ? vec3(.3, 1., .35) : o.w < 3.5 ? vec3(1., .45, .95) : vec3(1., .55, .1);
-      col = mix(col, vec3(.05), clamp((wo*1.8 - d)/pxh + .5, 0., 1.)*.9);
-      col = mix(col, oc, clamp((wo - d)/pxh + .5, 0., 1.));
-    }
-  }
+  vec3 col = bg; bool ok = useW == 1;
+  if (ok) { vec2 u0 = cd(cm(Wa, s) + Wb, cm(Wc, s) + Wd); int kk0 = k0; walk(kk0, u0); col = liveColourU(kk0, u0); }   // E95 v2: view-center chart + walk
   if (!ok) col = mix(col, bg, .6);
   col = mix(col, bg, smoothstep(.992, 1., sqrt(r2)));
   o = vec4(col, 1.);
@@ -424,13 +388,33 @@ function drawOverlay() {
     }
     g2.setLineDash([]);
   }
-  if (opt.ed) {                                  // corners, colored by the point of the surface they are
-    for (const t of tiles) for (let a = 0; a < NF; a++) {
-      const s = ap(t.W, T.faces[a].P), sc = 1 - cabs2(s); if (sc < 0.03) continue;
-      const p = diskToScreen(s); if (p[0] < -10 || p[1] < -10 || p[0] > W_ + 10 || p[1] > H_ + 10) continue;
-      const r = Math.max(2*dpr, Math.min(6*dpr, 7*dpr*sc*Math.sqrt(zoom)));
-      g2.fillStyle = css(CYCC[T.vcls[a]]); g2.strokeStyle = '#141414'; g2.lineWidth = 1.2*dpr;
-      g2.beginPath(); g2.arc(p[0], p[1], r, 0, TAU); g2.fill(); g2.stroke();
+  if (opt.ed) {                                  // E95 v2: tile edges (double precision, canvas) and corners colored by their point of the surface
+    const SX = new Float64Array(NF), SY = new Float64Array(NF), SC = new Float64Array(NF), sz = Rpx*zoom;
+    for (const t of tiles) {
+      const w = t.W, ar = w.a[0], ai = w.a[1], br = w.b[0], bi = w.b[1], cr = w.c[0], ci = w.c[1], dr = w.d[0], di = w.d[1];
+      for (let a = 0; a < NF; a++) {
+        const P = T.faces[a].P, nr = ar*P[0] - ai*P[1] + br, ni = ar*P[1] + ai*P[0] + bi, er = cr*P[0] - ci*P[1] + dr, ei = cr*P[1] + ci*P[0] + di, den = er*er + ei*ei;
+        const x = (nr*er + ni*ei)/den, y = (ni*er - nr*ei)/den; SX[a] = x; SY[a] = y; SC[a] = 1 - x*x - y*y;
+      }
+      for (let a = 0; a < NF; a++) {
+        const b = a + 1 === NF ? 0 : a + 1; if (SC[a] < 0.004 && SC[b] < 0.004) continue;
+        const px = W_/2 + SX[a]*sz, py = H_/2 - SY[a]*sz, qx = W_/2 + SX[b]*sz, qy = H_/2 - SY[b]*sz;
+        if ((px < -30 && qx < -30) || (py < -30 && qy < -30) || (px > W_ + 30 && qx > W_ + 30) || (py > H_ + 30 && qy > H_ + 30)) continue;
+        const L = Math.hypot(px - qx, py - qy); if (!(L > 0.3)) continue;
+        const n = Math.min(24, Math.max(1, Math.ceil(L/22))), sca = Math.max(.3, Math.min(1, 4*Math.max(SC[a], SC[b])));
+        g2.beginPath(); g2.moveTo(px, py);
+        if (n === 1) g2.lineTo(qx, qy);
+        else { const pts = geodPts([SX[a], SY[a]], [SX[b], SY[b]], n); for (let i = 1; i <= n; i++) g2.lineTo(W_/2 + pts[i][0]*sz, H_/2 - pts[i][1]*sz); }
+        g2.strokeStyle = 'rgba(20,20,20,.85)'; g2.lineWidth = 2.9*dpr*sca; g2.stroke();
+        g2.strokeStyle = css(PAIRC[T.faces[a].pair]); g2.lineWidth = 1.5*dpr*sca; g2.stroke();
+      }
+      for (let a = 0; a < NF; a++) {
+        const sc = SC[a]; if (sc < 0.03) continue;
+        const p = [W_/2 + SX[a]*sz, H_/2 - SY[a]*sz]; if (p[0] < -10 || p[1] < -10 || p[0] > W_ + 10 || p[1] > H_ + 10) continue;
+        const r = Math.max(2*dpr, Math.min(6*dpr, 7*dpr*sc*Math.sqrt(zoom)));
+        g2.fillStyle = css(CYCC[T.vcls[a]]); g2.strokeStyle = '#141414'; g2.lineWidth = 1.2*dpr;
+        g2.beginPath(); g2.arc(p[0], p[1], r, 0, TAU); g2.fill(); g2.stroke();
+      }
     }
   }
   if (opt.lt && opt.ed) {
@@ -623,7 +607,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112212315"></script><script src="../../js/bitri.js?v=20261112212315"></script>
+<script src="../../js/pern_math.js?v=20261112213907"></script><script src="../../js/bitri.js?v=20261112213907"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
