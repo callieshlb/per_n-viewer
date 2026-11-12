@@ -23,8 +23,8 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261112215308"></script>
-<script src="per9_core.js?v=20261112215308"></script>
+<script src="conformal_data.js?v=20261112215648"></script>
+<script src="per9_core.js?v=20261112215648"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
@@ -38,7 +38,7 @@
     <span>Markers</span><input type="checkbox" id="mk" checked>
     <span>Marker labels</span><input type="checkbox" id="ml" checked>
     <span>Real ovals</span><input type="checkbox" id="ov2">
-    <span style="display:none"></span><input type="checkbox" id="gc" style="display:none">
+    <span>G<sub>9</sub> edges</span><input type="checkbox" id="gc">
     <span style="display:none"></span><input type="checkbox" id="gm" style="display:none">
     <span style="display:none"></span><input type="checkbox" id="gp" style="display:none">
   </div>
@@ -70,7 +70,7 @@
     the limits of single precision and of the chart data.</p>
     <p>Up to discretization error the picture is conformal: hyperbolic components keep their shape when moved to the center.
     Checks (angle sums, area 748π, side pairings, mesh convergence) are in REGISTRATION.md (E95).</p>
-    <p><b>Real ovals</b>: not drawn (check U6 has not been run for Per<sub>9</sub>(0)). No G<sub>9</sub> overlay.</p>
+    <p><b>Real ovals</b>: not drawn (check U6 has not been run for Per<sub>9</sub>(0)). <b>G<sub>9</sub> edges</b> (white, off by default): the 933 pairs of centers joined in G<sub>9</sub> (E91 construction), each drawn as the shortest geodesic between them.</p>
     <p>Click a marker (white dot or red dot) to see its data: for a polynomial center z<sup>2</sup> + c its c, characteristic
     angles, internal address and kneading; for a puncture the centers sharing it, k, q, multiplicity, its census loop point and how it was placed (internal ray of a polynomial component).</p>
     <p>White dots: polynomial centers (label k means angle k/511). Red: punctures (the marker sits at the census loop point, next to the puncture).</p>
@@ -372,10 +372,12 @@ function drawOverlay() {
   if (G6E.length && (opt.gc || opt.gm || opt.gp || opt.g2)) {
     const sty = { capture: ['#ffffff', 2.2], mating: ['#ffd84d', 1.4], puncture: ['#ff6b8a', 2.4] };
     for (const t of tiles) {
-      const c0 = ap(t.W, [0, 0]); if (1 - cabs2(c0) < 0.01 && t !== tiles[0]) continue;
       for (const e of G6E) {
         if (!kinds[e.kind] && !(opt.g2 && e.vgap)) continue;
-        const pts = e.pts.map(q => diskToScreen(ap(t.W, q)));
+        const sP = ap(t.W, e.P), sQ = ap(t.W, e.Q); if (1 - cabs2(sP) < 0.02 && 1 - cabs2(sQ) < 0.02) continue;     // E95: both ends out of sight
+        const pP = diskToScreen(sP), pQ = diskToScreen(sQ);
+        if ((pP[0] < 0 && pQ[0] < 0) || (pP[1] < 0 && pQ[1] < 0) || (pP[0] > W_ && pQ[0] > W_) || (pP[1] > H_ && pQ[1] > H_)) continue;
+        const pts = geodPts(sP, sQ, 24).map(diskToScreen);
         let xmin = 1e9, xmax = -1e9, ymin = 1e9, ymax = -1e9;
         for (const q of pts) { xmin = Math.min(xmin, q[0]); xmax = Math.max(xmax, q[0]); ymin = Math.min(ymin, q[1]); ymax = Math.max(ymax, q[1]); }
         if (xmax < 0 || ymax < 0 || xmin > W_ || ymin > H_ || (xmax - xmin) + (ymax - ymin) < 3*dpr) continue;
@@ -607,7 +609,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112215308"></script><script src="../../js/bitri.js?v=20261112215308"></script>
+<script src="../../js/pern_math.js?v=20261112215648"></script><script src="../../js/bitri.js?v=20261112215648"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */

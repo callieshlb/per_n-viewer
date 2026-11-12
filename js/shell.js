@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261112215308').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112215648').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112215308'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112215648'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -440,7 +440,7 @@
   }
   let TREEERR = null;
   const GN = {};
-  function loadG(n) { if (n > 8) return Promise.resolve(null);   /* no G_9 yet */
+  function loadG(n) { if (n > 9) return Promise.resolve(null);
     if (!GN[n]) GN[n] = fetch(`models/Gn/G${n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); return GN[n]; }
   // ---- V_f and T'_f (beta; REGISTRATION addendum 2026-11-12 (u)); computed here (web.js), drawn by the parameter pane
   const WEBPAL = [[42, 120, 214], [235, 104, 52], [27, 175, 122], [237, 161, 0], [232, 123, 164], [127, 63, 191], [160, 82, 45], [0, 150, 160], [110, 110, 30]];
@@ -579,7 +579,7 @@
         const cf = parseC(mk);
         mrow.querySelector('.mbtn').onclick = () => doMate(cf, n, lab, mrow.querySelector('.mang').value, mrow.querySelector('.mres'));
         mrow.querySelector('.mang').addEventListener('keydown', e => { if (e.key === 'Enter') mrow.querySelector('.mbtn').click(); });
-        if (n >= 5 && n <= 8) {                       // shortest path in G_n from this center to another one (Caroline 2026-11-12); BFS, edges unweighted
+        if (n >= 5 && n <= 9) {                       // shortest path in G_n from this center to another one (Caroline 2026-11-12); BFS, edges unweighted
           const row = document.createElement('div'); row.style.cssText = 'width:100%;margin-top:4px';
           row.innerHTML = `Shortest G<sub>${n}</sub> path from ${lab} to <input class="gto" size="4" placeholder="label"> <button class="sm gbtn">show</button> <button class="sm gclr">clear</button> <span class="gres"></span>`; B.appendChild(row);
           const run = async () => { const to = parseInt(row.querySelector('.gto').value, 10), res = row.querySelector('.gres'); res.textContent = '';
