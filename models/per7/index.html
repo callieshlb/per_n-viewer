@@ -31,8 +31,8 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261112222026"></script>
-<script src="per7_core.js?v=20261112222026"></script>
+<script src="conformal_data.js?v=20261112223127"></script>
+<script src="per7_core.js?v=20261112223127"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -651,7 +651,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112222026"></script><script src="../../js/bitri.js?v=20261112222026"></script>
+<script src="../../js/pern_math.js?v=20261112223127"></script><script src="../../js/bitri.js?v=20261112223127"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
@@ -733,8 +733,8 @@ window.E96TEST_tri=function(i){var b=E96BT[i];if(!b)return null;window.E96TRICHK
 function e96negA(a){var m=String(a).split('/');return '−'+(+m[1]-+m[0])+'/'+m[1];}
 function e96btText(b){return 'bitransitive center (ω = a'+b.slot+'): periodic captures '+b.src.map(function(s){return s.f+' ^ '+s.angle+' = '+s.f+' ^ '+e96negA(s.angle)+' [x'+s.i+', '+s.side+']';}).join(';  ');}
 function e96btToggle(on){E96BTON=on;dirty=true;if(!on)E96TRI=null;var el=document.getElementById('e96btn');
-  if(!on||E96BT)return;E96BT=[];fetch('../bitrans_n7.json').then(function(r){return r.ok?r.json():[];}).then(function(D){var i=0,bad=0;
-    (function next(){var t0=performance.now();while(i<D.length&&performance.now()-t0<60){var b=D[i++];if(!b.x||!b.y)continue;var L=e96locate(b.x,b.y);if(L&&L.res<1e-4){b.pd=L.p;b.first='b'+String(i).replace(/\d/g,function(d){return '₀₁₂₃₄₅₆₇₈₉'[d];});E96BT.push(b);}else bad++;}
+  if(!on||E96BT)return;E96BT=[];fetch('../bitrans_n7.json').then(function(r){return r.ok?r.json():[];}).then(function(D){var i=0,bad=0;(function(){var cnt={};D.forEach(function(b){var k=cnt[b.slot]=(cnt[b.slot]||0)+1;b.e96nm='b'+String(b.slot).replace(/\d/g,function(d){return '⁰¹²³⁴⁵⁶⁷⁸⁹'[d];})+String(k).replace(/\d/g,function(d){return '₀₁₂₃₄₅₆₇₈₉'[d];});});})();
+    (function next(){var t0=performance.now();while(i<D.length&&performance.now()-t0<60){var b=D[i++];if(!b.x||!b.y)continue;var L=e96locate(b.x,b.y);if(L&&L.res<1e-4){b.pd=L.p;b.first=b.e96nm;E96BT.push(b);}else bad++;}
       if(el&&!D.length){el.textContent=' (table for this model not computed yet)';return;}if(el)el.textContent=' '+E96BT.length+' placed'+(bad?', '+bad+' not located':'')+(i<D.length?' ('+i+'/'+D.length+'…)':' of '+D.length);dirty=true;if(i<D.length)setTimeout(next,0);})();});}
 /* highlight of the part of the selected bitransitive component attached to a capture (addendum (v), experimental rule); points arrive as (x, y) */
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='btHL'||!E96TRI)return;var T3=E96TRI;if(!d.pts||!d.pts.length){T3.paint(null);return;}

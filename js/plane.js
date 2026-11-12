@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261112222026').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112223127').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261112222026').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261112223127').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -82,7 +82,7 @@
   $('bta').addEventListener('keydown', e => { if (e.key === 'Enter') { internalRay($('bta').value); e.preventDefault(); } else if (e.key === 'Escape') $('bta').blur(); e.stopPropagation(); });
   $('btac').onclick = () => { IRAYS = []; $('btao').textContent = ''; pv.redraw(); };
   $('bt').onchange = async e => { BTON = e.target.checked; if (!BTON) { TRI = null; IRAYS = []; }
-    if (BTON && !BT) { const D = await fetch(`models/bitrans_n${E.n}.json`).then(r => r.ok ? r.json() : []).catch(() => []); D.forEach((b, i) => { b.name = 'b' + String(i + 1).replace(/\d/g, d => '₀₁₂₃₄₅₆₇₈₉'[d]); }); BT = D.filter(b => b.p);   // b_1 .. b_N: the index is the position in the table and means nothing yet (Caroline 2026-11-12)
+    if (BTON && !BT) { const D = await fetch(`models/bitrans_n${E.n}.json`).then(r => r.ok ? r.json() : []).catch(() => []); { const cnt = {}; D.forEach(b => { const k = cnt[b.slot] = (cnt[b.slot] || 0) + 1; b.name = 'b' + String(b.slot).replace(/\d/g, d => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]) + String(k).replace(/\d/g, d => '₀₁₂₃₄₅₆₇₈₉'[d]); }); }   /* b^j_k: j = slot (omega = a_j), k = running index within the slot, no meaning (Caroline 2026-11-12) */ BT = D.filter(b => b.p);   // b_1 .. b_N: the index is the position in the table and means nothing yet (Caroline 2026-11-12)
       $('btn').textContent = `${BT.length} shown` + (D.length > BT.length ? `, ${D.length - BT.length} at ∞ of this chart` : ''); }
     pv.redraw(); };
   function lattice(W, H) {           // visible lattice translates (torus)
