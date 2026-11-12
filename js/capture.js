@@ -42,9 +42,12 @@ var CAP = (function () {
     return { x: x, t: t1, k: k1, path: path };
   }
   // Fatou components at the landing point z: [{x, t, k, frac, path (from z into the component to x)}], best first
-  function componentsAt(c, n, z) {
+  // Sampling circles of radius 3e-3 and 1e-3 around the landing point miss small components (2026-11-12: 206 of the 396 failed Per_8 captures were of
+  // this kind, all OUTSIDE the critical-value sector): if nothing is found the radii are reduced (x 0.3, 0.1, 0.03, 0.01, 0.003).
+  function componentsAt(c, n, z) { var sc = [1, 0.3, 0.1, 0.03, 0.01, 0.003]; for (var q = 0; q < sc.length; q++) { var out = componentsAt1(c, n, z, sc[q]); if (out.length) { out.scale = sc[q]; return out; } } return []; }
+  function componentsAt1(c, n, z, scale) {
     var cyc = cycle(c, n), dmin = Infinity, i, j; for (i = 0; i < n; i++) for (j = i + 1; j < n; j++) dmin = Math.min(dmin, cabs(csub(cyc[i], cyc[j])));
-    var rho = 0.02*dmin, found = [], NS = 96, radii = [3e-3, 1e-3];
+    var rho = 0.02*dmin, found = [], NS = 96, radii = [3e-3*scale, 1e-3*scale];
     radii.forEach(function (r, ri) { for (var s = 0; s < NS; s++) { var w = [z[0] + r*Math.cos(2*Math.PI*s/NS), z[1] + r*Math.sin(2*Math.PI*s/NS)], R = centerOf(c, n, cyc, w, rho); if (!R) continue;
         var e = null; for (var q = 0; q < found.length; q++) if (cabs(csub(found[q].x, R.x)) < 1e-7) e = found[q];
         if (!e) { e = { x: R.x, t: R.t, k: R.k, cnt: [0, 0], best: [null, null] }; found.push(e); } e.cnt[ri]++; e.best[ri] = e.best[ri] || []; e.best[ri].push(R); } });

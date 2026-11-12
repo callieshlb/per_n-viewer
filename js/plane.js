@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261112220232').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112221446').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261112220232').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261112221446').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -82,7 +82,7 @@
   $('bta').addEventListener('keydown', e => { if (e.key === 'Enter') { internalRay($('bta').value); e.preventDefault(); } else if (e.key === 'Escape') $('bta').blur(); e.stopPropagation(); });
   $('btac').onclick = () => { IRAYS = []; $('btao').textContent = ''; pv.redraw(); };
   $('bt').onchange = async e => { BTON = e.target.checked; if (!BTON) { TRI = null; IRAYS = []; }
-    if (BTON && !BT) { const D = await fetch(`models/bitrans_n${E.n}.json`).then(r => r.ok ? r.json() : []).catch(() => []); BT = D.filter(b => b.p);
+    if (BTON && !BT) { const D = await fetch(`models/bitrans_n${E.n}.json`).then(r => r.ok ? r.json() : []).catch(() => []); D.forEach((b, i) => { b.name = 'b' + String(i + 1).replace(/\d/g, d => '₀₁₂₃₄₅₆₇₈₉'[d]); }); BT = D.filter(b => b.p);   // b_1 .. b_N: the index is the position in the table and means nothing yet (Caroline 2026-11-12)
       $('btn').textContent = `${BT.length} shown` + (D.length > BT.length ? `, ${D.length - BT.length} at ∞ of this chart` : ''); }
     pv.redraw(); };
   function lattice(W, H) {           // visible lattice translates (torus)
@@ -147,14 +147,14 @@
         const s = pv.toScreen([m.p[0] + o[0], m.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
         g.beginPath(); g.arc(s[0], s[1], 5, 0, 2*Math.PI); g.fillStyle = m.kind === 'centre' ? (E.n >= 5 && m.label === String(2**(E.n - 1)) ? '#b388ff' : '#fff') : '#e8173a'; g.fill();
         g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
-        if (opt.ml) { g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(m.label, s[0] + 8, s[1]);
+        if (opt.ml && m.kind !== 'puncture') { g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(m.label, s[0] + 8, s[1]);   // punctures: no number in the picture (Caroline 2026-11-12); the card has the data
           g.fillStyle = m.kind === 'centre' ? '#fff' : '#ffd0d8'; g.fillText(m.label, s[0] + 8, s[1]); }
       }
     }
     if (BTON && TRI) { for (const o of offs) { const a = pv.toScreen([TRI.x0 + o[0], TRI.y0 + TRI.size + o[1]]), q = pv.toScreen([TRI.x0 + TRI.size + o[0], TRI.y0 + o[1]]); if (q[0] < 0 || a[0] > W || q[1] < 0 || a[1] > H) continue; g.imageSmoothingEnabled = true; g.drawImage(TRI.cvs, a[0], a[1], q[0] - a[0], q[1] - a[1]); } }
     if (BTON && BT) { for (const o of offs) for (const b of BT) { const s = pv.toScreen([b.p[0] + o[0], b.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
         g.beginPath(); g.moveTo(s[0], s[1] - 5); g.lineTo(s[0] + 5, s[1]); g.lineTo(s[0], s[1] + 5); g.lineTo(s[0] - 5, s[1]); g.closePath(); g.fillStyle = '#00e5ff'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1; g.stroke();
-        if (opt.ml) { const t = b.src[0].f + '^' + b.src[0].angle + (b.src.length > 1 ? ' +' + (b.src.length - 1) : ''); g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, s[0] + 7, s[1]); g.fillStyle = '#9ff3ff'; g.fillText(t, s[0] + 7, s[1]); } } }
+        if (opt.ml) { const t = b.name; g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, s[0] + 7, s[1]); g.fillStyle = '#9ff3ff'; g.fillText(t, s[0] + 7, s[1]); } } }
     if (BTON && IRAYS.length) drawIRays(g, W, H, offs);
     if (COMPR) { const Q = 2**COMPR.n - 1; COMPR.rays.forEach((r, i) => { g.beginPath(); r.forEach((q, j) => { const s = pv.toScreen(q); j ? g.lineTo(...s) : g.moveTo(...s); }); g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = 3.5; g.stroke(); g.strokeStyle = '#6ff'; g.lineWidth = 1.6; g.stroke();
         const e = pv.toScreen(r[Math.min(r.length - 1, Math.floor(r.length*0.35))]), t = `${COMPR.ks[i]}/${Q}`; g.font = '600 11px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, e[0] + 6, e[1]); g.fillStyle = '#9ff'; g.fillText(t, e[0] + 6, e[1]); });
@@ -266,7 +266,7 @@
     onPick: (p, s) => {
       if (BTON && BT) { const [W0, H0] = pv.size(); for (const o of torus ? lattice(W0, H0) : [[0, 0]]) for (const b of BT) { const q = pv.toScreen([b.p[0] + o[0], b.p[1] + o[1]]);
           if (Math.hypot(q[0] - s[0], q[1] - s[1]) < 9) { picked = b.p; pv.redraw(); $('card').style.display = 'none'; let x = null, y = null; if (torus) { const P = PM.torusXY(b.p); x = P.x; y = P.y; }
-            const tt = triangles(b); pv.redraw(); parent.postMessage({ e96: 'param', model: id, p: b.p, x, y, label: `bitransitive center (ω = a${b.slot})`, marker: { kind: 'bitrans', label: 'bt', slot: b.slot, src: b.src, title: `bitransitive center: ω = a${b.slot}`, lines: [tt] } }, '*'); return; } } }
+            const tt = triangles(b); pv.redraw(); parent.postMessage({ e96: 'param', model: id, p: b.p, x, y, label: `bitransitive center (ω = a${b.slot})`, marker: { kind: 'bitrans', label: 'bt', slot: b.slot, src: b.src, title: `bitransitive center ${b.name}: ω = a${b.slot}`, lines: [tt] } }, '*'); return; } } }
       let best = null, bd = 12;
       if (opt.mk) { const [W, H] = pv.size(); for (const o of torus ? lattice(W, H) : [[0, 0]]) for (const m of markers) {
         const q = pv.toScreen([m.p[0] + o[0], m.p[1] + o[1]]), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o }; } } }
