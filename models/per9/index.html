@@ -23,8 +23,8 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261112223934"></script>
-<script src="per9_core.js?v=20261112223934"></script>
+<script src="conformal_data.js?v=20261112224150"></script>
+<script src="per9_core.js?v=20261112224150"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
@@ -267,9 +267,24 @@ document.getElementById('cmode').onchange = e => { liveMode = +e.target.value; d
 document.getElementById('pit').oninput = e => { pit = +e.target.value; document.getElementById('pitv').textContent = pit; dirty = true; };
 document.getElementById('del').oninput = e => { delta = Math.pow(10, +e.target.value); document.getElementById('delv').textContent = delta.toExponential(0); dirty = true; };
 function poke() { interacting = true; clearTimeout(idleT); idleT = setTimeout(() => { interacting = false; dirty = true; }, 220); }
+async function loadGrids() {            // E95: chart grids -> one buffer; packed parts (.dxs) when the browser can unpack them
+  const meta = await fetch('chart_meta.json').then(r => r.json()), S = meta.S, per = S*S*16, bytes = new Uint8Array(meta.NC*per);
+  if (meta.parts_dxs && typeof DecompressionStream !== 'undefined') {
+    const cpp = meta.dxs.charts_per_part, row = 4*S;
+    for (let i = 0; i < meta.parts_dxs.length; i++) {
+      const r = await fetch(meta.parts_dxs[i]);
+      const sh = new Uint8Array(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+      const n = sh.length >> 2, o0 = i*cpp*per;
+      for (let b = 0; b < 4; b++) { const o = b*n; for (let k = 0; k < n; k++) bytes[o0 + 4*k + b] = sh[o + k]; }      // unshuffle
+      const w = new Uint32Array(bytes.buffer, o0, n);
+      for (let r0 = 0; r0 < n; r0 += row) for (let k = r0 + 4; k < r0 + row; k++) w[k] += w[k - 4];                  // undo the x-differences
+    }
+  } else { let o = 0; for (const f of meta.parts) { const b = new Uint8Array(await fetch(f).then(r => r.arrayBuffer())); bytes.set(b, o); o += b.length; } }
+  return bytes.buffer;
+}
 (async () => {
   const img = new Image(); img.src = 'chart_map.png';
-  const [meta, buf, core, ovd, , mki] = await Promise.all([fetch('chart_meta.json').then(r => r.json()), Promise.all(["chart_grids_0.bin", "chart_grids_1.bin"].map(f => fetch(f).then(r => r.arrayBuffer()))).then(bs => { const n = bs.reduce((a, b) => a + b.byteLength, 0), u = new Uint8Array(n); let o = 0; for (const b of bs) { u.set(new Uint8Array(b), o); o += b.byteLength; } return u.buffer; }),
+  const [meta, buf, core, ovd, , mki] = await Promise.all([fetch('chart_meta.json').then(r => r.json()), loadGrids(),
                                                fetch('data.json').then(r => r.json()), fetch('overlay_data.json').then(r => r.json()), img.decode(), fetch('marker_info.json').then(r => r.json())]);
   // all GL work below is synchronous (no await), so the mesh-texture onload never sees another active unit
   CORE.init(core); CH = meta; CHG = new Float32Array(buf); MI = mki;
@@ -611,7 +626,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112223934"></script><script src="../../js/bitri.js?v=20261112223934"></script>
+<script src="../../js/pern_math.js?v=20261112224150"></script><script src="../../js/bitri.js?v=20261112224150"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
