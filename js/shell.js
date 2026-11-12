@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261112001250').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112061145').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112001250'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112061145'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -134,6 +134,7 @@
     return `${cur.titleText}${sel.label ? '  ·  ' + sel.label : ''}   ${par}\n` +
       `f(z) = ((${PM.fmt(M.A, 5)}) z² + (${PM.fmt(M.B, 5)}) z + (${PM.fmt(M.C, 5)})) / ((${PM.fmt(M.D, 5)}) z² + (${PM.fmt(M.E, 5)}) z + (${PM.fmt(M.F, 5)}))\n` +
       `marked cycle: ${M.marked.map((a, j) => 'a' + j + ' = ' + PM.fmt(a, 5)).join(',  ')}   (closes to ${PM.closure(M).toExponential(1)})\n` +
+      (sel.raw ? `NOTE: x here is the disk viewer's own chart value, not re-solved on the curve (the re-solve did not converge, or moved x by more than the guard allows); the map may be slightly off the curve: see "closes to" above.\n` : '') +
       `free critical point ω = ${PM.fmt(M.omega, 6)}: ${comp}   |   iterates ${dv.maxIt}, δ ${dv.delta.toExponential(0)}`;
   }
   // ---- "View in Per_m" (REGISTRATION addendum 2026-11-10 (c)): the center of the clicked component, as a point of Per_m (m = period of omega's cycle)
@@ -188,7 +189,7 @@
     if (!finite) { $('status').textContent = `${cur.titleText}: the map degenerates at this point (puncture); the dynamical plane keeps the previous map`;
       const mk0 = parseMarker(d); if (mk0) showMarker(mk0); TREE = null; dv.redraw(); return; }
     SVIEW = null; if (SPHR) { SPHR = null; $('sphl').textContent = 'new map: press find (u) again'; }
-    M = m; sel = { p: d.p || null, x: d.x || (m.x || null), y: d.y || (m.y || null), label: d.label };
+    M = m; sel = { p: d.p || null, x: d.x || (m.x || null), y: d.y || (m.y || null), label: d.label, raw: !!d.raw };
     if (cur.family === 'quad' || cur.family === 'per2') { sel.x = null; sel.y = null; }
     $('dhint').style.display = 'none'; dynRays(); polyView(); fit(); $('status').textContent = statusText(); ORB0 = null;
     TREE = null; const mk = parseMarker(d); if (mk) { showMarker(mk); if (mk.kind === 'centre') showTree(mk); } else if (!d.keepCard) hideCard();
