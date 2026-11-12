@@ -23,8 +23,8 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261112185524"></script>
-<script src="per6_core.js?v=20261112185524"></script>
+<script src="conformal_data.js?v=20261112185921"></script>
+<script src="per6_core.js?v=20261112185921"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
@@ -557,7 +557,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112185524"></script><script src="../../js/bitri.js?v=20261112185524"></script>
+<script src="../../js/pern_math.js?v=20261112185921"></script><script src="../../js/bitri.js?v=20261112185921"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
@@ -573,7 +573,9 @@ if(6>=7&&typeof chartLookup==='function'){(function(){var _cl=chartLookup,n=6,P=
     var y=L.y,x0=L.x,xs=solve(x0,y),ax=1+Math.hypot(x0[0],x0[1]);P.n++;L.e96x0=x0;
     if(n!==7){/* Per_8 stays on the move guard of addendum (n): with the root test 12 polynomial centers could no longer be placed (log.md 2026-11-12; Caroline: option 1) */
       if(xs&&dist(xs,x0)<=1e-3*ax){var dq=dist(xs,x0);if(dq>P.maxdx)P.maxdx=dq;L.x=xs;P.accepted++;}else{L.e96raw=true;P.raw++;}return L;}
-    if(xs&&dist(xs,x0)<=1e-6*ax){P.small++;L.x=xs;return L;}
+    /* 1e-6 -> 1e-5 (2026-11-12, Caroline): where P(., y) is ill-conditioned in double (near y = 0) the root test flagged points whose re-solve barely moved x;
+       measured there: sheets about 4e-4 .. 1.6e-3 apart, so a move below 1e-5 cannot change sheet */
+    if(xs&&dist(xs,x0)<=1e-5*ax){P.small++;L.x=xs;return L;}
     var R=null;try{R=e96aberth(CORE.coeffs(y)[0]);}catch(e){}
     if(!R||R.length<2){P.noroots++;if(xs&&dist(xs,x0)<=1e-3*ax){L.x=xs;}else{L.e96raw=true;P.raw++;}return L;}
     P.tested++;if(R.res>P.maxres)P.maxres=R.res;var i1=nearest(R,x0),d1=dist(R[i1],x0),d2=Infinity;for(var i=0;i<R.length;i++)if(i!==i1)d2=Math.min(d2,dist(R[i],x0));
