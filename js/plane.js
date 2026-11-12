@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261112214751').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112215308').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261112214751').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261112215308').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -39,20 +39,23 @@
   let picked = null; const MARKS = [];
   // bitransitive centers from periodic captures (REGISTRATION addendum 2026-11-10 (h)); key j
   let BT = null, BTON = false;
-  const btText = b => { const by = {}; for (const s of b.src) (by[s.f + '·x' + s.i] = by[s.f + '·x' + s.i] || []).push(s.side);
-    return `bitransitive center (ω = a${b.slot}): periodic captures ` + Object.keys(by).map(k => `${k} (${by[k].join(',')})`).join(', '); };
+  const btText = b => `bitransitive center (ω = a${b.slot}): periodic captures ` + b.src.map(s => `${s.f} ^ ${s.angle} [x${s.i}, ${s.side}]`).join(';  ');   // f ^ theta (Caroline 2026-11-12)
   // the three triangles of a bitransitive component (REGISTRATION addendum 2026-11-11 (j)): overlay image for the clicked center
   let TRI = null;
   function triangles(b) {
     const mapOf = p => { try { return PM.mapFrom(E.family, E.n, { p }); } catch (e) { return null; } }, R = BTRI.fill(mapOf, b.p, b.slot, { N: 281 }); if (R.fail) { TRI = null; return 'triangles: ' + R.fail; }
-    const cvs = document.createElement('canvas'); cvs.width = cvs.height = R.N; const g = cvs.getContext('2d'), im = g.createImageData(R.N, R.N), base = ((E.palette || GLSL.DEFPAL).concat(GLSL.DEFPAL))[(b.slot - 1) % 8], col = [base.map(v => Math.round(v + 0.45*(255 - v))), base, base.map(v => Math.round(0.55*v))]; let cnt = [0, 0, 0];   // three shades of the component's own phase color (Caroline 2026-11-11)
-    for (let iy = 0; iy < R.N; iy++) for (let ix = 0; ix < R.N; ix++) { const i = iy*R.N + ix, o = 4*((R.N - 1 - iy)*R.N + ix); if (R.st[i] !== 1) continue; const wx = R.W[2*i], wy = R.W[2*i + 1], m = Math.hypot(wx, wy), [k, t] = BTRI.tri(wx, wy); cnt[k]++;
-      let c = col[k], a = 215; const dr = Math.min(t, 1 - t)*m*2*Math.PI/3/ (R.dx*Math.max(1e-9, m > 0 ? 1 : 1)), d0 = Math.min(t, 1 - t), dh = Math.abs(t - 0.5), ph = m*m*m;
-      if (d0*m < 0.006) { c = [255, 255, 255]; a = 255; }                              // internal rays of angle 0 (triangle sides)
-      else if (dh*m < 0.004) { c = [20, 20, 20]; a = 220; }                            // internal rays of angle 1/2
-      else if (Math.abs(ph - 0.5) < 0.012 || Math.abs(ph - 0.25) < 0.008 || Math.abs(ph - 0.75) < 0.012) { c = c.map(v => Math.round(0.8*v)); a = 235; }   // |Phi| = 1/4, 1/2, 3/4
-      im.data[o] = c[0]; im.data[o + 1] = c[1]; im.data[o + 2] = c[2]; im.data[o + 3] = a; }
-    g.putImageData(im, 0, 0); TRI = { cvs, x0: R.x0, y0: R.y0, size: (R.N - 1)*R.dx, b, kappa: R.kappa, dx: R.dx, mapOf }; IRAYS = [];
+    const cvs = document.createElement('canvas'); cvs.width = cvs.height = R.N; const g = cvs.getContext('2d'), base = ((E.palette || GLSL.DEFPAL).concat(GLSL.DEFPAL))[(b.slot - 1) % 8], col = [base.map(v => Math.round(v + 0.45*(255 - v))), base, base.map(v => Math.round(0.55*v))];   // three shades of the component's own phase color (Caroline 2026-11-11)
+    // paint(hl): hl(argW in degrees [0, 360)) -> true for the highlighted part (addendum (v)); null = no highlight
+    const paint = hl => { const im = g.createImageData(R.N, R.N);
+      for (let iy = 0; iy < R.N; iy++) for (let ix = 0; ix < R.N; ix++) { const i = iy*R.N + ix, o = 4*((R.N - 1 - iy)*R.N + ix); if (R.st[i] !== 1) continue; const wx = R.W[2*i], wy = R.W[2*i + 1], m = Math.hypot(wx, wy), [k, t] = BTRI.tri(wx, wy);
+        let c = col[k], a = 215; const d0 = Math.min(t, 1 - t), dh = Math.abs(t - 0.5), ph = m*m*m;
+        if (d0*m < 0.006) { c = [255, 255, 255]; a = 255; }                              // internal rays of angle 0 (triangle sides)
+        else if (dh*m < 0.004) { c = [20, 20, 20]; a = 220; }                            // internal rays of angle 1/2
+        else if (Math.abs(ph - 0.5) < 0.012 || Math.abs(ph - 0.25) < 0.008 || Math.abs(ph - 0.75) < 0.012) { c = c.map(v => Math.round(0.8*v)); a = 235; }   // |Phi| = 1/4, 1/2, 3/4
+        if (hl) { let ar = Math.atan2(wy, wx)*180/Math.PI; if (ar < 0) ar += 360; if (hl(ar)) { c = c.map(v => Math.min(255, Math.round(v*0.55 + 255*0.45))); a = 255; } else a = Math.round(a*0.3); }
+        im.data[o] = c[0]; im.data[o + 1] = c[1]; im.data[o + 2] = c[2]; im.data[o + 3] = a; }
+      g.putImageData(im, 0, 0); };
+    paint(null); TRI = { cvs, x0: R.x0, y0: R.y0, size: (R.N - 1)*R.dx, b, kappa: R.kappa, dx: R.dx, mapOf, paint, ends: null }; IRAYS = [];
     return `triangles (W = Φ^(1/3)): light / medium / dark shade of the component's phase color, white lines = internal rays of angle 0, dark = angle 1/2, rings |Φ| = 1/4, 1/2, 3/4; ${R.count} grid points, sup |W| = ${R.sup.toFixed(3)}`;
   }
   // (d) boundary point of the selected bitransitive component from an internal angle and a triangle index (REGISTRATION addendum 2026-11-11 (k)); key a
@@ -150,7 +153,7 @@
     if (BTON && TRI) { for (const o of offs) { const a = pv.toScreen([TRI.x0 + o[0], TRI.y0 + TRI.size + o[1]]), q = pv.toScreen([TRI.x0 + TRI.size + o[0], TRI.y0 + o[1]]); if (q[0] < 0 || a[0] > W || q[1] < 0 || a[1] > H) continue; g.imageSmoothingEnabled = true; g.drawImage(TRI.cvs, a[0], a[1], q[0] - a[0], q[1] - a[1]); } }
     if (BTON && BT) { for (const o of offs) for (const b of BT) { const s = pv.toScreen([b.p[0] + o[0], b.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
         g.beginPath(); g.moveTo(s[0], s[1] - 5); g.lineTo(s[0] + 5, s[1]); g.lineTo(s[0], s[1] + 5); g.lineTo(s[0] - 5, s[1]); g.closePath(); g.fillStyle = '#00e5ff'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1; g.stroke();
-        if (opt.ml) { const t = b.src[0].f + '·x' + b.src[0].i + (b.src.length > 1 ? '…' : ''); g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, s[0] + 7, s[1]); g.fillStyle = '#9ff3ff'; g.fillText(t, s[0] + 7, s[1]); } } }
+        if (opt.ml) { const t = b.src[0].f + '^' + b.src[0].angle + (b.src.length > 1 ? ' +' + (b.src.length - 1) : ''); g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, s[0] + 7, s[1]); g.fillStyle = '#9ff3ff'; g.fillText(t, s[0] + 7, s[1]); } } }
     if (BTON && IRAYS.length) drawIRays(g, W, H, offs);
     if (COMPR) { const Q = 2**COMPR.n - 1; COMPR.rays.forEach((r, i) => { g.beginPath(); r.forEach((q, j) => { const s = pv.toScreen(q); j ? g.lineTo(...s) : g.moveTo(...s); }); g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = 3.5; g.stroke(); g.strokeStyle = '#6ff'; g.lineWidth = 1.6; g.stroke();
         const e = pv.toScreen(r[Math.min(r.length - 1, Math.floor(r.length*0.35))]), t = `${COMPR.ks[i]}/${Q}`; g.font = '600 11px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, e[0] + 6, e[1]); g.fillStyle = '#9ff'; g.fillText(t, e[0] + 6, e[1]); });
@@ -262,7 +265,7 @@
     onPick: (p, s) => {
       if (BTON && BT) { const [W0, H0] = pv.size(); for (const o of torus ? lattice(W0, H0) : [[0, 0]]) for (const b of BT) { const q = pv.toScreen([b.p[0] + o[0], b.p[1] + o[1]]);
           if (Math.hypot(q[0] - s[0], q[1] - s[1]) < 9) { picked = b.p; pv.redraw(); $('card').style.display = 'none'; let x = null, y = null; if (torus) { const P = PM.torusXY(b.p); x = P.x; y = P.y; }
-            const tt = triangles(b); pv.redraw(); parent.postMessage({ e96: 'param', model: id, p: b.p, x, y, label: btText(b) + '\n' + tt }, '*'); return; } } }
+            const tt = triangles(b); pv.redraw(); parent.postMessage({ e96: 'param', model: id, p: b.p, x, y, label: `bitransitive center (ω = a${b.slot})`, marker: { kind: 'bitrans', label: 'bt', slot: b.slot, src: b.src, title: `bitransitive center: ω = a${b.slot}`, lines: [tt] } }, '*'); return; } } }
       let best = null, bd = 12;
       if (opt.mk) { const [W, H] = pv.size(); for (const o of torus ? lattice(W, H) : [[0, 0]]) for (const m of markers) {
         const q = pv.toScreen([m.p[0] + o[0], m.p[1] + o[1]]), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o }; } } }
@@ -291,6 +294,15 @@
   window.addEventListener('message', ev => { const d = ev.data;
     if (d && d.e96 === 'clearMarks') { MARKS.length = 0; pv.redraw(); return; }
     if (d && d.e96 === 'gpath') { GPATH = (d.labels || []).map(String); pv.redraw(); return; }
+    if (d && d.e96 === 'btHL') {                         // highlight the part of the selected bitransitive component attached to a capture (addendum (v), experimental rule)
+      if (!TRI) return; if (!d.pts || !d.pts.length) { TRI.paint(null); pv.redraw(); return; }
+      if (!TRI.ends) TRI.ends = [0, 1, 2].map(k => { const r = BTRI.ray(TRI.mapOf, TRI.b.p, TRI.b.slot, k, 0, { kappa: TRI.kappa, dx: TRI.dx }); return r.fail ? null : r.end; });
+      const dist = (u, v) => { let dx = u[0] - v[0], dy = u[1] - v[1]; if (torus) { dx -= T5.W1*Math.round(dx/T5.W1); dy -= T5.W2*Math.round(dy/T5.W2); } return Math.hypot(dx, dy); };
+      const info = d.pts.map(q => { const ds = TRI.ends.map(e => e ? dist(q, e) : Infinity), k = ds.indexOf(Math.min(...ds)), rest = ds.filter((_, i) => i !== k); return { k, d: ds[k], next: Math.min(...rest) }; });
+      const ks = [...new Set(info.map(x => x.k))]; let hl;
+      if (ks.length >= 2) { const a0 = 120*ks[0], a1 = 120*ks[1], lo = ((a1 - a0 + 360) % 360) === 120 ? a0 : a1; hl = ar => ((ar - lo + 360) % 360) <= 120; }      // the triangle between the two corners
+      else { const c = 120*ks[0]; hl = ar => { const dd = Math.abs(((ar - c + 540) % 360) - 180); return dd <= 60; }; }                                         // the two hexants next to the corner
+      TRI.paint(hl); pv.redraw(); parent.postMessage({ e96: 'btHLdone', key: d.key, info }, '*'); return; }
     if (d && d.e96 === 'webClear') { WEBL.length = 0; pv.redraw(); return; }
     if (d && d.e96 === 'web') { const k = WEBL.findIndex(w => w.id === d.id); if (k >= 0) WEBL.splice(k, 1); WEBL.push(d); pv.redraw(); return; }
     if (d && d.e96 === 'compRays') {                     // (s) the clicked component of Per_1: its center and the two rays landing at its root
@@ -310,6 +322,8 @@
   $('mgo').onclick = () => parent.postMessage({ e96: 'mateReq', label: $('mf').value, angle: $('mg').value, K: $('mvn').checked ? +$('mvk').value || 0 : 0, mis: $('mvm').checked }, '*');
   $('mvk').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { $('mvn').checked = true; $('mgo').click(); } }); $('mvk').addEventListener('input', () => { $('mvn').checked = true; });
   $('mclr').onclick = () => { MARKS.length = 0; pv.redraw(); };
+  if (E.n >= 3) { $('webbox').style.display = ''; const wgo = k => { const l = parseInt($('wf').value, 10); if (isFinite(l)) parent.postMessage({ e96: 'webReq', kind: k, label: l }, '*'); };
+    $('wv').onclick = () => wgo('V'); $('wt').onclick = () => wgo('T'); $('wc').onclick = () => { WEBL.length = 0; pv.redraw(); }; $('wf').addEventListener('keydown', e => e.stopPropagation()); }
   $('mdlgb').onclick = () => parent.postMessage({ e96: 'key', key: 'm' }, '*'); $('cdlgb').onclick = () => parent.postMessage({ e96: 'key', key: 'c' }, '*');
   $('mg').addEventListener('keydown', e => { if (e.key === 'Enter') $('mgo').click(); });
   window.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'v') && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') parent.postMessage({ e96: 'key', key: e.key }, '*'); });

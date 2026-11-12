@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261112214751').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112215308').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112214751'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112215308'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -464,6 +464,7 @@
     $('frame').contentWindow.postMessage(msg, '*');
   }
   window.E96TEST_web = webShow;
+  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'webReq' && cur && cur.kind !== 'hyperbolic') webShow(d.kind, +d.label); });
   async function gPath(n, from, to) {            // shortest path between two centers of G_n (labels), or null
     const G = await loadG(n); if (!G) return null; const L = G.labels, s = L.indexOf(from), t = L.indexOf(to); if (s < 0 || t < 0) return null;
     const adj = L.map(() => new Set()); for (const e of G.edges) if (e.b !== null && e.b >= 0 && e.a !== e.b) { adj[e.a].add(e.b); adj[e.b].add(e.a); }
@@ -534,11 +535,32 @@
     } catch (e) { out.push('(puncture data not computed: ' + e.message + ')'); }
     return out;
   }
+  // bitransitive card (REGISTRATION addendum 2026-11-12 (v)): the captures f ^ theta of the clicked component; a click highlights the attached part
+  function btCard(mk) {
+    const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'), src = mk.src || [], n = cur.n;
+    $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(`${src.length} periodic capture${src.length === 1 ? '' : 's'} f ^ θ land here (f = polynomial label, θ = the capture's ray, [component, side]):\n` + src.map(s => `  ${s.f} ^ ${s.angle}   [x${s.i}, ${s.side}]`).join('\n') + '\n' + mk.lines.join('\n'));
+    const B = $('dcb'); B.innerHTML = ''; const note = document.createElement('div'); note.style.cssText = 'width:100%;font-size:11px;color:#555;margin:2px 0';
+    note.textContent = 'Highlight (experimental rule): each capture is attached to the corner of the component nearest to its mating f ⊔ g(1 − θ); − and + of one (f, x_i) at two corners: the triangle between them; otherwise the two hexants at that corner.'; B.appendChild(note);
+    const res = document.createElement('div'); res.style.cssText = 'width:100%;font-size:11px;margin-top:3px;white-space:pre-wrap';
+    const btn = (txt, fn) => { const b = document.createElement('button'); b.className = 'sm'; b.textContent = txt; b.onclick = fn; B.appendChild(b); };
+    const run = async (label, entries) => { res.textContent = 'computing…'; const D = await loadPoly(n), pts = [], miss = [];
+      for (const s of entries) { const P = D && D.find(q => q.label === s.f); if (!P) { miss.push(s.f); continue; } const q = WEBS.place([Number(P.c_str[0]), Number(P.c_str[1])], PM.parseAngle(s.angle));
+        if (!q.ok) { miss.push(`${s.f} ^ ${s.angle}: ${q.why.slice(0, 40)}`); continue; } let u = q.p; if (!u && cur.kind === 'torus') { const L = PM.torusLocate(q.x, q.y); u = L ? L.u : null; } if (u) pts.push(u); else miss.push(`${s.f} ^ ${s.angle}: not located`); }
+      BTKEY = label; BTMISS = miss; $('frame').contentWindow.postMessage({ e96: 'btHL', pts, key: label }, '*'); if (!pts.length) res.textContent = `${label}: no mating found (${miss.join('; ')})`; };
+    BTRES = res; const groups = {}; for (const s of src) (groups[s.f + '|' + s.i] = groups[s.f + '|' + s.i] || []).push(s);
+    for (const k in groups) { const G = groups[k]; btn(`${G[0].f} ^ {${G.map(s => s.angle).join(', ')}}  [x${G[0].i}]`, () => run(`${G[0].f} ^ {${G.map(s => s.angle).join(', ')}}`, G)); }
+    if (src.some(s => groups[s.f + '|' + s.i].length > 1)) for (const s of src) btn(`${s.f} ^ ${s.angle} (${s.side})`, () => run(`${s.f} ^ ${s.angle}`, [s]));
+    btn('no highlight', () => { res.textContent = ''; $('frame').contentWindow.postMessage({ e96: 'btHL', pts: [] }, '*'); }); B.appendChild(res);
+  }
+  let BTRES = null, BTKEY = '', BTMISS = [];
+  window.addEventListener('message', ev => { const d = ev.data; if (!d || d.e96 !== 'btHLdone' || !BTRES) return; const ks = [...new Set(d.info.map(x => x.k))];
+    BTRES.textContent = `${d.key}: ` + d.info.map(x => `corner ${x.k} (mating at ${x.d.toExponential(1)} from it; next corner ${x.next.toExponential(1)})`).join('; ') + (ks.length >= 2 ? ' → the triangle between the two corners' : ' → the two hexants at that corner') + (BTMISS.length ? `\nnot used: ${BTMISS.join('; ')}` : ''); });
   function showMarker(mk) {
     if (GOTO && mk.label === GOTO.lab) { clearInterval(GOTO.t); GOTO = null; }
     const n = mk.n || cur.n, D = 2**n - 1, esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(mk.lines.join('\n'));
     if (mk.kind === 'puncture') { const extra = punctLines(mk); if (extra.length) $('dct').innerHTML += '\n' + esc(extra.join('\n')); }
+    if (mk.kind === 'bitrans') { btCard(mk); $('dcard').style.display = 'block'; return; }
     const B = $('dcb'); B.innerHTML = '';
     const btn = (txt, fn) => { const b = document.createElement('button'); b.className = 'sm'; b.textContent = txt; b.onclick = fn; B.appendChild(b); };
     if (n >= 2) {

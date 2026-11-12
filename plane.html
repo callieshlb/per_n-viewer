@@ -28,9 +28,9 @@
   details summary { cursor:pointer; color:var(--muted); }
   .nf { font-size:12px; background:#fff; border:1px solid var(--faint); padding:4px 6px; margin:4px 0; }
 </style>
-<script src="js/pern_math.js?v=20261112214751"></script>
-<script src="js/glsl.js?v=20261112214751"></script>
-<script src="js/planeview.js?v=20261112214751"></script>
+<script src="js/pern_math.js?v=20261112215308"></script>
+<script src="js/glsl.js?v=20261112215308"></script>
+<script src="js/planeview.js?v=20261112215308"></script>
 </head>
 <body>
 <div id="view"></div>
@@ -61,6 +61,8 @@
     <div style="margin-top:3px"><label title="also mate f with the centers on the arc of the Mandelbrot set from z² to g (small yellow dots)"><input type="checkbox" id="mvn"> mating vein:</label> <input id="mvk" type="number" min="1" max="400" value="30" style="width:52px"> points <label title="also use Misiurewicz points (preperiodic g) with two or more rays on the arc; preperiod + period ≤ 12"><input type="checkbox" id="mvm" checked> + preperiodic</label> <button id="mclr" title="remove all yellow mating marks">clear</button></div>
     <div style="margin-top:3px"><button id="mdlgb" title="the same in a dialog: type f, Tab, g, Enter">Mating dialog… (m)</button> <button id="cdlgb" title="capture f at an external angle">Capture… (c)</button></div><div class="sub">f: a polynomial of this Per<sub>n</sub> by its label (the even numerator k of its angles
     k/(2<sup>n</sup> − 1)); g: any external angle. The result is marked with a yellow star; details in the status line. Vein: the given number of lowest-period centers (period ≤ 20) between z² and g; an arc can have fewer (the status line says how many exist). Same dialog from the keyboard: m.</div></div>
+  <div id="webbox" style="margin:4px 0;display:none"><b>V<sub>f</sub> / T′<sub>f</sub> (beta)</b> f = <input id="wf" size="4" placeholder="label"> <button id="wv" title="veins from f to its periodic captures">V_f</button> <button id="wt" title="the ringed, pruned Hubbard tree of f, placed by matings">T′_f</button> <button id="wc">clear</button>
+    <div class="sub">f: a polynomial of this Per<sub>n</sub> by its label. The same buttons are in a center's data card. Counts appear in the status line; T′_f takes a few seconds.</div></div>
   <div class="legend" id="legend"></div>
   <div class="sub" style="margin-top:-4px">Phase k (capture): the free critical orbit reaches the marked critical value a<sub>1</sub> at times ≡ −k (mod n).</div>
   <p style="margin:4px 0"><button id="home">Reset view</button></p>
@@ -81,7 +83,7 @@
     <div id="mlist"></div></details>
   <details><summary>What this is</summary><div id="about" class="sub"></div></details>
 </div>
-<script src="js/bitri.js?v=20261112214751"></script>
-<script src="js/plane.js?v=20261112214751"></script>
+<script src="js/bitri.js?v=20261112215308"></script>
+<script src="js/plane.js?v=20261112215308"></script>
 </body>
 </html>

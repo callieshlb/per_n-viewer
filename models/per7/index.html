@@ -31,8 +31,8 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261112214751"></script>
-<script src="per7_core.js?v=20261112214751"></script>
+<script src="conformal_data.js?v=20261112215308"></script>
+<script src="per7_core.js?v=20261112215308"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -650,7 +650,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112214751"></script><script src="../../js/bitri.js?v=20261112214751"></script>
+<script src="../../js/pern_math.js?v=20261112215308"></script><script src="../../js/bitri.js?v=20261112215308"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
@@ -726,11 +726,10 @@ window.E96TEST_ray=function(t){return e96ray(t).map(function(r){return{k:r.k,loo
 (function(){var el=document.getElementById('e96bta');el.addEventListener('keydown',function(e){if(e.key==='Enter'){e96ray(el.value);e.preventDefault();}else if(e.key==='Escape')el.blur();e.stopPropagation();});
   document.getElementById('e96btac').onclick=function(){if(E96TRI)E96TRI.rays=[];document.getElementById('e96btao').textContent='';dirty=true;};})();
 window.E96TEST_tri=function(i){var b=E96BT[i];if(!b)return null;window.E96TRICHK=null;var t=e96tri(b);return{text:t,chk:window.E96TRICHK,drawn:!!E96TRI,pd:b.pd,slot:b.slot};};
-function e96btText(b){var by={};b.src.forEach(function(s){var k=s.f+'·x'+s.i;(by[k]=by[k]||[]).push(s.side);});
-  return 'bitransitive center (ω = a'+b.slot+'): periodic captures '+Object.keys(by).map(function(k){return k+' ('+by[k].join(',')+')';}).join(', ');}
+function e96btText(b){return 'bitransitive center (ω = a'+b.slot+'): periodic captures '+b.src.map(function(s){return s.f+' ^ '+s.angle+' [x'+s.i+', '+s.side+']';}).join(';  ');}
 function e96btToggle(on){E96BTON=on;dirty=true;if(!on)E96TRI=null;var el=document.getElementById('e96btn');
   if(!on||E96BT)return;E96BT=[];fetch('../bitrans_n7.json').then(function(r){return r.ok?r.json():[];}).then(function(D){var i=0,bad=0;
-    (function next(){var t0=performance.now();while(i<D.length&&performance.now()-t0<60){var b=D[i++];if(!b.x||!b.y)continue;var L=e96locate(b.x,b.y);if(L&&L.res<1e-4){b.pd=L.p;b.first=b.src[0].f+'·x'+b.src[0].i+(b.src.length>1?'…':'');E96BT.push(b);}else bad++;}
+    (function next(){var t0=performance.now();while(i<D.length&&performance.now()-t0<60){var b=D[i++];if(!b.x||!b.y)continue;var L=e96locate(b.x,b.y);if(L&&L.res<1e-4){b.pd=L.p;b.first=b.src[0].f+'^'+b.src[0].angle+(b.src.length>1?' +'+(b.src.length-1):'');E96BT.push(b);}else bad++;}
       if(el&&!D.length){el.textContent=' (table for this model not computed yet)';return;}if(el)el.textContent=' '+E96BT.length+' placed'+(bad?', '+bad+' not located':'')+(i<D.length?' ('+i+'/'+D.length+'…)':' of '+D.length);dirty=true;if(i<D.length)setTimeout(next,0);})();});}
 /* shortest G_n path chosen in a center's card (Caroline 2026-11-12): its edges in lime, drawn whether or not the G_n toggles are on */
 var E96GP=null;window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='gpath')return;var L=(d.labels||[]).map(Number);E96GP=null;if(L.length>1){E96GP={};for(var i=1;i<L.length;i++){E96GP[L[i-1]+'|'+L[i]]=1;E96GP[L[i]+'|'+L[i-1]]=1;}}dirty=true;});
