@@ -63,6 +63,7 @@
     <div id="checks" class="mono"></div>
   </details>
 </div>
+<script src="../js/entropy.js?v=20261112223934"></script>
 <script>
 'use strict';
 const NN = +((location.hash.match(/n=(\d+)/) || [0, 6])[1]), DD = 2**NN - 1;   // E96: period from the URL (#n=..&label=..)
@@ -167,6 +168,7 @@ function show(lbl) {
   $('addr').innerHTML = `<b>kneading ν(θ)</b><span class="mono">${P.kneading}</span>
     <b>internal address</b><span class="mono">${P.address.join(' → ')}</span>
     <b>angled address</b><span>${aa}</span>
+    <b>core entropy</b><span class="mono">${(e => `h = ${e.h.toFixed(6)} = log ${e.lambda.toFixed(6)}`)(ENT.core(P.ks[0], DD))}</span>
     <b>limb</b><span>${P.limb[0]}/${P.limb[1]}</span>
     <b>real</b><span>${P.real ? 'yes (all angles 1/2)' : 'no'}</span>
     <b>rabbit</b><span>${P.rabbit ? `yes: R<sub>${P.limb[0]}/${P.limb[1]}</sub>` : 'no'}</span>

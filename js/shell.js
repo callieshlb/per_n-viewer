@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261112223304').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112223934').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112223304'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112223934'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -167,6 +167,7 @@
     if (ent && m >= 2) marker = { kind: 'centre', label: String(ent.label), n: m, ks: ent.ks, title: `center ${ent.label} of period ${m} (angles ${ent.ks[0]}/${Q}, ${ent.ks[1]}/${Q})`,
       lines: [`z^2 + c,  c = ${ent.c_str ? ent.c_str[0] + (ent.c_str[1].startsWith('-') ? ' - ' : ' + ') + ent.c_str[1].replace('-', '') + 'i' : PM.fmt(c, 14)}`, `angles ${ent.ks[0]}/${Q}, ${ent.ks[1]}/${Q}`]
         .concat(ent.kneading ? [`kneading ${ent.kneading}`, `internal address ${ent.address.join(' -> ')}`] : [])
+        .concat([(e => `core entropy h = ${e.h.toFixed(6)} = log ${e.lambda.toFixed(6)}`)(ENT.core(ent.ks[0], Q))])
         .concat((ent.tuning || []).map(u => `TUNING: (${u.base_ks[0]}/${2**u.d - 1}, ${u.base_ks[1]}/${2**u.d - 1})${u.base_name ? ' ' + u.base_name : ''} ⊥ (${u.inner_ks[0]}/${2**u.inner_period - 1}, ${u.inner_ks[1]}/${2**u.inner_period - 1})${u.inner_name ? ' ' + u.inner_name : ''}`)) };
     handleParam({ e96: 'param', p: c, marker, label: `center of the period-${m} component` });
     try { $('frame').contentWindow.postMessage({ e96: 'compRays', n: m, ks: ent && m >= 2 ? ent.ks : null, c, go: true }, '*'); } catch (e) {}
@@ -543,6 +544,15 @@
   function btCard(mk) {
     const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'), src = mk.src || [], n = cur.n;
     $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(`${src.length} periodic capture${src.length === 1 ? '' : 's'} f ^ θ land here (f = polynomial label, θ = the capture's ray, also written as −(1 − θ); [component, side]):\n` + src.map(s => `  ${s.f} ^ ${s.angle} = ${s.f} ^ ${negA(s.angle)}   [x${s.i}, ${s.side}]`).join('\n') + '\n' + mk.lines.join('\n'));
+    // addendum (x): core entropies of f and of g = the period-n polynomial of angle 1 - theta; name = the capture minimising (min, max, label, theta)
+    (async () => { const D = await loadPoly(n), Q = 2**n - 1, r9 = v => Math.round(v*1e9), rows = src.map(s => { const aq = String(s.angle).split('/').map(Number), num = Math.round(aq[0]*Q/aq[1]), gk = Q - num, G = D && D.find(q => q.ks.indexOf(gk) >= 0), F = D && D.find(q => String(q.label) === String(s.f));
+        const hf = F ? ENT.core(F.ks[0], Q).h : NaN, hg = ENT.core(gk, Q).h; return { s, g: G ? G.label : `(${gk}/${Q})`, hf, hg, key: [r9(Math.min(hf, hg)), r9(Math.max(hf, hg)), +s.f, num] }; });
+      if (rows.some(r => !isFinite(r.hf))) return; const cmp = (a, b) => { for (let i = 0; i < 4; i++) if (a.key[i] !== b.key[i]) return a.key[i] - b.key[i]; return 0; }, best = rows.slice().sort(cmp)[0];
+      const ties = new Set(rows.filter(r => r.key[0] === best.key[0] && r.key[1] === best.key[1]).map(r => [String(r.s.f), String(r.g)].sort().join('|'))).size,   /* distinct unordered pairs {f, g}: f ^ g and g ^ f are one name */ lowF = best.hf <= best.hg, nm = `${lowF ? best.s.f : best.g} ^ [${lowF ? best.g : best.s.f}]   (polynomial labels, lower entropy first; as a capture: ${best.s.f} ^ ${best.s.angle})`;
+      const el = document.createElement('div'); el.style.cssText = 'white-space:pre-wrap;font-size:12px;margin-top:4px';
+      el.textContent = `Name by lowest core entropy: ${nm}\n  rule: minimize min(h(f), h(g)), then max(h(f), h(g)), then the label of f, then θ` + (ties > 1 ? `; the entropy minimum is shared by ${ties} different pairs {f, g}, so the choice among them is only by label` : '; the pair {f, g} with the entropy minimum is unique') +
+        `\nCore entropies (g = polynomial of angle 1 − θ; f ^ θ = f ^ g = g ^ f as unmarked maps):\n` + rows.map(r => `  ${r.s.f} ^ ${r.s.angle}:  h(f = ${r.s.f}) = ${r.hf.toFixed(6)},  h(g = ${r.g}) = ${r.hg.toFixed(6)}`).join('\n');
+      $('dct').appendChild(el); window.E96BTNAME = { name: nm, ties, rows: rows.map(r => [r.s.f, r.s.angle, r.g, r.hf, r.hg]) }; })();
     const B = $('dcb'); B.innerHTML = ''; const note = document.createElement('div'); note.style.cssText = 'width:100%;font-size:11px;color:#555;margin:2px 0';
     note.textContent = 'Highlight (experimental rule): each capture is attached to the corner of the component nearest to its mating f ⊔ g(1 − θ); − and + of one (f, x_i) at two corners: the triangle between them; otherwise the two hexants at that corner.'; B.appendChild(note);
     const res = document.createElement('div'); res.style.cssText = 'width:100%;font-size:11px;margin-top:3px;white-space:pre-wrap';
