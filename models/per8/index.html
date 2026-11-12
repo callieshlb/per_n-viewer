@@ -31,21 +31,21 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261112221446"></script>
-<script src="per8_core.js?v=20261112221446"></script>
+<script src="conformal_data.js?v=20261112221734"></script>
+<script src="per8_core.js?v=20261112221734"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
 <div id="side">
   <h1>Per<sub>8</sub>(0): conformal model, live dynamics</h1>
-<div style="background:#fff3cd;border:1px solid #e0b84d;border-radius:4px;padding:5px 7px;margin:4px 0 8px;font-size:12px"><b>Check U6 failed for real ovals 0 and 2</b> (E94): oval 2's max distance to its geodesic is 0.0270 on the fine mesh (threshold 0.02; coarse 0.0279); oval 0 could not be evaluated (points not located near the node y = 0). Ovals 1, 3, 4, A1-A3 and U1-U5 passed. Shown after a ruling to lift the STOP (see REGISTRATION.md / result.md). Numerical model, not a theorem.</div>
+<div style="background:#fff3cd;border:1px solid #e0b84d;border-radius:4px;padding:5px 7px;margin:4px 0 8px;font-size:12px"><b>Check U6 failed for real circles 0 and 2</b> (E94): circle 2's max distance to its geodesic is 0.0270 on the fine mesh (threshold 0.02; coarse 0.0279); circle 0 could not be evaluated (points not located near the node y = 0). Circles 1, 3, 4, A1-A3 and U1-U5 passed. Shown after a ruling to lift the STOP (see REGISTRATION.md / result.md). Numerical model, not a theorem.</div>
   <div class="sub">The compact genus-69 curve uniformized: the disk is its universal cover, every tile is the same Dirichlet polygon, and the picture is conformal. The colors are computed afresh at every screen pixel from (a<sub>3</sub>, a<sub>7</sub>) at that point, as in the 2-D explorer, so zooming in sharpens them. Drag to slide, click to center a point, scroll to magnify.</div>
   <div class="ctrl">
     <span>Tile edges</span><input type="checkbox" id="ed" checked>
     <span>Edge numbers</span><input type="checkbox" id="lt" checked>
     <span>Markers</span><input type="checkbox" id="mk" checked>
     <span>Marker labels</span><input type="checkbox" id="ml" checked>
-    <span>Real ovals</span><input type="checkbox" id="ov2">
+    <span>Real circles</span><input type="checkbox" id="ov2">
     <span>G<sub>8</sub>: tip capture edges (one per Hubbard-tree leaf, E91)</span><input type="checkbox" id="gc">
     <span>G: violet arrow f &rarr; f&prime; when f&prime; has more factors of 2</span><input type="checkbox" id="g2">
     <span style="display:none"></span><input type="checkbox" id="gm" style="display:none">
@@ -81,8 +81,8 @@
     the chart of the view center directly (no folding), which keeps zooms sharp. Very deep zooms reach the limits of single
     precision and of the chart data.</p>
     <p>Up to discretization error the picture is conformal: hyperbolic components keep their shape when moved to the center.
-    Checks (angle sums, area 272π, side pairings, mesh convergence, real ovals geodesic) are in REGISTRATION.md (E94).</p>
-    <p><b>Real ovals</b> (cyan, yellow, green, magenta, orange): the five real circles of Per<sub>8</sub>(0), drawn as the
+    Checks (angle sums, area 272π, side pairings, mesh convergence, real circles geodesic) are in REGISTRATION.md (E94).</p>
+    <p><b>Real circles</b> (cyan, yellow, green, magenta, orange): the five real circles of Per<sub>8</sub>(0), drawn as the
     geodesics they are tested against (E94-U6). <b>G<sub>8</sub></b> (E91's definition, computed 2026-11-09 with gn_graph.py 8,
     capture edges): each edge joins two polynomial centers by the shortest geodesic on the surface between them (pairs of
     multiplicity 2 drawn once). This is a stand-in for the capture path, not the path through the shared capture component itself.</p>
@@ -459,7 +459,7 @@ function drawOverlay() {
     }
     g2.setLineDash([]);
   }
-  if (opt.ov2 && OVSEG.length) {                 // E94 fix: real ovals (canvas, double precision)
+  if (opt.ov2 && OVSEG.length) {                 // E94 fix: real circles (canvas, double precision)
     const OVC = ['#00e5ff', '#ffdb1a', '#4dff59', '#ff73f2', '#ff8c1a'];
     for (const t of tiles) {
       const c0 = ap(t.W, [0, 0]); if (1 - cabs2(c0) < 0.01 && t !== tiles[0]) continue;
@@ -763,7 +763,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112221446"></script><script src="../../js/bitri.js?v=20261112221446"></script>
+<script src="../../js/pern_math.js?v=20261112221734"></script><script src="../../js/bitri.js?v=20261112221734"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
@@ -894,7 +894,7 @@ cv.addEventListener('pointermove',function(e){if(!r0)return;e.stopImmediatePropa
 cv.addEventListener('pointerup',function(e){if(!r0)return;e.stopImmediatePropagation();var p=pos(e),rw=Math.abs(p[0]-r0[0]),rh=Math.abs(p[1]-r0[1]),a=r0;r0=null;box.style.display='none';if(rw<8||rh<8)return;
   var s=screenToDisk((a[2]+e.clientX)/2,(a[3]+e.clientY)/2);if(cabs2(s)>=0.98)return;var r=cv.getBoundingClientRect();V=comp(V,Mq(s));anim=null;reduceView();zoom=Math.min(2000,zoom/Math.max(rw/r.width,rh/r.height));dirty=true;},true);})();
 </script>
-<script>/* E96 hotkeys (Caroline 2026-11-10): r real ovals, g tip capture edges, e violet arrows, p period colors, l labels, k markers, d tile edges, n edge numbers, +/- iterates */
+<script>/* E96 hotkeys (Caroline 2026-11-10): r real circles, g tip capture edges, e violet arrows, p period colors, l labels, k markers, d tile edges, n edge numbers, +/- iterates */
 (function(){var K={r:'ov2',g:'gc',e:'g2',p:'e96pc',l:'ml',k:'mk',d:'ed',n:'lt',j:'e96bt',b:'e96bt'};
 Object.keys(K).forEach(function(k){var el=document.getElementById(K[k]);if(!el)return;var sp=el.previousElementSibling;if(K[k]==='e96bt'){return;}if(K[k]==='e96pc'){el.parentNode.insertBefore(document.createTextNode(' (p)'),el.nextSibling.nextSibling||null);}else if(sp){sp.innerHTML+=' ('+k+')';}});
 var pi=document.getElementById('pit');if(pi&&pi.parentNode.previousElementSibling)pi.parentNode.previousElementSibling.innerHTML+=' (+ / −)';

@@ -23,21 +23,21 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261112221446"></script>
-<script src="per9_core.js?v=20261112221446"></script>
+<script src="conformal_data.js?v=20261112221734"></script>
+<script src="per9_core.js?v=20261112221734"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
 <div id="side">
   <h1>Per<sub>9</sub>(0): conformal model, live dynamics</h1>
-<div style="background:#fff3cd;border:1px solid #e0b84d;border-radius:4px;padding:5px 7px;margin:4px 0 8px;font-size:12px"><b>Numerical model, not a theorem</b> (E95). Checks U1-U5 pass (U5 with the centers inserted as mesh vertices; the first placement missed the 5% bound on one pair of 31 626). <b>Punctures</b>: the continuation check A3 found only 127 distinct places for the 156 punctures; the red markers are placed instead along the internal rays of the polynomial components (multiplier e<sup>−2πi p/q</sup>): 155 of 156 placed, all at distinct places. <b>U6 (real ovals) has not been run</b>: the ovals are not drawn. The disc |y| &lt; 0.1 around y = 0 is <b>masked</b> (gray): x was not computed there. Pixel colors use the chart value of x without Newton polishing on the GPU. See REGISTRATION.md / result.md.</div>
+<div style="background:#fff3cd;border:1px solid #e0b84d;border-radius:4px;padding:5px 7px;margin:4px 0 8px;font-size:12px"><b>Numerical model, not a theorem</b> (E95). Checks U1-U5 pass (U5 with the centers inserted as mesh vertices; the first placement missed the 5% bound on one pair of 31 626). <b>Punctures</b>: the continuation check A3 found only 127 distinct places for the 156 punctures; the red markers are placed instead along the internal rays of the polynomial components (multiplier e<sup>−2πi p/q</sup>): 155 of 156 placed, all at distinct places. <b>U6 (real circles) has not been run</b>: the real circles are not drawn. The disc |y| &lt; 0.1 around y = 0 is <b>masked</b> (gray): x was not computed there. Pixel colors use the chart value of x without Newton polishing on the GPU. See REGISTRATION.md / result.md.</div>
   <div class="sub">The compact genus-188 curve uniformized: the disk is its universal cover, every tile is the same Dirichlet polygon, and the picture is conformal. The colors are computed afresh at every screen pixel from (a<sub>3</sub>, a<sub>8</sub>) at that point, as in the 2-D explorer, so zooming in sharpens them. Drag to slide, click to center a point, scroll to magnify.</div>
   <div class="ctrl">
     <span>Tile edges</span><input type="checkbox" id="ed" checked>
     <span>Edge numbers</span><input type="checkbox" id="lt" checked>
     <span>Markers</span><input type="checkbox" id="mk" checked>
     <span>Marker labels</span><input type="checkbox" id="ml" checked>
-    <span>Real ovals</span><input type="checkbox" id="ov2">
+    <span>Real circles</span><input type="checkbox" id="ov2">
     <span>G<sub>9</sub> edges</span><input type="checkbox" id="gc">
     <span style="display:none"></span><input type="checkbox" id="gm" style="display:none">
     <span style="display:none"></span><input type="checkbox" id="gp" style="display:none">
@@ -70,7 +70,7 @@
     the limits of single precision and of the chart data.</p>
     <p>Up to discretization error the picture is conformal: hyperbolic components keep their shape when moved to the center.
     Checks (angle sums, area 748π, side pairings, mesh convergence) are in REGISTRATION.md (E95).</p>
-    <p><b>Real ovals</b>: not drawn (check U6 has not been run for Per<sub>9</sub>(0)). <b>G<sub>9</sub> edges</b> (white, off by default): the 933 pairs of centers joined in G<sub>9</sub> (E91 construction), each drawn as the shortest geodesic between them.</p>
+    <p><b>Real circles</b>: not drawn (check U6 has not been run for Per<sub>9</sub>(0)). <b>G<sub>9</sub> edges</b> (white, off by default): the 933 pairs of centers joined in G<sub>9</sub> (E91 construction), each drawn as the shortest geodesic between them.</p>
     <p>Click a marker (white dot or red dot) to see its data: for a polynomial center z<sup>2</sup> + c its c, characteristic
     angles, internal address and kneading; for a puncture the centers sharing it, k, q, multiplicity, its census loop point and how it was placed (internal ray of a polynomial component).</p>
     <p>White dots: polynomial centers (label k means angle k/511). Red: punctures (the marker sits at the census loop point, next to the puncture).</p>
@@ -610,7 +610,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112221446"></script><script src="../../js/bitri.js?v=20261112221446"></script>
+<script src="../../js/pern_math.js?v=20261112221734"></script><script src="../../js/bitri.js?v=20261112221734"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
@@ -741,7 +741,7 @@ cv.addEventListener('pointermove',function(e){if(!r0)return;e.stopImmediatePropa
 cv.addEventListener('pointerup',function(e){if(!r0)return;e.stopImmediatePropagation();var p=pos(e),rw=Math.abs(p[0]-r0[0]),rh=Math.abs(p[1]-r0[1]),a=r0;r0=null;box.style.display='none';if(rw<8||rh<8)return;
   var s=screenToDisk((a[2]+e.clientX)/2,(a[3]+e.clientY)/2);if(cabs2(s)>=0.98)return;var r=cv.getBoundingClientRect();V=comp(V,Mq(s));anim=null;reduceView();zoom=Math.min(2000,zoom/Math.max(rw/r.width,rh/r.height));dirty=true;},true);})();
 </script>
-<script>/* E96 hotkeys (Caroline 2026-11-10): r real ovals, g tip capture edges, e violet arrows, p period colors, l labels, k markers, d tile edges, n edge numbers, +/- iterates */
+<script>/* E96 hotkeys (Caroline 2026-11-10): r real circles, g tip capture edges, e violet arrows, p period colors, l labels, k markers, d tile edges, n edge numbers, +/- iterates */
 (function(){var K={r:'ov2',g:'gc',e:'g2',p:'e96pc',l:'ml',k:'mk',d:'ed',n:'lt',j:'e96bt',b:'e96bt'};
 Object.keys(K).forEach(function(k){var el=document.getElementById(K[k]);if(!el)return;var sp=el.previousElementSibling;if(K[k]==='e96bt'){return;}if(K[k]==='e96pc'){el.parentNode.insertBefore(document.createTextNode(' (p)'),el.nextSibling.nextSibling||null);}else if(sp){sp.innerHTML+=' ('+k+')';}});
 var pi=document.getElementById('pit');if(pi&&pi.parentNode.previousElementSibling)pi.parentNode.previousElementSibling.innerHTML+=' (+ / −)';
