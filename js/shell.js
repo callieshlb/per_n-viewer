@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261112204321').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112211834').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112204321'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112211834'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -442,6 +442,13 @@
   const GN = {};
   function loadG(n) { if (n > 8) return Promise.resolve(null);   /* no G_9 yet */
     if (!GN[n]) GN[n] = fetch(`models/Gn/G${n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); return GN[n]; }
+  async function gPath(n, from, to) {            // shortest path between two centers of G_n (labels), or null
+    const G = await loadG(n); if (!G) return null; const L = G.labels, s = L.indexOf(from), t = L.indexOf(to); if (s < 0 || t < 0) return null;
+    const adj = L.map(() => new Set()); for (const e of G.edges) if (e.b !== null && e.b >= 0 && e.a !== e.b) { adj[e.a].add(e.b); adj[e.b].add(e.a); }
+    const prev = L.map(() => -2), q = [s]; prev[s] = -1; for (let h = 0; h < q.length && prev[t] === -2; h++) for (const w of adj[q[h]]) if (prev[w] === -2) { prev[w] = q[h]; q.push(w); }
+    if (prev[t] === -2) return null; const out = []; for (let v = t; v !== -1; v = prev[v]) out.push(L[v]); return out.reverse();
+  }
+  window.E96TEST_gpath = gPath;
   async function evenPath(n, lab) {              // shortest path in G_n with strictly more factors of 2 at each step, to 2^(n-1)
     const G = await loadG(n); if (!G) return null; const L = G.labels, v2 = k => { let v = 0; while (k > 0 && k % 2 === 0) { k /= 2; v++; } return v; };
     const adj = L.map(() => new Set()); for (const e of G.edges) if (e.b !== null && e.b >= 0) { adj[e.a].add(e.b); adj[e.b].add(e.a); }
@@ -525,6 +532,16 @@
         const cf = parseC(mk);
         mrow.querySelector('.mbtn').onclick = () => doMate(cf, n, lab, mrow.querySelector('.mang').value, mrow.querySelector('.mres'));
         mrow.querySelector('.mang').addEventListener('keydown', e => { if (e.key === 'Enter') mrow.querySelector('.mbtn').click(); });
+        if (n >= 5 && n <= 8) {                       // shortest path in G_n from this center to another one (Caroline 2026-11-12); BFS, edges unweighted
+          const row = document.createElement('div'); row.style.cssText = 'width:100%;margin-top:4px';
+          row.innerHTML = `Shortest G<sub>${n}</sub> path from ${lab} to <input class="gto" size="4" placeholder="label"> <button class="sm gbtn">show</button> <button class="sm gclr">clear</button> <span class="gres"></span>`; B.appendChild(row);
+          const run = async () => { const to = parseInt(row.querySelector('.gto').value, 10), res = row.querySelector('.gres'); res.textContent = '';
+            const path = isFinite(to) ? await gPath(n, +lab, to) : null; if (!path) { res.textContent = isFinite(to) ? ` no path (is ${to} a period-${n} center label?)` : ''; $('frame').contentWindow.postMessage({ e96: 'gpath', labels: [] }, '*'); return; }
+            res.append(` ${path.length - 1} edge${path.length === 2 ? '' : 's'}: `); path.forEach((L, i) => { const a = document.createElement('a'); a.href = '#'; a.textContent = L; a.style.margin = '0 3px';
+              a.onclick = ev => { ev.preventDefault(); $('frame').contentWindow.postMessage({ e96: 'goto', label: L }, '*'); }; if (i) res.append('→'); res.appendChild(a); });
+            $('frame').contentWindow.postMessage({ e96: 'gpath', labels: path }, '*'); };
+          row.querySelector('.gbtn').onclick = run; row.querySelector('.gto').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') run(); });
+          row.querySelector('.gclr').onclick = () => { row.querySelector('.gres').textContent = ''; $('frame').contentWindow.postMessage({ e96: 'gpath', labels: [] }, '*'); }; }
         if (n >= 5) evenPath(n, lab).then(path => { if (!path) return; const d = document.createElement('div'); d.style.cssText = 'width:100%;margin-top:4px';
           d.innerHTML = path.length ? `G<sub>${n}</sub> path to ${2**(n - 1)} (more factors of 2 at each step; click to go): ` : `no increasing G<sub>${n}</sub> path from ${lab}`;
           path.forEach((L, i) => { const a = document.createElement('a'); a.href = '#'; a.textContent = L; a.style.margin = '0 3px';

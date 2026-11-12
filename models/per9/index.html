@@ -23,8 +23,8 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261112204321"></script>
-<script src="per9_core.js?v=20261112204321"></script>
+<script src="conformal_data.js?v=20261112211834"></script>
+<script src="per9_core.js?v=20261112211834"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
@@ -623,7 +623,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112204321"></script><script src="../../js/bitri.js?v=20261112204321"></script>
+<script src="../../js/pern_math.js?v=20261112211834"></script><script src="../../js/bitri.js?v=20261112211834"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
@@ -705,6 +705,12 @@ function e96btToggle(on){E96BTON=on;dirty=true;if(!on)E96TRI=null;var el=documen
   if(!on||E96BT)return;E96BT=[];fetch('../bitrans_n9.json').then(function(r){return r.ok?r.json():[];}).then(function(D){var i=0,bad=0;
     (function next(){var t0=performance.now();while(i<D.length&&performance.now()-t0<60){var b=D[i++];if(!b.x||!b.y)continue;var L=e96locate(b.x,b.y);if(L&&L.res<1e-4){b.pd=L.p;b.first=b.src[0].f+'·x'+b.src[0].i+(b.src.length>1?'…':'');E96BT.push(b);}else bad++;}
       if(el&&!D.length){el.textContent=' (table for this model not computed yet)';return;}if(el)el.textContent=' '+E96BT.length+' placed'+(bad?', '+bad+' not located':'')+(i<D.length?' ('+i+'/'+D.length+'…)':' of '+D.length);dirty=true;if(i<D.length)setTimeout(next,0);})();});}
+/* shortest G_n path chosen in a center's card (Caroline 2026-11-12): its edges in lime, drawn whether or not the G_n toggles are on */
+var E96GP=null;window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='gpath')return;var L=(d.labels||[]).map(Number);E96GP=null;if(L.length>1){E96GP={};for(var i=1;i<L.length;i++){E96GP[L[i-1]+'|'+L[i]]=1;E96GP[L[i]+'|'+L[i-1]]=1;}}dirty=true;});
+(function(){var _dg=drawOverlay;drawOverlay=function(){_dg();if(!E96GP||typeof G6E==='undefined'||!G6E.length)return;var CLx=T.markers.filter(function(m){return m.kind==='centre';}).map(function(m){return parseInt(m.label,10);});
+  for(var ti=0;ti<tiles.length;ti++){var t=tiles[ti],c0=ap(t.W,[0,0]);if(1-cabs2(c0)<0.01&&ti)continue;
+    for(var ei=0;ei<G6E.length;ei++){var e=G6E[ei];if(e.b<0||e.b===null||!E96GP[CLx[e.a]+'|'+CLx[e.b]])continue;var pts=e.pts.map(function(q){return diskToScreen(ap(t.W,q));});
+      g2.beginPath();pts.forEach(function(q,i){if(i)g2.lineTo(q[0],q[1]);else g2.moveTo(q[0],q[1]);});g2.strokeStyle='rgba(0,0,0,.8)';g2.lineWidth=6.5*dpr;g2.stroke();g2.strokeStyle='#8dff3a';g2.lineWidth=3.5*dpr;g2.stroke();}}};})();
 (function(){var _d2=drawOverlay;drawOverlay=function(){_d2();if(!E96BTON||!E96BT)return;if(E96TRI){e96triDraw();if(E96TRI.rays.length)e96rayDraw();}g2.textAlign='left';g2.textBaseline='middle';
   for(var ti=0;ti<tiles.length;ti++)for(var bi=0;bi<E96BT.length;bi++){var b=E96BT[bi],s=ap(tiles[ti].W,b.pd),sc=1-cabs2(s);if(sc<0.02)continue;var p=diskToScreen(s);if(p[0]<-10||p[1]<-10||p[0]>W_+10||p[1]>H_+10)continue;
     var r=Math.max(1.5*dpr,Math.min(6*dpr,6*dpr*sc*Math.pow(zoom,0.35)));g2.beginPath();g2.moveTo(p[0],p[1]-r);g2.lineTo(p[0]+r,p[1]);g2.lineTo(p[0],p[1]+r);g2.lineTo(p[0]-r,p[1]);g2.closePath();

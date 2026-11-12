@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261112204321').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112211834').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261112204321').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261112211834').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -30,6 +30,7 @@
   window.E96TEST_bt = pk => { if (!BT || !BT.length) return null; let b = BT[0]; if (pk) b = BT.reduce((u, v) => Math.hypot(v.p[0] - pk[0], v.p[1] - pk[1]) < Math.hypot(u.p[0] - pk[0], u.p[1] - pk[1]) ? v : u); pv.ctr = b.p.slice(); pv.redraw(); return pv.toScreen(b.p); };
   window.E96TEST_view = () => ({ ctr: pv.ctr, upp: pv.upp });
   window.E96TEST_marks = () => MARKS.filter(m => m.vein).length;
+  window.E96TEST_gp = () => ({ path: GPATH, edges: (C.edges || []).filter(e => GPATH.some((L, i) => i && ((GPATH[i - 1] === e.a && L === e.b) || (GPATH[i - 1] === e.b && L === e.a)))).length });
   window.E96TEST_pern = () => ({ n: PERN.length, tuned: PERN.filter(m => m.tuned).map(m => ({ label: m.label, p: m.p, line: m.lines.find(l => /TUNING/.test(l)).slice(0, 70) })) });
   window.E96TEST_pickPuncture = i => { const m = markers.filter(q => q.kind === 'puncture')[i]; if (m) pick(m.p, m); return !!m; };
   window.E96TEST_compr = () => COMPR && COMPR.rays.length === 2 ? { apart: +Math.hypot(COMPR.rays[0].at(-1)[0] - COMPR.rays[1].at(-1)[0], COMPR.rays[0].at(-1)[1] - COMPR.rays[1].at(-1)[1]).toExponential(1), fromCenter: +Math.hypot(COMPR.rays[0].at(-1)[0] - COMPR.c[0], COMPR.rays[0].at(-1)[1] - COMPR.c[1]).toExponential(1) } : null;
@@ -113,6 +114,11 @@
         g.strokeStyle = '#ffffff'; g.lineWidth = 2; g.stroke();
       }
     }
+    if (torus && GPATH.length > 1 && C.edges) {   // shortest G_n path chosen in a center's card (lime)
+      const want = new Set(); for (let i = 1; i < GPATH.length; i++) { want.add(GPATH[i - 1] + '|' + GPATH[i]); want.add(GPATH[i] + '|' + GPATH[i - 1]); }
+      for (const o of offs) for (const e of C.edges) { if (!want.has(e.a + '|' + e.b)) continue; const a = pv.toScreen([e.P[0] + o[0], e.P[1] + o[1]]), b = pv.toScreen([e.Q[0] + o[0], e.Q[1] + o[1]]);
+        if (Math.max(a[0], b[0]) < 0 || Math.min(a[0], b[0]) > W || Math.max(a[1], b[1]) < 0 || Math.min(a[1], b[1]) > H) continue;
+        g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.strokeStyle = 'rgba(0,0,0,.8)'; g.lineWidth = 6.5; g.stroke(); g.strokeStyle = '#8dff3a'; g.lineWidth = 3.5; g.stroke(); } }
     if (torus && opt.vi && C.edges) {          // violet: lo -> hi with v2(hi) > v2(lo) and v2(hi) maximal among lo's neighbors (ties kept)
       const v2 = k => { k = +k; let r = 0; while (k > 0 && k % 2 === 0) { k /= 2; r++; } return r; }, MV = {};
       for (const e of C.edges) { MV[e.a] = Math.max(MV[e.a] ?? -1, v2(e.b)); MV[e.b] = Math.max(MV[e.b] ?? -1, v2(e.a)); }
@@ -178,6 +184,7 @@
     pv.redraw();
   }
   let COMPR = null;
+  let GPATH = [];
   let PERSEL = null;                                   // the selected period-n center (its labels and rays highlighted)
   function perRays(m) {                                // parameter rays of the two characteristic angles (traced once, cached)
     if (!m.rays && PERNn >= 2) { const Q = BigInt(2**PERNn - 1); m.rays = m.ks.map(k => PM.traceRay('param', { p: BigInt(k), q: Q, text: `${k}/${2**PERNn - 1}` }, null, 8, 30*8).pts); }
@@ -274,6 +281,7 @@
   $('mfilter').oninput = buildList; buildList();
   window.addEventListener('message', ev => { const d = ev.data;
     if (d && d.e96 === 'clearMarks') { MARKS.length = 0; pv.redraw(); return; }
+    if (d && d.e96 === 'gpath') { GPATH = (d.labels || []).map(String); pv.redraw(); return; }
     if (d && d.e96 === 'compRays') {                     // (s) the clicked component of Per_1: its center and the two rays landing at its root
       COMPR = { c: d.c, n: d.n, ks: d.ks, rays: [] }; if (d.ks && d.n >= 2) { const Q = BigInt(2**d.n - 1); COMPR.rays = d.ks.map(k => PM.traceRay('param', { p: BigInt(k), q: Q, text: `${k}/${2**d.n - 1}` }, null, 8, 30*8).pts); }
       if (d.go) { picked = d.c; } pv.redraw(); return; }

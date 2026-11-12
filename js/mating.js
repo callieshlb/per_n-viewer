@@ -78,6 +78,10 @@ var MATE = (function () {
     var Of = orbitOf(cf), Og = orbitOf(cg); if (!Of || !Og) return { ok: false, why: 'not post-critically finite' };
     if (Of.F[Of.pts.length - 1] !== 0) return { ok: false, why: 'f: critical point not periodic' };
     var nf = Of.pts.length, ng = Og.pts.length, s = cdiv([1, 0], cf);
+    // opts.merge (addendum (u)): rep[i] = index of the representative of g-orbit point i. Points of g's critical orbit that the mating identifies (their
+    // rays, seen from f, land at one point of J_f) are tracked as ONE marked point: without this the pullback on the formal mating makes them collide
+    // slowly and the run was reported as "marked points collide" although the mating exists (FAILURE kept in log.md 2026-11-12).
+    var rp = opts.merge || null, RP = function (i) { return rp && rp[i] !== undefined ? rp[i] : i; }, GF = Og.F.map(function (t) { return t === 0 ? 0 : RP(t); });
     // positions; f-side index i, g-side index i (g[0] = critical point at infinity = null)
     var Zf = Of.pts.map(function (x) { return cmul(x, s); }), Zg = Og.pts.map(function (y, i) { return i === 0 ? null : cmul(cdiv([S, 0], y), s); });
     var hist = [], it, change = Infinity, mu = null, v1, v2;
@@ -88,33 +92,34 @@ var MATE = (function () {
     }
     function root(z2, old) { if (z2 === null) return null; var r = csqrt(z2); if (old !== null && cabs(csub(r, old)) > cabs(cadd(r, old))) r = [-r[0], -r[1]]; return r; }
     for (it = 0; it < maxIt; it++) {
-      v1 = Zf[Of.F[0]]; v2 = Zg[Og.F[0]];                            // positions of the critical values
+      v1 = Zf[Of.F[0]]; v2 = Zg[RP(Og.F[0])];                        // positions of the critical values
       // normalisation: new position of f's critical value (index 1) is 1
       var w1 = Of.F[1] === 0 ? Zf[0] : Zf[Of.F[1]];
       var base = pre(w1, [1, 0], v1, v2);                            // z^2 at mu = 1
       if (base === null || cabs(base) === 0) return { ok: false, why: 'normalisation degenerate', iters: it };
       mu = cdiv([1, 0], base);
       var nZf = Zf.map(function (_, i) { if (i === 0) return [0, 0]; if (i === 1) return [1, 0]; return root(pre(Zf[Of.F[i]], mu, v1, v2), Zf[i]); });
-      var nZg = Zg.map(function (_, i) { if (i === 0) return null; var t = Og.F[i] === 0 ? null : Zg[Og.F[i]]; return root(pre(t, mu, v1, v2), Zg[i]); });
+      var nZg = Zg.map(function (_, i) { if (i === 0) return null; if (RP(i) !== i) return null; var t = GF[i] === 0 ? null : Zg[GF[i]]; return root(pre(t, mu, v1, v2), Zg[i]); });
+      if (rp) nZg = nZg.map(function (z, i) { return i > 0 && RP(i) !== i ? nZg[RP(i)] : z; });
       change = 0;
       for (var i3 = 0; i3 < nf; i3++) change = Math.max(change, PM.chord(nZf[i3], Zf[i3]));
       for (i3 = 0; i3 < ng; i3++) change = Math.max(change, PM.chord(nZg[i3], Zg[i3]));
       Zf = nZf; Zg = nZg;
       // degeneration: two marked points collide
-      var all = Zf.concat(Zg), dmin = Infinity;
+      var all = Zf.concat(Zg.filter(function (_, i) { return RP(i) === i; })), dmin = Infinity;
       for (var a = 0; a < all.length; a++) for (var b = a + 1; b < all.length; b++) dmin = Math.min(dmin, PM.chord(all[a], all[b]));
       if (dmin < 1e-9) return { ok: false, why: 'marked points collide (degenerating: obstruction?)', iters: it, dmin: dmin, Zf: Zf, Zg: Zg };
       if (change < 1e-15) break;
     }
-    v1 = Zf[Of.F[0]]; v2 = Zg[Og.F[0]];
+    v1 = Zf[Of.F[0]]; v2 = Zg[RP(Og.F[0])];
     var Rm = function (z) {                                          // the mating as a map of the sphere
       if (z === null) return v2;
       var z2 = cmul(z, z); if (v2 === null) return cadd(cdiv(z2, mu), v1);
       var den = cadd(z2, mu); if (cabs(den) === 0) return null; return cdiv(cadd(cmul(v2, z2), cmul(mu, v1)), den); };
     var res = 0;
     Zf.forEach(function (z, i) { res = Math.max(res, PM.chord(Rm(z), Zf[Of.F[i]])); });
-    Zg.forEach(function (z, i) { res = Math.max(res, PM.chord(Rm(z), Og.F[i] === 0 ? null : Zg[Og.F[i]])); });
-    return { ok: change < 1e-12 && res < 1e-10, iters: it, change: change, residual: res, Zf: Zf, Zg: Zg, nf: nf, ng: ng, Of: Of, Og: Og, mu: mu, v1: v1, v2: v2, R: Rm };
+    Zg.forEach(function (z, i) { res = Math.max(res, PM.chord(Rm(z), GF[i] === 0 ? null : Zg[GF[i]])); });
+    return { ok: change < 1e-12 && res < 1e-10, iters: it, change: change, residual: res, merged: !!rp, Zf: Zf, Zg: Zg, nf: nf, ng: ng, Of: Of, Og: Og, mu: mu, v1: v1, v2: v2, R: Rm };
   }
   // the mating in Per_n coordinates (n = period of f): chart points a_k = Zf[k]; Moebius T: a0 -> 0, a1 -> inf, a2 -> 1.
   function toChart(m) {
