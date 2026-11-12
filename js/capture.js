@@ -130,8 +130,9 @@ var CAP = (function () {
     var it, change = Infinity, last = null, dminHist = [];
     for (it = 0; it < (opts.maxIt || 3000); it++) { var B2 = stateOf(Z), S2 = go(Z, A, B2, 0, stat); if (!S2) return { ok: false, why: 'pullback broke down at iteration ' + it, comps: comps };
       change = chordZ(S2.Z, Z); Z = S2.Z; A = B2; last = S2;
-      var dmin = Infinity; for (i = 0; i < N; i++) for (j = i + 1; j < N; j++) dmin = Math.min(dmin, PM.chord(Z[i], Z[j]));
-      if (dmin < 1e-9) return { ok: false, why: 'marked points collide (degenerating: obstruction?)', iters: it, dmin: dmin, comps: comps, landing: L.z, typeII: typeII, component: V };
+      var dmin = Infinity, dpair = null; for (i = 0; i < N; i++) for (j = i + 1; j < N; j++) { var dq = PM.chord(Z[i], Z[j]); if (dq < dmin) { dmin = dq; dpair = [i, j]; } }
+      if (opts.trace) opts.trace.push([it, dmin, dpair, change]);
+      if (dmin < (opts.dminTol === undefined ? 1e-9 : opts.dminTol)) return { ok: false, why: 'marked points collide (degenerating: obstruction?)', iters: it, dmin: dmin, pair: dpair, comps: comps, landing: L.z, typeII: typeII, component: V };
       if (change < 1e-15) break; }
     var fin = stateOf(Z), Sf = solve(Z, fin); if (!Sf) return { ok: false, why: 'final map degenerate' };
     var Rm = function (z) { if (z === null) return fin.v2; var z2 = cmul(z, z), den = cadd(z2, Sf.lambda); if (cabs(den) === 0) return null; return cdiv(cadd(cmul(fin.v2 === null ? [1, 0] : fin.v2, z2), Sf.kappa), den); };

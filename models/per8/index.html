@@ -31,8 +31,8 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261112224150"></script>
-<script src="per8_core.js?v=20261112224150"></script>
+<script src="conformal_data.js?v=20261112224749"></script>
+<script src="per8_core.js?v=20261112224749"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -763,7 +763,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112224150"></script><script src="../../js/bitri.js?v=20261112224150"></script>
+<script src="../../js/pern_math.js?v=20261112224749"></script><script src="../../js/bitri.js?v=20261112224749"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
@@ -893,6 +893,9 @@ var E96GP=null;window.addEventListener('message',function(ev){var d=ev.data;if(!
 cv.addEventListener('click',function(e){if(!E96BTON||!E96BT||!E96BT.length)return;var s=screenToDisk(e.clientX,e.clientY);if(cabs2(s)>=1)return;var q=fold(ap(V,s)),best=null,bd=12*dpr*2/((1-cabs2(s))*Rpx*zoom);
   E96BT.forEach(function(b){var d=hdist(q,b.pd);if(d<bd){bd=d;best=b;}});if(best)setTimeout(function(){var tt='';try{tt=e96tri(best);}catch(err){tt='triangles: '+err.message;}parent.postMessage({e96:'param',x:best.x,y:best.y,label:'bitransitive center (ω = a'+best.slot+')',marker:{kind:'bitrans',label:'bt',slot:best.slot,src:best.src,title:'bitransitive center '+best.first+': ω = a'+best.slot,lines:[tt]}},'*');},50);});})();
 </script>
+<script>/* E96: Per_9 chart files are gzip-packed; browsers without DecompressionStream cannot unpack them (Caroline 2026-11-12: say so on the page) */
+if(typeof DecompressionStream==='undefined'&&/per9/.test(location.pathname)){var e96ob=document.createElement('div');e96ob.id='e96oldbrowser';e96ob.style.cssText='position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);max-width:460px;background:#fff;color:#111;border:2px solid #b00;border-radius:8px;padding:16px 18px;font:14px/1.45 system-ui;z-index:99999';
+e96ob.textContent='Per_9 cannot be shown in this browser. Its chart data (76 MB) is stored compressed, and unpacking it needs a browser feature (DecompressionStream) that this browser does not have: Safari before 16.4, Chrome / Edge before 80, Firefox before 113. Per_1 to Per_8 work here. If you need Per_9 in an older browser, please get in touch with the author of this site.';document.body.appendChild(e96ob);}</script>
 <script>/* E96: Command (or Ctrl) + click = zoom out by 2 (Caroline 2026-11-12). Capture phase: the viewer's own pan / click handlers do not see it. */
 (function(){var on=false;cv.addEventListener('pointerdown',function(e){if(!(e.metaKey||e.ctrlKey)||e.shiftKey)return;e.stopImmediatePropagation();e.preventDefault();on=true;},true);
 cv.addEventListener('pointerup',function(e){if(!on)return;e.stopImmediatePropagation();on=false;zoom=Math.max(1,zoom/2);dirty=true;if(typeof poke==='function')poke();},true);
