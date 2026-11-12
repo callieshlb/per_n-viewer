@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261112200024').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112204321').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112200024'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112204321'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -128,7 +128,7 @@
     if (f.kind === 'capture' && cur.family === 'quad') comp = 'escapes to ∞ (outside the Mandelbrot set)';
     else if (f.kind === 'cycle') comp = f.period === 1 ? 'hyperbolic component with an attracting fixed point (polynomial-like: the free critical point is attracted to a fixed point)' : `hyperbolic component of period ${f.period} (the free critical point is attracted to a ${f.period}-cycle)`;
     else comp = 'undecided: bifurcation locus (or beyond the iteration count)';
-    VIEWM = f.kind === 'cycle' && f.period <= 8 ? f.period : 0;
+    VIEWM = f.kind === 'cycle' && f.period <= 9 ? f.period : 0;   // 9: Per_9 wired in 2026-11-12
     $('vin').style.display = VIEWM ? '' : 'none';
     if (VIEWM) $('vin').textContent = VIEWM === cur.n ? `View the involution image in Per_${VIEWM}  (v)` : `View this component's center in Per_${VIEWM}  (v)`;
     return `${cur.titleText}${sel.label ? '  ·  ' + sel.label : ''}   ${par}\n` +
@@ -138,6 +138,43 @@
       (sel.raw ? `NOTE: x here is the disk viewer's own chart value, not re-solved on the curve (the re-solve did not converge, or moved x by more than the guard allows); the map may not be on the curve at all: check "closes to" above.\n` : '') +
       `free critical point ω = ${PM.fmt(M.omega, 6)}: ${comp}   |   iterates ${dv.maxIt}, δ ${dv.delta.toExponential(0)}`;
   }
+  // ---- Per_1: the clicked hyperbolic component (REGISTRATION addendum 2026-11-12 (s)): its center, the two parameter rays landing at its root, and a
+  // button to its center with Hubbard tree and polynomial card. Angles: poly_info (period <= 9) or the tables poly/centres_p{10..14}.json.
+  let COMP = null; const CENT = {};
+  function loadCen(m) { if (m < 10 || m > 14) return Promise.resolve(null); if (!CENT[m]) CENT[m] = fetch(`poly/centres_p${m}.json`).then(r => r.ok ? r.json() : null).catch(() => null); return CENT[m]; }
+  async function compInfo() {
+    $('cen').style.display = 'none'; COMP = null; if (!M || !cur || cur.family !== 'quad' || !sel.p) return;
+    const Mc = M, f = PM.fate(M, M.omega, dv.maxIt, dv.delta, 1e-7); if (f.kind !== 'cycle') return; const m = f.period;
+    const C = PM.cycleCentre('quad', 1, { p: sel.p }, m);
+    if (!C || !C.p) { $('status').textContent += `\ncomponent of period ${m}: center not found from here (click nearer its middle)`; return; }
+    const c0 = C.p, Q = 2**m - 1; let ent = null, why = '';
+    if (m === 1) ent = { ks: [0, 0], label: 0, c: [0, 0] };
+    else if (m <= 9) { const D = await loadPoly(m); if (D) { let bd = Infinity; for (const P of D) { const d = Math.hypot(P.c[0] - c0[0], P.c[1] - c0[1]); if (d < bd) { bd = d; ent = P; } } if (!(bd < 1e-8)) { ent = null; why = `no tabulated center within 1e-8 (nearest ${bd.toExponential(1)})`; } } else why = 'table not available'; }
+    else if (m <= 14) { const T = await loadCen(m); if (T) { let bd = Infinity, bi = -1; for (let i = 0; i < T.length; i += 4) { const d = Math.hypot(T[i + 2] - c0[0], T[i + 3] - c0[1]); if (d < bd) { bd = d; bi = i; } }
+        if (bd < 1e-8) ent = { ks: [T[bi], T[bi + 1]], label: T[bi] % 2 === 0 ? T[bi] : T[bi + 1], c: [T[bi + 2], T[bi + 3]] }; else why = `no tabulated center within 1e-8 (nearest ${bd.toExponential(1)})`; } else why = 'table not available'; }
+    else why = 'angles are tabulated up to period 14 only';
+    if (M !== Mc) return;
+    let t = `\ncomponent of period ${m}: center c = ${PM.fmt(c0, 12)}`;
+    if (ent && m >= 2) { t += `; parameter rays landing at its root: ${ent.ks[0]}/${Q} and ${ent.ks[1]}/${Q}`;
+      for (const u of ent.tuning || []) { const Qd = 2**u.d - 1, Qm = 2**u.inner_period - 1; t += `\n  tuning: (${u.base_ks[0]}/${Qd}, ${u.base_ks[1]}/${Qd})${u.base_name ? ' ' + u.base_name : ''} ⊥ (${u.inner_ks[0]}/${Qm}, ${u.inner_ks[1]}/${Qm})${u.inner_name ? ' ' + u.inner_name : ''}`; } }
+    else if (m >= 2) t += `; root rays: ${why}`;
+    $('status').textContent += t; COMP = { m, c: c0, ent };
+    try { $('frame').contentWindow.postMessage({ e96: 'compRays', n: m, ks: ent && m >= 2 ? ent.ks : null, c: c0 }, '*'); } catch (e) {}
+    $('cen').textContent = `Go to this component's center${m >= 2 && m <= 9 && ent ? ': Hubbard tree and polynomial card' : ''}  (h)`; $('cen').style.display = '';
+  }
+  function goCenter() {
+    if (!COMP) return; const { m, c, ent } = COMP, Q = 2**m - 1; let marker = null;
+    if (ent && m >= 2) marker = { kind: 'centre', label: String(ent.label), n: m, ks: ent.ks, title: `center ${ent.label} of period ${m} (angles ${ent.ks[0]}/${Q}, ${ent.ks[1]}/${Q})`,
+      lines: [`z^2 + c,  c = ${ent.c_str ? ent.c_str[0] + (ent.c_str[1].startsWith('-') ? ' - ' : ' + ') + ent.c_str[1].replace('-', '') + 'i' : PM.fmt(c, 14)}`, `angles ${ent.ks[0]}/${Q}, ${ent.ks[1]}/${Q}`]
+        .concat(ent.kneading ? [`kneading ${ent.kneading}`, `internal address ${ent.address.join(' -> ')}`] : [])
+        .concat((ent.tuning || []).map(u => `TUNING: (${u.base_ks[0]}/${2**u.d - 1}, ${u.base_ks[1]}/${2**u.d - 1})${u.base_name ? ' ' + u.base_name : ''} ⊥ (${u.inner_ks[0]}/${2**u.inner_period - 1}, ${u.inner_ks[1]}/${2**u.inner_period - 1})${u.inner_name ? ' ' + u.inner_name : ''}`)) };
+    handleParam({ e96: 'param', p: c, marker, label: `center of the period-${m} component` });
+    try { $('frame').contentWindow.postMessage({ e96: 'compRays', n: m, ks: ent && m >= 2 ? ent.ks : null, c, go: true }, '*'); } catch (e) {}
+  }
+  $('cen').onclick = goCenter;
+  window.E96TEST_tree = () => TREE ? (TREE.arcs ? TREE.arcs.length : (TREE.length !== undefined ? TREE.length : 'set')) : 0;
+  window.addEventListener('keydown', e => { if (e.key === 'h' && COMP && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.metaKey && !e.ctrlKey) { e.preventDefault(); goCenter(); } });
+  window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'h') goCenter(); });
   // ---- "View in Per_m" (REGISTRATION addendum 2026-11-10 (c)): the center of the clicked component, as a point of Per_m (m = period of omega's cycle)
   let VIEWM = 0, VSEND = null;
   function viewM() {
@@ -195,6 +232,7 @@
     $('dhint').style.display = 'none'; dynRays(); polyView(); fit(); $('status').textContent = statusText(); ORB0 = null;
     TREE = null; const mk = parseMarker(d); if (mk) { showMarker(mk); if (mk.kind === 'centre') showTree(mk); } else if (!d.keepCard) hideCard();
     if (!mk || mk.kind !== 'centre') setTimeout(followTree, 30);
+    if (cur.family === 'quad' && !mk) compInfo(); else { $('cen').style.display = 'none'; COMP = null; }
   }
   window.SHELL = { get M() { return M; }, get sel() { return sel; }, dv, choose, viewM, handleParam };
   // ---- controls
@@ -281,7 +319,7 @@
     $('dover').classList.remove('min'); $('dovm').textContent = 'Minimise'; $('dover').style.display = 'block';
   }
   function parseMarker(d) {        // structured (plane / torus pages) or the hyperbolic viewers' info text
-    if (d.marker) return d.marker;
+    if (d.marker) return d.p && !d.marker.p ? Object.assign({ p: d.p }, d.marker) : d.marker;
     if (!d.info) return null;
     const L = d.info.split('\n'), t = L[0].trim(), m = t.match(/^(center|center|puncture) (\S+)/);
     if (!m) return null;
@@ -290,7 +328,8 @@
     return mk;
   }
   const POLY = {};
-  function loadPoly(n) { if (!POLY[n]) POLY[n] = fetch(`poly/poly_info_n${n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); return POLY[n]; }
+  function loadPoly(n) { if (n > 9) return Promise.resolve(null);   /* polynomial cards exist for periods 2..9 */
+    if (!POLY[n]) POLY[n] = fetch(`poly/poly_info_n${n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); return POLY[n]; }
   async function showTree(mk) {                 // the center's Hubbard tree (polynomial coordinates, E92/E96 poly_info), via psi:
     TREE = null; const n = mk.n || cur.n, Mc = M; if (n < 2 || !Mc) return;     // 0 -> a0, c -> a1, inf -> omega (Moebius)
     const lab = mk.ks ? (mk.ks.find(k => k % 2 === 0) ?? mk.ks[0]) : +mk.label, D = await loadPoly(n); if (!D || M !== Mc) return;
@@ -450,10 +489,27 @@
     GOTO = { lab: String(lab), t: setInterval(() => { tries++; if (tries > 120) { clearInterval(GOTO.t); GOTO = null; return; }
       try { $('frame').contentWindow.postMessage({ e96: 'goto', label: lab }, '*'); } catch (e) {} }, 1500) };
   }
+  // puncture card (REGISTRATION addendum 2026-11-12 (t)): what happens to the marked cycle near the puncture. Plane / torus models: the maps at the
+  // puncture's chart point displaced by 1e-3 and 1e-5; disk models: the map at the census loop point (the marker's own x, y).
+  function punctLines(mk) {
+    const out = [], maps = [];
+    try {
+      if (cur.kind === 'hyperbolic') { if (M) maps.push(['at the census loop point (next to the puncture)', M]); }
+      else if (mk.p) for (const e of [1e-3, 1e-5]) { let Mx = null; try { Mx = PM.mapFrom(cur.family, cur.n, { p: [mk.p[0] + e*Math.cos(0.7), mk.p[1] + e*Math.sin(0.7)] }); } catch (err) {} if (Mx && isFinite(Mx.omega[0] + Mx.omega[1])) maps.push([`at distance ${e} from the puncture (chart coordinate)`, Mx]); }
+      for (const [nm, Mx] of maps) { const I = PM.punctureInfo(Mx);
+        out.push(`— ${nm}:`);
+        out.push(I.clusters.length ? '  marked points that have nearly collided: ' + I.clusters.map((c, i) => '{' + c.map(k => 'a' + k).join(', ') + '} (diameter ' + I.diam[i].toExponential(1) + ')').join(', ') + (I.minOther !== null ? `; all other marked distances ≥ ${I.minOther.toExponential(1)}` : '')
+                                 : `  no marked points have collided (smallest marked distance ${I.minOther !== null ? I.minOther.toExponential(1) : '?'})`);
+        out.push(`  free critical point ω: nearest marked point a${I.omega.i} at ${I.omega.d.toExponential(1)}; its value f(ω): nearest a${I.value.i} at ${I.value.d.toExponential(1)}   (a0 = marked critical point, a1 = marked critical value; distances are chordal)`);
+        if (I.fixed) out.push('  fixed points: ' + I.fixed.map(f => `z = ${PM.fmt(f.z, 4)}, multiplier ${f.mult ? PM.fmt(f.mult, 4) + ' (|·| = ' + PM.cabs(f.mult).toExponential(2) + ')' : '?'}`).join(';  ')); }
+    } catch (e) { out.push('(puncture data not computed: ' + e.message + ')'); }
+    return out;
+  }
   function showMarker(mk) {
     if (GOTO && mk.label === GOTO.lab) { clearInterval(GOTO.t); GOTO = null; }
     const n = mk.n || cur.n, D = 2**n - 1, esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(mk.lines.join('\n'));
+    if (mk.kind === 'puncture') { const extra = punctLines(mk); if (extra.length) $('dct').innerHTML += '\n' + esc(extra.join('\n')); }
     const B = $('dcb'); B.innerHTML = '';
     const btn = (txt, fn) => { const b = document.createElement('button'); b.className = 'sm'; b.textContent = txt; b.onclick = fn; B.appendChild(b); };
     if (n >= 2) {

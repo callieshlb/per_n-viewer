@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261112200024').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112204321').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261112200024').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261112204321').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -22,7 +22,7 @@
     if (PKEY[key]) { const el = $(PKEY[key]); if (!el || el.style.display === 'none') return true; el.checked = !el.checked; el.dispatchEvent(new Event('change')); return true; }
     if (key === '+' || key === '=' || key === '-') { const el = $('pit'); el.value = Math.max(+el.min, Math.min(+el.max, +el.value + (key === '-' ? -1 : 1)*100)); el.dispatchEvent(new Event('input')); return true; }
     if (key === 'a') { $('side').classList.remove('min'); $('minb').textContent = '–'; window.focus(); $('bta').focus(); $('bta').select(); return true; }
-    if (key === 't' || key === 'i' || key === 'u' || key === 'c') { parent.postMessage({ e96: 'key', key }, '*'); return true; }
+    if (key === 't' || key === 'i' || key === 'u' || key === 'c' || key === 'h') { parent.postMessage({ e96: 'key', key }, '*'); return true; }
     return false;
   }
   window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return; if (paneKey(e.key)) e.preventDefault(); });
@@ -30,6 +30,9 @@
   window.E96TEST_bt = pk => { if (!BT || !BT.length) return null; let b = BT[0]; if (pk) b = BT.reduce((u, v) => Math.hypot(v.p[0] - pk[0], v.p[1] - pk[1]) < Math.hypot(u.p[0] - pk[0], u.p[1] - pk[1]) ? v : u); pv.ctr = b.p.slice(); pv.redraw(); return pv.toScreen(b.p); };
   window.E96TEST_view = () => ({ ctr: pv.ctr, upp: pv.upp });
   window.E96TEST_marks = () => MARKS.filter(m => m.vein).length;
+  window.E96TEST_pern = () => ({ n: PERN.length, tuned: PERN.filter(m => m.tuned).map(m => ({ label: m.label, p: m.p, line: m.lines.find(l => /TUNING/.test(l)).slice(0, 70) })) });
+  window.E96TEST_pickPuncture = i => { const m = markers.filter(q => q.kind === 'puncture')[i]; if (m) pick(m.p, m); return !!m; };
+  window.E96TEST_compr = () => COMPR && COMPR.rays.length === 2 ? { apart: +Math.hypot(COMPR.rays[0].at(-1)[0] - COMPR.rays[1].at(-1)[0], COMPR.rays[0].at(-1)[1] - COMPR.rays[1].at(-1)[1]).toExponential(1), fromCenter: +Math.hypot(COMPR.rays[0].at(-1)[0] - COMPR.c[0], COMPR.rays[0].at(-1)[1] - COMPR.c[1]).toExponential(1) } : null;
   $('minb').onclick = () => { $('side').classList.toggle('min'); $('minb').textContent = $('side').classList.contains('min') ? '+' : '–'; };
   let picked = null; const MARKS = [];
   // bitransitive centers from periodic captures (REGISTRATION addendum 2026-11-10 (h)); key j
@@ -142,6 +145,9 @@
         g.beginPath(); g.moveTo(s[0], s[1] - 5); g.lineTo(s[0] + 5, s[1]); g.lineTo(s[0], s[1] + 5); g.lineTo(s[0] - 5, s[1]); g.closePath(); g.fillStyle = '#00e5ff'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1; g.stroke();
         if (opt.ml) { const t = b.src[0].f + '·x' + b.src[0].i + (b.src.length > 1 ? '…' : ''); g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, s[0] + 7, s[1]); g.fillStyle = '#9ff3ff'; g.fillText(t, s[0] + 7, s[1]); } } }
     if (BTON && IRAYS.length) drawIRays(g, W, H, offs);
+    if (COMPR) { const Q = 2**COMPR.n - 1; COMPR.rays.forEach((r, i) => { g.beginPath(); r.forEach((q, j) => { const s = pv.toScreen(q); j ? g.lineTo(...s) : g.moveTo(...s); }); g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = 3.5; g.stroke(); g.strokeStyle = '#6ff'; g.lineWidth = 1.6; g.stroke();
+        const e = pv.toScreen(r[Math.min(r.length - 1, Math.floor(r.length*0.35))]), t = `${COMPR.ks[i]}/${Q}`; g.font = '600 11px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, e[0] + 6, e[1]); g.fillStyle = '#9ff'; g.fillText(t, e[0] + 6, e[1]); });
+      const s0 = pv.toScreen(COMPR.c); g.beginPath(); g.arc(s0[0], s0[1], 4.5, 0, 2*Math.PI); g.fillStyle = '#6ff'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke(); }
     if (RAYS.length) drawRays(g, W, H);
     if (E.rays) drawPerN(g, W, H);
     const VL = [];                                        // vein labels already drawn (skip overlapping ones)
@@ -166,9 +172,12 @@
       PERN = D.map(P => ({ p: [Number(P.c_str[0]), Number(P.c_str[1])], ks: P.ks, label: String(P.label), n, kind: 'centre',
         title: `center ${P.label} of period ${n} (angles ${P.ks[0]}/${Q}, ${P.ks[1]}/${Q})`,
         lines: [`z^2 + c,  c = ${P.c_str[0]} ${P.c_str[1].startsWith('-') ? '-' : '+'} ${P.c_str[1].replace('-', '')}i`, `angles ${P.ks[0]}/${Q}, ${P.ks[1]}/${Q}`,
-                `kneading ${P.kneading}`, `internal address ${P.address.join(' -> ')}`] })); }
+                `kneading ${P.kneading}`, `internal address ${P.address.join(' -> ')}`].concat((P.tuning || []).map(t => { const Qd = 2**t.d - 1, Qm = 2**t.inner_period - 1;
+                  return `TUNING: (${t.base_ks[0]}/${Qd}, ${t.base_ks[1]}/${Qd})${t.base_name ? ' ' + t.base_name : ''} ⊥ (${t.inner_ks[0]}/${Qm}, ${t.inner_ks[1]}/${Qm})${t.inner_name ? ' ' + t.inner_name : ''}: in the small Mandelbrot copy of the period-${t.d} center ${t.base}`; })),
+        tuned: (P.tuning || []).length > 0 })); }
     pv.redraw();
   }
+  let COMPR = null;
   let PERSEL = null;                                   // the selected period-n center (its labels and rays highlighted)
   function perRays(m) {                                // parameter rays of the two characteristic angles (traced once, cached)
     if (!m.rays && PERNn >= 2) { const Q = BigInt(2**PERNn - 1); m.rays = m.ks.map(k => PM.traceRay('param', { p: BigInt(k), q: Q, text: `${k}/${2**PERNn - 1}` }, null, 8, 30*8).pts); }
@@ -181,8 +190,8 @@
       for (const r of perRays(m)) { g.beginPath(); r.forEach((q, i) => { const s = pv.toScreen(q); i ? g.lineTo(...s) : g.moveTo(...s); });
         g.strokeStyle = sel ? '#ffe650' : 'rgba(255,255,255,.55)'; g.lineWidth = sel ? 2.2 : 1; g.stroke(); } }
     const placed = [];                                   // labels: no two within 14 px vertically and 90 px horizontally (staggered)
-    for (const m of PERN) { const s = pv.toScreen(m.p); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
-      g.beginPath(); g.arc(s[0], s[1], m === PERSEL ? 5.5 : 4, 0, 2*Math.PI); g.fillStyle = m === PERSEL ? '#ffe650' : '#fff'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
+    for (const m of PERN) { if ($('pertun').checked && !m.tuned) continue; const s = pv.toScreen(m.p); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
+      g.beginPath(); g.arc(s[0], s[1], m === PERSEL ? 5.5 : (m.tuned ? 5 : 4), 0, 2*Math.PI); g.fillStyle = m === PERSEL ? '#ffe650' : (m.tuned ? '#ff7ad9' : '#fff'); g.fill();   // pink = a tuning (renormalizable) g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
       if (m === PERSEL || $('perang').checked) { let dy = 0;
         for (let tries = 0; tries < 6 && placed.some(q => Math.abs(q[0] - s[0]) < 90 && Math.abs(q[1] - (s[1] + dy)) < 14); tries++) dy += (tries % 2 ? -1 : 1)*14*(tries + 1);
         if (m === PERSEL || !placed.some(q => Math.abs(q[0] - s[0]) < 90 && Math.abs(q[1] - (s[1] + dy)) < 14)) { label(m, s, dy); placed.push([s[0], s[1] + dy]); } } }
@@ -241,7 +250,7 @@
       let best = null, bd = 12;
       if (opt.mk) { const [W, H] = pv.size(); for (const o of torus ? lattice(W, H) : [[0, 0]]) for (const m of markers) {
         const q = pv.toScreen([m.p[0] + o[0], m.p[1] + o[1]]), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o }; } } }
-      if (E.rays) for (const m of PERN) { const q = pv.toScreen(m.p), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o: [0, 0] }; } }
+      if (E.rays) for (const m of PERN) { if ($('pertun').checked && !m.tuned) continue; const q = pv.toScreen(m.p), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o: [0, 0] }; } }
       if (E.rays && !best) { const r = hitPerRay(s); if (r) best = { m: r, o: [0, 0] }; }
       PERSEL = best && PERN.includes(best.m) ? best.m : null;
       if (best) pick([best.m.p[0] + best.o[0], best.m.p[1] + best.o[1]], best.m); else pick(p, null);
@@ -265,12 +274,15 @@
   $('mfilter').oninput = buildList; buildList();
   window.addEventListener('message', ev => { const d = ev.data;
     if (d && d.e96 === 'clearMarks') { MARKS.length = 0; pv.redraw(); return; }
+    if (d && d.e96 === 'compRays') {                     // (s) the clicked component of Per_1: its center and the two rays landing at its root
+      COMPR = { c: d.c, n: d.n, ks: d.ks, rays: [] }; if (d.ks && d.n >= 2) { const Q = BigInt(2**d.n - 1); COMPR.rays = d.ks.map(k => PM.traceRay('param', { p: BigInt(k), q: Q, text: `${k}/${2**d.n - 1}` }, null, 8, 30*8).pts); }
+      if (d.go) { picked = d.c; } pv.redraw(); return; }
     if (d && d.e96 === 'mark' && d.p) { const k = MARKS.findIndex(q => q.label === d.label && !q.vein && !d.vein); if (k >= 0) MARKS.splice(k, 1);
       MARKS.push({ p: d.p, label: d.label, vein: !!d.vein }); if (d.go) pv.ctr = d.p.slice(); pv.redraw();
       if (d.go) parent.postMessage({ e96: 'markDone', label: d.label, ok: true, res: 0, tag: d.tag }, '*'); return; }
     if (d && d.e96 === 'goto' && d.label !== undefined) { const m = markers.find(q => q.kind === 'centre' && q.label === String(d.label)); if (m) { pv.ctr = m.p.slice(); pv.redraw(); pick(m.p, m); } return; }
     if (d && d.e96 === 'goto' && d.p) { pv.ctr = d.p.slice(); pv.redraw(); pick(d.p, null); } });
-  if (E.rays) { $('perbox').style.display = ''; $('pern').onchange = e => setPerN(+e.target.value); $('perang').onchange = () => pv.redraw(); $('perrays').onchange = () => pv.redraw();
+  if (E.rays) { $('perbox').style.display = ''; $('pern').onchange = e => setPerN(+e.target.value); $('perang').onchange = () => pv.redraw(); $('perrays').onchange = () => pv.redraw(); $('pertun').onchange = () => pv.redraw();
     $('raybox').style.display = ''; $('raygo').onclick = () => setRays($('rayin').value);
     $('rayin').addEventListener('keydown', e => { if (e.key === 'Enter') setRays(e.target.value); });
     $('rayclr').onclick = () => { RAYS = []; $('rayout').textContent = ''; parent.postMessage({ e96: 'rays', angles: [] }, '*'); pv.redraw(); }; }

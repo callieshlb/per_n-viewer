@@ -410,6 +410,29 @@ var PM = (function () {
     var z = M.omega, i; for (i = 0; i < n - j; i++) z = fz(M, z); for (i = 0; i < n*a; i++) z = fz(M, z); var z1 = z; for (i = 0; i < n*q; i++) z1 = fz(M, z1);
     var w0 = T(z), w1 = T(z1); if (w0 === null || w1 === null || !isFinite(w0[0] + w0[1] + w1[0] + w1[1]) || !(cabs(w0) > 0)) return null; return cdiv(csub(w1, w0), w0);   // divided by w0: removes the solution F^a(v) = a_0 (the center itself for a = 0)
   }
+  // ---- puncture cards (REGISTRATION addendum 2026-11-12 (t)): at a map M NEAR a puncture: which marked points have (nearly) collided, where the free
+  // critical point and its value sit, and the fixed points with their multipliers. Clusters: single linkage on chordal distances below thr, where thr is
+  // placed in the largest gap (ratio) of the sorted pairwise distances, provided the gap ratio is >= 20 and the lower side is < 0.1; otherwise no cluster.
+  function punctureInfo(M) {
+    var n = M.marked.length, names = M.marked.map(function (_, i) { return 'a' + i; }), ds = [], i, j;
+    for (i = 0; i < n; i++) for (j = i + 1; j < n; j++) ds.push([chord(M.marked[i], M.marked[j]), i, j]);
+    ds.sort(function (u, v) { return u[0] - v[0]; }); var cut = -1, best = 20;
+    for (i = 0; i + 1 < ds.length; i++) { if (!(ds[i][0] < 0.1)) break; var r = ds[i + 1][0]/Math.max(ds[i][0], 1e-300); if (r >= best) { best = r; cut = i; } }
+    if (ds.length && cut < 0 && ds[ds.length - 1][0] < 0.1) cut = ds.length - 1;
+    var par = names.map(function (_, k) { return k; }), find = function (k) { while (par[k] !== k) k = par[k]; return k; };
+    for (i = 0; i <= cut; i++) par[find(ds[i][1])] = find(ds[i][2]);
+    var G = {}; for (i = 0; i < n; i++) { var g = find(i); (G[g] = G[g] || []).push(i); }
+    var clusters = Object.keys(G).map(function (g) { return G[g]; }).filter(function (c) { return c.length > 1; });
+    var diam = clusters.map(function (c) { var d = 0; for (var u = 0; u < c.length; u++) for (var v = u + 1; v < c.length; v++) d = Math.max(d, chord(M.marked[c[u]], M.marked[c[v]])); return d; });
+    var near = function (z) { var bd = Infinity, bi = -1; for (var k = 0; k < n; k++) { var d = chord(z, M.marked[k]); if (d < bd) { bd = d; bi = k; } } return { i: bi, d: bd }; };
+    var out = { clusters: clusters, diam: diam, gap: cut >= 0 ? best : null, minOther: cut + 1 < ds.length ? ds[cut + 1][0] : null, omega: near(M.omega), value: near(fz(M, M.omega)), fixed: null };
+    // fixed points: D z^3 + (E - A) z^2 + (F - B) z - C = 0 (plus infinity if D = 0); multipliers by a central difference
+    if (cabs(M.D) > 0) { var c = [cscale(M.C, -1), csub(M.F, M.B), csub(M.E, M.A), M.D], z = [[0.4, 0.9], [-0.7, 0.3], [0.5, -0.8]], it, k;
+      for (it = 0; it < 200; it++) { var mv = 0; for (k = 0; k < 3; k++) { var x = z[k], pv = cadd(cmul(cadd(cmul(cadd(cmul(c[3], x), c[2]), x), c[1]), x), c[0]), den = c[3];
+          for (j = 0; j < 3; j++) if (j !== k) den = cmul(den, csub(x, z[j])); if (!(cabs(den) > 0)) continue; var st = cdiv(pv, den); z[k] = csub(x, st); mv = Math.max(mv, cabs(st)/(1 + cabs(z[k]))); } if (mv < 1e-15) break; }
+      out.fixed = z.map(function (w) { var h = 1e-6*(1 + cabs(w)), a = fz(M, [w[0] + h, w[1]]), b = fz(M, [w[0] - h, w[1]]), fw = fz(M, w); return { z: w, mult: a && b ? cscale(csub(a, b), 1/(2*h)) : null, res: fw ? chord(fw, w) : null }; }); }
+    return out;
+  }
   function orbit(M, z, N) { var out = [z]; for (var i = 0; i < N; i++) { z = fz(M, z); out.push(z); } return out; }
   function closure(M) { var a = M.marked[0], z = a; for (var i = 0; i < M.n; i++) z = fz(M, z); return chord(z, a); }
   function fmt(z, d) { d = d || 6; if (z === null) return '∞'; var f = function (v) { return (Math.abs(v) < 1e-12 ? 0 : v).toPrecision(d); };
@@ -417,6 +440,6 @@ var PM = (function () {
   function fateText(f) { return f.kind === 'capture' ? 'captured by the marked cycle, phase ' + f.phase + ', time ' + f.t
     : f.kind === 'cycle' ? 'attracting cycle, period ' + f.period : 'undecided (bifurcation locus)'; }
   return { cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY, torusLocate: torusLocate,
-           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, bitransFactors: bitransFactors, bitransPhiFrom: bitransPhiFrom, bitransDiff: bitransDiff, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
+           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, bitransFactors: bitransFactors, bitransPhiFrom: bitransPhiFrom, bitransDiff: bitransDiff, punctureInfo: punctureInfo, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
 })();
 if (typeof module !== 'undefined') module.exports = PM;
