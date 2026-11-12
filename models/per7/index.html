@@ -31,8 +31,8 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261111192901"></script>
-<script src="per7_core.js?v=20261111192901"></script>
+<script src="conformal_data.js?v=20261112001250"></script>
+<script src="per7_core.js?v=20261112001250"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -647,7 +647,21 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261111192901"></script><script src="../../js/bitri.js?v=20261111192901"></script>
+<script src="../../js/pern_math.js?v=20261112001250"></script><script src="../../js/bitri.js?v=20261112001250"></script>
+<script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
+window.E96POL={n:0,raw:0,far:0,maxdx:0};
+if(7>=7&&typeof chartLookup==='function'){(function(){var _cl=chartLookup,n=7;
+  chartLookup=function(p){var L=_cl(p);if(!L||window.E96NOPOLISH||typeof PM==='undefined'||!isFinite(L.x[0]+L.x[1]+L.y[0]+L.y[1]))return L;
+    var y=L.y,x=L.x,ok=false,g=function(x){var M;try{M=PM.mapFrom('cor',n,{x:x,y:y});}catch(e){return null;}var e=PM.iterN(M,y,n-4);return e&&isFinite(e[0]+e[1])?[e[0]-x[0],e[1]-x[1]]:null;};
+    for(var it=0;it<40;it++){var g0=g(x);if(!g0)break;var h=1e-7*(1+Math.hypot(x[0],x[1])),g1=g([x[0]+h,x[1]]);if(!g1)break;var d=[(g1[0]-g0[0])/h,(g1[1]-g0[1])/h],dd=d[0]*d[0]+d[1]*d[1];if(!(dd>0))break;
+      var st=[(g0[0]*d[0]+g0[1]*d[1])/dd,(g0[1]*d[0]-g0[0]*d[1])/dd];x=[x[0]-st[0],x[1]-st[1]];if(!isFinite(x[0]+x[1]))break;if(Math.hypot(st[0],st[1])<1e-14*(1+Math.hypot(x[0],x[1]))){ok=true;break;}}
+    var c=NaN;if(ok){try{c=PM.closure(PM.mapFrom('cor',n,{x:x,y:y}));}catch(e){}}
+    E96POL.n++;var dx=Math.hypot(x[0]-L.x[0],x[1]-L.x[1]);
+    /* sheet guard (orchestrator's check, e98-real-count 05e3dbf: a re-solve can land on another root of the curve over the same y): a move of x larger than
+       1e-3 (1 + |x|) is not accepted; the viewer's x is kept and the lookup is flagged */
+    if(ok&&c<1e-9&&dx<=1e-3*(1+Math.hypot(L.x[0],L.x[1]))){if(dx>E96POL.maxdx)E96POL.maxdx=dx;L.e96x0=L.x;L.x=x;}else{L.e96raw=true;E96POL.raw++;if(ok&&c<1e-9)E96POL.far++;}
+    return L;};})();}
+</script>
 <script>/* E96 bitransitive centers from periodic captures (REGISTRATION addendum 2026-11-10 (h)); key j */
 var E96BT=null,E96BTON=false,E96TRI=null;
 /* triangles of the clicked bitransitive component (REGISTRATION addendum 2026-11-11 (l)) */
@@ -687,14 +701,14 @@ function e96rayDraw(){var T3=E96TRI;g2.textAlign='left';g2.textBaseline='middle'
 function e96ray(text){var out=document.getElementById('e96btao');if(!E96TRI){out.textContent='select a bitransitive center first (toggle j, click a diamond; the triangles must be drawn)';return[];}
   var m=String(text).trim().match(/^(\S+)(?:\s+([012]))?$/),ang=m?PM.parseAngle(m[1]==='0'?'0/1':m[1]==='1'?'1/1':m[1]):null;if(!ang){out.textContent='enter: angle [triangle 0, 1 or 2], e.g. 1/4 2';return[];}
   var T3=E96TRI,b=T3.b,ks=m[2]!==undefined?[+m[2]]:[0,1,2],lines=[],first=null,res=[];
-  ks.forEach(function(k){var r=BTRI.boundaryPoint(T3.mapOf,[0,0],b.slot,k,ang,7>=7?{kappa:T3.R.kappa,dx:T3.R.dx,tol:1e-8,hrel:1e-4,resTol:1e-6,pstep:1e-5*T3.R.half}:{kappa:T3.R.kappa,dx:T3.R.dx});/* Per_7, Per_8: the chart data limit the precision (log.md 2026-11-11) */if(r.fail){lines.push('triangle '+k+': '+r.fail);return;}
+  ks.forEach(function(k){var r=BTRI.boundaryPoint(T3.mapOf,[0,0],b.slot,k,ang,{kappa:T3.R.kappa,dx:T3.R.dx}),loose=false;if(7>=7&&(r.fail||1-r.rho>1e-3)){var r2=BTRI.boundaryPoint(T3.mapOf,[0,0],b.slot,k,ang,{kappa:T3.R.kappa,dx:T3.R.dx,tol:1e-8,hrel:1e-4,resTol:1e-6,pstep:1e-5*T3.R.half});if(!r2.fail&&(r.fail||r2.rho>r.rho)){r=r2;loose=true;}}if(!r.fail)r.loose=loose;/* Per_7, Per_8: the chart data limit the precision (log.md 2026-11-11) */if(r.fail){lines.push('triangle '+k+': '+r.fail);return;}
     var L=chartLookup(fold(ap(T3.Mb,r.point)));if(!L||!isFinite(L.x[0]+L.x[1]+L.y[0]+L.y[1])){lines.push('triangle '+k+': the end of the ray is outside the charts');return;}
     r.text=m[1];r.x=L.x;r.y=L.y;var Mm=T3.mapOf(r.point);r.clo=Mm?PM.closure(Mm):NaN;T3.rays.push(r);res.push(r);if(!first)first=r;
     lines.push('triangle '+k+', angle '+m[1]+': '+(r.exact?'boundary point x = '+PM.fmt(r.x,10)+', y = '+PM.fmt(r.y,10)+' (critical orbit lands on a repelling cycle after '+r.pp[0]+' return'+(r.pp[0]>1?'s':'')+'; |multiplier| '+r.mult.toFixed(3)+', residual '+r.res.toExponential(1)+', '+r.gap.toExponential(1)+' from the end of the ray in the disk coordinate)'
       :(1-r.rho>1e-3?'NO boundary point: the ray could not be continued beyond |W| = '+r.rho.toFixed(3)+' (precision of the chart data); it stops at x = ':'ray followed to 1 − |W| = '+(1-r.rho).toExponential(1)+': x = ')+PM.fmt(r.x,8)+', y = '+PM.fmt(r.y,8)+'; still moving ('+(r.drift===null?'?':r.drift.toExponential(1))+' over the last decade)'+(r.pp&&r.pp[0]===0?'; periodic angle: exact landing point not solved':'')));});
   out.textContent=lines.join('\n');dirty=true;
   if(first)parent.postMessage({e96:'param',x:first.x,y:first.y,label:'internal ray of the bitransitive component ω = a'+b.slot+'\n'+lines.join('\n')},'*');return res;}
-window.E96TEST_ray=function(t){return e96ray(t).map(function(r){return{k:r.k,exact:r.exact,x:r.x,y:r.y,rho:r.rho,drift:r.drift,mult:r.mult,res:r.res,gap:r.gap,clo:r.clo,why:r.why};});};
+window.E96TEST_ray=function(t){return e96ray(t).map(function(r){return{k:r.k,loose:r.loose,exact:r.exact,x:r.x,y:r.y,rho:r.rho,drift:r.drift,mult:r.mult,res:r.res,gap:r.gap,clo:r.clo,why:r.why};});};
 (function(){var el=document.getElementById('e96bta');el.addEventListener('keydown',function(e){if(e.key==='Enter'){e96ray(el.value);e.preventDefault();}else if(e.key==='Escape')el.blur();e.stopPropagation();});
   document.getElementById('e96btac').onclick=function(){if(E96TRI)E96TRI.rays=[];document.getElementById('e96btao').textContent='';dirty=true;};})();
 window.E96TEST_tri=function(i){var b=E96BT[i];if(!b)return null;window.E96TRICHK=null;var t=e96tri(b);return{text:t,chk:window.E96TRICHK,drawn:!!E96TRI,pd:b.pd,slot:b.slot};};
