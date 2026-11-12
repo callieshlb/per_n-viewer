@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261112195318').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112200024').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261112195318').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261112200024').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -279,6 +279,7 @@
   $('mgo').onclick = () => parent.postMessage({ e96: 'mateReq', label: $('mf').value, angle: $('mg').value, K: $('mvn').checked ? +$('mvk').value || 0 : 0, mis: $('mvm').checked }, '*');
   $('mvk').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { $('mvn').checked = true; $('mgo').click(); } }); $('mvk').addEventListener('input', () => { $('mvn').checked = true; });
   $('mclr').onclick = () => { MARKS.length = 0; pv.redraw(); };
+  $('mdlgb').onclick = () => parent.postMessage({ e96: 'key', key: 'm' }, '*'); $('cdlgb').onclick = () => parent.postMessage({ e96: 'key', key: 'c' }, '*');
   $('mg').addEventListener('keydown', e => { if (e.key === 'Enter') $('mgo').click(); });
   window.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'v') && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') parent.postMessage({ e96: 'key', key: e.key }, '*'); });
   window.E96READY = true;
