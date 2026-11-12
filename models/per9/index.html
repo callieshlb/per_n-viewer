@@ -23,14 +23,14 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261112223127"></script>
-<script src="per9_core.js?v=20261112223127"></script>
+<script src="conformal_data.js?v=20261112223304"></script>
+<script src="per9_core.js?v=20261112223304"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
 <div id="side">
   <h1>Per<sub>9</sub>(0): conformal model, live dynamics</h1>
-<div style="background:#fff3cd;border:1px solid #e0b84d;border-radius:4px;padding:5px 7px;margin:4px 0 8px;font-size:12px"><b>Numerical model, not a theorem</b> (E95). Checks U1-U5 pass (U5 with the centers inserted as mesh vertices; the first placement missed the 5% bound on one pair of 31 626). <b>Punctures</b>: the continuation check A3 found only 127 distinct places for the 156 punctures; the red markers are placed instead along the internal rays of the polynomial components (multiplier e<sup>−2πi p/q</sup>): 155 of 156 placed, all at distinct places. <b>U6 (real circles) has not been run</b>: the real circles are not drawn. The disc |y| &lt; 0.1 around y = 0 is <b>masked</b> (gray): x was not computed there. Pixel colors use the chart value of x without Newton polishing on the GPU. See REGISTRATION.md / result.md.</div>
+<div style="background:#fff3cd;border:1px solid #e0b84d;border-radius:4px;padding:5px 7px;margin:4px 0 8px;font-size:12px"><b>Numerical model, not a theorem</b> (E95). Checks U1-U5 pass (U5 with the centers inserted as mesh vertices; the first placement missed the 5% bound on one pair of 31 626). <b>Punctures</b>: the continuation check A3 found only 127 distinct places for the 156 punctures; the red markers are placed instead along the internal rays of the polynomial components (multiplier e<sup>−2πi p/q</sup>): 156 of 156 placed, all at distinct places. <b>U6 (real circles) has not been run</b>: the real circles are not drawn. The discs |y| &lt; 0.04 around the places over y = 0 are <b>masked</b> (gray): the sheets collapse there and x could not be tracked exactly. Pixel colors are computed from the chart values of the two zeros (x, w) of the map. See REGISTRATION.md / result.md.</div>
   <div class="sub">The compact genus-188 curve uniformized: the disk is its universal cover, every tile is the same Dirichlet polygon, and the picture is conformal. The colors are computed afresh at every screen pixel from (a<sub>3</sub>, a<sub>8</sub>) at that point, as in the 2-D explorer, so zooming in sharpens them. Drag to slide, click to center a point, scroll to magnify.</div>
   <div class="ctrl">
     <span>Tile edges</span><input type="checkbox" id="ed" checked>
@@ -65,7 +65,7 @@
     <p><b>Live coloring:</b> each pixel's point is located in one of 804 conformal charts (centers spread over the surface so
     every point is within 1.2 of one; the pixel walks from chart to neighbouring chart until it reaches the nearest center), which
     store a<sub>3</sub> and a<sub>8</sub>; the free critical point is then iterated in single precision on the GPU from the chart
-    values (no Newton polishing on the GPU at degree 42; the "Point" panel tries a double-precision polish and keeps the chart value when Newton does not settle, which at degree 42 is the usual case). Where |a<sub>3</sub>| &lt; 0.1 the picture is masked: a<sub>8</sub> was not computed there. Pixels near the
+    values (no Newton polishing on the GPU at degree 42; the "Point" panel tries a double-precision polish and keeps the chart value when Newton does not settle, which at degree 42 is the usual case). Where |a<sub>3</sub>| &lt; 0.04 the picture is masked: a<sub>8</sub> was not computed there. Pixels near the
     view center are read from the chart of the view center directly (no folding), which keeps zooms sharp. Very deep zooms reach
     the limits of single precision and of the chart data.</p>
     <p>Up to discretization error the picture is conformal: hyperbolic components keep their shape when moved to the center.
@@ -175,12 +175,13 @@ vec3 liveColourU(int k, vec2 u){
   vec4 g = bicubic(k, f);
   vec4 ca = texelFetch(ctab, ivec2(0, k), 0), cb = texelFetch(ctab, ivec2(1, k), 0);
   vec2 one = vec2(1., 0.);
-  vec2 y = cd(ca.xy - cm(ca.zw, g.xy), one - g.xy);
+  vec2 w = cd(ca.xy - cm(ca.zw, g.xy), one - g.xy);                 // E95 v3: the chart stores w and x
   vec2 x = cd(cb.xy - cm(cb.zw, g.zw), one - g.zw);
-  if (dot(y, y) > 1e10 || dot(x, x) > 1e10) return vec3(85., 20., 20.)/255.;
-  if (dot(y, y) < 0.01) return vec3(200., 200., 205.)/255.;       // E95: masked disc |y| < 0.1 (x not computed); no GPU Newton polish at degree 42
+  if (dot(w, w) > 1e10 || dot(x, x) > 1e10) return vec3(85., 20., 20.)/255.;
+  vec2 y = cm(one - x, one - w);
+  if (dot(y, y) < 0.0016) return vec3(200., 200., 205.)/255.;       // E95: masked disc |y| < 0.1 (x not computed); no GPU Newton polish at degree 42
   // map data
-  vec2 w = cd(x + y - one, x - one), s = x + w, p = cm(x, w), om = cd(2.*p, s);
+  vec2 s = x + w, p = cm(x, w), om = cd(2.*p, s);
   vec2 mk[9]; bool mi6[9];               // marked cycle a_0 = 0, a_1 = inf, a_2 = 1, a_3 = y, a_4..a_7 = f-iterates, a_8 = x
   mk[0] = vec2(0.); mi6[0] = false; mk[1] = vec2(0.); mi6[1] = true; mk[2] = one; mi6[2] = false;
   mk[3] = y; mi6[3] = false; mk[8] = x; mi6[8] = false;
@@ -259,7 +260,7 @@ function geodPts(P, Q, n) {             // points along the geodesic segment P -
 }
 const LEG = [['#2a78d6', 'captured, phase 0'], ['#eb6834', 'captured, phase 1'], ['#1baf7a', 'captured, phase 2'], ['#eda100', 'captured, phase 3'],
   ['#e87ba4', 'captured, phase 4'], ['#7f3fbf', 'captured, phase 5'], ['#a0522d', 'captured, phase 6'], ['#00969f', 'captured, phase 7'], ['#6e6e1e', 'captured, phase 8'], ['#555555', 'attracting fixed point (polynomial components)'],
-  ['#a3a3a3', 'other attracting cycle'], ['#121212', 'undecided: bifurcation locus'], ['#551414', 'too close to a puncture to compute'], ['#c8c8cd', 'masked: |y| < 0.1 (x not computed near y = 0)']];
+  ['#a3a3a3', 'other attracting cycle'], ['#121212', 'undecided: bifurcation locus'], ['#551414', 'too close to a puncture to compute'], ['#c8c8cd', 'masked: |y| < 0.04 (x not computed next to y = 0)']];
 document.getElementById('legend').innerHTML = LEG.map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
 let liveMode = 1, pit = 600, delta = 1e-3, interacting = false, idleT = null;
 document.getElementById('cmode').onchange = e => { liveMode = +e.target.value; dirty = true; };
@@ -529,18 +530,18 @@ function chartLookup(p) {
     for (let c = 0; c < 4; c++) g[c] += wx[i]*wy[j]*CHG[b + c];
   }
   const C = CH.charts[k], one = [1, 0];
-  const y = cdiv(csub(C.ay, cmul(C.by, [g[0], g[1]])), csub(one, [g[0], g[1]]));
+  const w = cdiv(csub(C.ay, cmul(C.by, [g[0], g[1]])), csub(one, [g[0], g[1]]));          // E95 v3: the chart stores w and x
   let x = cdiv(csub(C.ax, cmul(C.bx, [g[2], g[3]])), csub(one, [g[2], g[3]]));
-  const x0 = x, nw = CORE.newton(x, CORE.coeffs(y), 30);
+  const y = cmul(csub(one, x), csub(one, w)), nit = 'chart (w, x)';
   // E93: keep the Newton value only if it stays next to the chart value (near y = 0 double precision cannot separate the branches)
-  let nit = nw[1]; if (nw[1] >= 0 && CORE.cabs(CORE.csub(nw[0], x0)) < 1e-5*(1 + CORE.cabs(x0))) x = nw[0]; else nit = 'skipped';
-  return { y, x, k, nit, masked: cabs2(y) < 0.01 };
+
+  return { y, x, w, k, nit, masked: cabs2(y) < 0.0016 };
 }
 function inspect(p, rpick) {
   const S = T.idSize, px = Math.min(S - 1, Math.max(0, Math.floor((.5 + .5*p[0])*S))), py = Math.min(S - 1, Math.max(0, Math.floor((.5 - .5*p[1])*S)));
   const o = 4*(py*S + px), id = (idData[o] << 16) | (idData[o + 1] << 8) | idData[o + 2];
   let y = [VY[2*id], VY[2*id + 1]], x = [VX[2*id], VX[2*id + 1]], how = 'mesh vertex';
-  const L = chartLookup(p); if (L) { y = L.y; x = L.x; how = `chart ${L.k}, Newton ${L.nit}` + (L.masked ? '; MASKED zone |y| < 0.1: x not reliable' : ''); }
+  const L = chartLookup(p); if (L) { y = L.y; x = L.x; how = `chart ${L.k}`; }
   let fateTxt = '';
   if (CH) { const MM = CORE.mapData(x, y), f = CORE.fate(MM, MM.omega, pit, delta, 1e-7, null, true);
     fateTxt = f.kind === 'capture' ? `\ncaptured, phase ${f.phase}, time ${f.t}` : f.kind === 'cycle' ? `\nattracting cycle, period ${f.period}` : '\nundecided (bifurcation locus)'; }
@@ -610,7 +611,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112223127"></script><script src="../../js/bitri.js?v=20261112223127"></script>
+<script src="../../js/pern_math.js?v=20261112223304"></script><script src="../../js/bitri.js?v=20261112223304"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
@@ -621,8 +622,15 @@ if(9>=7&&typeof chartLookup==='function'){(function(){var _cl=chartLookup,n=9,P=
     for(var it=0;it<40;it++){var g0=g(x);if(!g0)break;var h=1e-7*(1+Math.hypot(x[0],x[1])),g1=g([x[0]+h,x[1]]);if(!g1)break;var d=[(g1[0]-g0[0])/h,(g1[1]-g0[1])/h],dd=d[0]*d[0]+d[1]*d[1];if(!(dd>0))break;
       var st=[(g0[0]*d[0]+g0[1]*d[1])/dd,(g0[1]*d[0]-g0[0]*d[1])/dd];x=[x[0]-st[0],x[1]-st[1]];if(!isFinite(x[0]+x[1]))break;if(Math.hypot(st[0],st[1])<1e-14*(1+Math.hypot(x[0],x[1]))){ok=true;break;}}
     if(!ok)return null;var c=NaN;try{c=PM.closure(PM.mapFrom('cor',n,{x:x,y:y}));}catch(e){}return c<1e-9?x:null;};
+  var solveW=function(x,yof){var ok=false,g=function(x){var y=yof(x),M;try{M=PM.mapFrom('cor',n,{x:x,y:y});}catch(e){return null;}var e=PM.iterN(M,y,n-4);return e&&isFinite(e[0]+e[1])?[e[0]-x[0],e[1]-x[1]]:null;};
+    for(var it=0;it<40;it++){var g0=g(x);if(!g0)break;var h=1e-7*(1+Math.hypot(x[0],x[1])),g1=g([x[0]+h,x[1]]);if(!g1)break;var d=[(g1[0]-g0[0])/h,(g1[1]-g0[1])/h],dd=d[0]*d[0]+d[1]*d[1];if(!(dd>0))break;
+      var st=[(g0[0]*d[0]+g0[1]*d[1])/dd,(g0[1]*d[0]-g0[0]*d[1])/dd];x=[x[0]-st[0],x[1]-st[1]];if(!isFinite(x[0]+x[1]))break;if(Math.hypot(st[0],st[1])<1e-14*(1+Math.hypot(x[0],x[1]))){ok=true;break;}}
+    if(!ok)return null;var c=NaN;try{c=PM.closure(PM.mapFrom('cor',n,{x:x,y:yof(x)}));}catch(e){}return c<1e-9?x:null;};
   var dist=function(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1]);},nearest=function(R,x){var b=0,bd=Infinity;for(var i=0;i<R.length;i++){var d=dist(R[i],x);if(d<bd){bd=d;b=i;}}return b;};
   chartLookup=function(p){var L=_cl(p);if(!L||window.E96NOPOLISH||typeof PM==='undefined'||!isFinite(L.x[0]+L.x[1]+L.y[0]+L.y[1]))return L;
+    if(L.w&&isFinite(L.w[0]+L.w[1])){/* addendum (w): E95 v3 charts store (w, x). Keep w, re-solve x alone on the closing equation with y = (1 - x)(1 - w); move guard as in addendum (n) */
+      var w=L.w,yof=function(x){var a=[1-x[0],-x[1]],b=[1-w[0],-w[1]];return[a[0]*b[0]-a[1]*b[1],a[0]*b[1]+a[1]*b[0]];},xw=solveW(L.x,yof),aw=1+Math.hypot(L.x[0],L.x[1]);P.n++;L.e96x0=L.x;
+      if(xw&&dist(xw,L.x)<=1e-3*aw){var dw=dist(xw,L.x);if(dw>P.maxdx)P.maxdx=dw;L.x=xw;L.y=yof(xw);P.accepted++;}else{L.e96raw=true;P.raw++;}return L;}
     var y=L.y,x0=L.x,xs=solve(x0,y),ax=1+Math.hypot(x0[0],x0[1]);P.n++;L.e96x0=x0;
     if(n!==7){/* Per_8 stays on the move guard of addendum (n): with the root test 12 polynomial centers could no longer be placed (log.md 2026-11-12; Caroline: option 1) */
       if(xs&&dist(xs,x0)<=1e-3*ax){var dq=dist(xs,x0);if(dq>P.maxdx)P.maxdx=dq;L.x=xs;P.accepted++;}else{L.e96raw=true;P.raw++;}return L;}

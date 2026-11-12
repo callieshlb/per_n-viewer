@@ -31,8 +31,8 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261112223127"></script>
-<script src="per8_core.js?v=20261112223127"></script>
+<script src="conformal_data.js?v=20261112223304"></script>
+<script src="per8_core.js?v=20261112223304"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -763,7 +763,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112223127"></script><script src="../../js/bitri.js?v=20261112223127"></script>
+<script src="../../js/pern_math.js?v=20261112223304"></script><script src="../../js/bitri.js?v=20261112223304"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
@@ -774,8 +774,15 @@ if(8>=7&&typeof chartLookup==='function'){(function(){var _cl=chartLookup,n=8,P=
     for(var it=0;it<40;it++){var g0=g(x);if(!g0)break;var h=1e-7*(1+Math.hypot(x[0],x[1])),g1=g([x[0]+h,x[1]]);if(!g1)break;var d=[(g1[0]-g0[0])/h,(g1[1]-g0[1])/h],dd=d[0]*d[0]+d[1]*d[1];if(!(dd>0))break;
       var st=[(g0[0]*d[0]+g0[1]*d[1])/dd,(g0[1]*d[0]-g0[0]*d[1])/dd];x=[x[0]-st[0],x[1]-st[1]];if(!isFinite(x[0]+x[1]))break;if(Math.hypot(st[0],st[1])<1e-14*(1+Math.hypot(x[0],x[1]))){ok=true;break;}}
     if(!ok)return null;var c=NaN;try{c=PM.closure(PM.mapFrom('cor',n,{x:x,y:y}));}catch(e){}return c<1e-9?x:null;};
+  var solveW=function(x,yof){var ok=false,g=function(x){var y=yof(x),M;try{M=PM.mapFrom('cor',n,{x:x,y:y});}catch(e){return null;}var e=PM.iterN(M,y,n-4);return e&&isFinite(e[0]+e[1])?[e[0]-x[0],e[1]-x[1]]:null;};
+    for(var it=0;it<40;it++){var g0=g(x);if(!g0)break;var h=1e-7*(1+Math.hypot(x[0],x[1])),g1=g([x[0]+h,x[1]]);if(!g1)break;var d=[(g1[0]-g0[0])/h,(g1[1]-g0[1])/h],dd=d[0]*d[0]+d[1]*d[1];if(!(dd>0))break;
+      var st=[(g0[0]*d[0]+g0[1]*d[1])/dd,(g0[1]*d[0]-g0[0]*d[1])/dd];x=[x[0]-st[0],x[1]-st[1]];if(!isFinite(x[0]+x[1]))break;if(Math.hypot(st[0],st[1])<1e-14*(1+Math.hypot(x[0],x[1]))){ok=true;break;}}
+    if(!ok)return null;var c=NaN;try{c=PM.closure(PM.mapFrom('cor',n,{x:x,y:yof(x)}));}catch(e){}return c<1e-9?x:null;};
   var dist=function(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1]);},nearest=function(R,x){var b=0,bd=Infinity;for(var i=0;i<R.length;i++){var d=dist(R[i],x);if(d<bd){bd=d;b=i;}}return b;};
   chartLookup=function(p){var L=_cl(p);if(!L||window.E96NOPOLISH||typeof PM==='undefined'||!isFinite(L.x[0]+L.x[1]+L.y[0]+L.y[1]))return L;
+    if(L.w&&isFinite(L.w[0]+L.w[1])){/* addendum (w): E95 v3 charts store (w, x). Keep w, re-solve x alone on the closing equation with y = (1 - x)(1 - w); move guard as in addendum (n) */
+      var w=L.w,yof=function(x){var a=[1-x[0],-x[1]],b=[1-w[0],-w[1]];return[a[0]*b[0]-a[1]*b[1],a[0]*b[1]+a[1]*b[0]];},xw=solveW(L.x,yof),aw=1+Math.hypot(L.x[0],L.x[1]);P.n++;L.e96x0=L.x;
+      if(xw&&dist(xw,L.x)<=1e-3*aw){var dw=dist(xw,L.x);if(dw>P.maxdx)P.maxdx=dw;L.x=xw;L.y=yof(xw);P.accepted++;}else{L.e96raw=true;P.raw++;}return L;}
     var y=L.y,x0=L.x,xs=solve(x0,y),ax=1+Math.hypot(x0[0],x0[1]);P.n++;L.e96x0=x0;
     if(n!==7){/* Per_8 stays on the move guard of addendum (n): with the root test 12 polynomial centers could no longer be placed (log.md 2026-11-12; Caroline: option 1) */
       if(xs&&dist(xs,x0)<=1e-3*ax){var dq=dist(xs,x0);if(dq>P.maxdx)P.maxdx=dq;L.x=xs;P.accepted++;}else{L.e96raw=true;P.raw++;}return L;}
