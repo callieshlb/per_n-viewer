@@ -15,9 +15,9 @@ var CAP = (function () {
     return { z: z, ray: r.pts, moved: cabs(csub(z, r.pts[r.pts.length - 1])), pre: l, per: m };
   }
   // center of the Fatou component of w (basin of the n-cycle of z^2 + c), with the path from w to it; null if w escapes / undecided
-  function centerOf(c, n, cyc, w, rho) {
+  function centerOf(c, n, cyc, w, rho, maxT) {
     var z = w, t, k = -1;
-    for (t = 0; t <= 400; t++) { if (cabs(z) > 50) return null; for (var j = 0; j < n; j++) if (cabs(csub(z, cyc[j])) < rho) { k = j; break; } if (k >= 0) break; z = fc(z, c); }
+    for (t = 0; t <= (maxT || 400); t++) { if (cabs(z) > 50) return null; for (var j = 0; j < n; j++) if (cabs(csub(z, cyc[j])) < rho) { k = j; break; } if (k >= 0) break; z = fc(z, c); }
     if (k < 0) return null;
     // orbit w_0 .. w_t; lift the segment w_t -> cyc[k] back one iterate at a time (z -> +-sqrt(z - c), by continuity from w_(i-1))
     var orb = [w], i, it, u, du, d; for (i = 0; i < t; i++) orb.push(fc(orb[i], c));
@@ -44,14 +44,15 @@ var CAP = (function () {
   // Fatou components at the landing point z: [{x, t, k, frac, path (from z into the component to x)}], best first
   // Sampling circles of radius 3e-3 and 1e-3 around the landing point miss small components (2026-11-12: 206 of the 396 failed Per_8 captures were of
   // this kind, all OUTSIDE the critical-value sector): if nothing is found the radii are reduced (x 0.3, 0.1, 0.03, 0.01, 0.003).
-  function componentsAt(c, n, z) { var sc = [1, 0.3, 0.1, 0.03, 0.01, 0.003]; for (var q = 0; q < sc.length; q++) { var out = componentsAt1(c, n, z, sc[q]); if (out.length) { out.scale = sc[q]; return out; } } return []; }
-  function componentsAt1(c, n, z, scale) {
+  function componentsAt(c, n, z) { var sc = [1, 0.3, 0.1, 0.03, 0.01, 0.003], th = [0.08, 0.045];   /* second pass (2026-11-12): at alpha of a period-9 rabbit each of the 9 components fills less than 0.08 of a circle */
+    for (var t = 0; t < th.length; t++) for (var q = 0; q < sc.length; q++) { var out = componentsAt1(c, n, z, sc[q], th[t]); if (out.length) { out.scale = sc[q]; out.minFrac = th[t]; return out; } } return []; }
+  function componentsAt1(c, n, z, scale, minFrac) { minFrac = minFrac || 0.08;
     var cyc = cycle(c, n), dmin = Infinity, i, j; for (i = 0; i < n; i++) for (j = i + 1; j < n; j++) dmin = Math.min(dmin, cabs(csub(cyc[i], cyc[j])));
     var rho = 0.02*dmin, found = [], NS = 96, radii = [3e-3*scale, 1e-3*scale];
-    radii.forEach(function (r, ri) { for (var s = 0; s < NS; s++) { var w = [z[0] + r*Math.cos(2*Math.PI*s/NS), z[1] + r*Math.sin(2*Math.PI*s/NS)], R = centerOf(c, n, cyc, w, rho); if (!R) continue;
+    radii.forEach(function (r, ri) { for (var s = 0; s < NS; s++) { var w = [z[0] + r*Math.cos(2*Math.PI*s/NS), z[1] + r*Math.sin(2*Math.PI*s/NS)], R = centerOf(c, n, cyc, w, rho, minFrac < 0.08 ? 6000 : 400); if (!R) continue;   /* second pass: slow escape from a weakly repelling alpha */
         var e = null; for (var q = 0; q < found.length; q++) if (cabs(csub(found[q].x, R.x)) < 1e-7) e = found[q];
         if (!e) { e = { x: R.x, t: R.t, k: R.k, cnt: [0, 0], best: [null, null] }; found.push(e); } e.cnt[ri]++; e.best[ri] = e.best[ri] || []; e.best[ri].push(R); } });
-    var out = found.filter(function (e) { return e.cnt[0] >= 0.08*NS && e.cnt[1] >= 0.08*NS; }).map(function (e) { var L = e.best[1], mid = L[Math.floor(L.length/2)];
+    var out = found.filter(function (e) { return e.cnt[0] >= minFrac*NS && e.cnt[1] >= minFrac*NS; }).map(function (e) { var L = e.best[1], mid = L[Math.floor(L.length/2)];
       var per = -1; for (var q = 0; q < n; q++) if (cabs(csub(e.x, cyc[q])) < 1e-8) per = q;
       return { x: e.x, t: e.t, k: e.k, frac: Math.min(e.cnt[0], e.cnt[1])/NS, path: [z].concat(mid.path), cycIndex: per }; });
     out.sort(function (u, v) { return v.frac - u.frac; }); return out;
