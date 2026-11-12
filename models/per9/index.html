@@ -23,14 +23,14 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261112213907"></script>
-<script src="per9_core.js?v=20261112213907"></script>
+<script src="conformal_data.js?v=20261112214751"></script>
+<script src="per9_core.js?v=20261112214751"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
 <div id="side">
   <h1>Per<sub>9</sub>(0): conformal model, live dynamics</h1>
-<div style="background:#fff3cd;border:1px solid #e0b84d;border-radius:4px;padding:5px 7px;margin:4px 0 8px;font-size:12px"><b>Numerical model, not a theorem</b> (E95). Checks U1-U5 pass (U5 with the centers inserted as mesh vertices; the first placement missed the 5% bound on one pair of 31 626). <b>A3 is NOT met</b>: 127 distinct places were found for the 156 punctures, so no puncture markers are shown. <b>U6 (real ovals) has not been run</b>: the ovals are not drawn. The disc |y| &lt; 0.1 around y = 0 is <b>masked</b> (gray): x was not computed there. Pixel colors use the chart value of x without Newton polishing on the GPU. See REGISTRATION.md / result.md.</div>
+<div style="background:#fff3cd;border:1px solid #e0b84d;border-radius:4px;padding:5px 7px;margin:4px 0 8px;font-size:12px"><b>Numerical model, not a theorem</b> (E95). Checks U1-U5 pass (U5 with the centers inserted as mesh vertices; the first placement missed the 5% bound on one pair of 31 626). <b>Punctures</b>: the continuation check A3 found only 127 distinct places for the 156 punctures; the red markers are placed instead along the internal rays of the polynomial components (multiplier e<sup>−2πi p/q</sup>): 155 of 156 placed, all at distinct places. <b>U6 (real ovals) has not been run</b>: the ovals are not drawn. The disc |y| &lt; 0.1 around y = 0 is <b>masked</b> (gray): x was not computed there. Pixel colors use the chart value of x without Newton polishing on the GPU. See REGISTRATION.md / result.md.</div>
   <div class="sub">The compact genus-188 curve uniformized: the disk is its universal cover, every tile is the same Dirichlet polygon, and the picture is conformal. The colors are computed afresh at every screen pixel from (a<sub>3</sub>, a<sub>8</sub>) at that point, as in the 2-D explorer, so zooming in sharpens them. Drag to slide, click to center a point, scroll to magnify.</div>
   <div class="ctrl">
     <span>Tile edges</span><input type="checkbox" id="ed" checked>
@@ -72,8 +72,8 @@
     Checks (angle sums, area 748π, side pairings, mesh convergence) are in REGISTRATION.md (E95).</p>
     <p><b>Real ovals</b>: not drawn (check U6 has not been run for Per<sub>9</sub>(0)). No G<sub>9</sub> overlay.</p>
     <p>Click a marker (white dot or red dot) to see its data: for a polynomial center z<sup>2</sup> + c its c, characteristic
-    angles, internal address and kneading; punctures are not marked in this version (A3 not met).</p>
-    <p>White dots: polynomial centers (label k means angle k/511).</p>
+    angles, internal address and kneading; for a puncture the centers sharing it, k, q, multiplicity, its census loop point and how it was placed (internal ray of a polynomial component).</p>
+    <p>White dots: polynomial centers (label k means angle k/511). Red: punctures (the marker sits at the census loop point, next to the puncture).</p>
   </details>
 </div>
 <script>
@@ -497,7 +497,7 @@ function gotoMarker(text) {          // E93: center the view on a polynomial (by
   } else if ((m = t.match(/^(\d+)$/))) { i = byAngle(+m[1]); if (i < 0) note = `no period-9 center has angle ${m[1]}/511`; }
   else if ((m = t.match(/^0?\.\d+$/))) { const v = +t, k = Math.round(v*511); i = byAngle(k);
     note = i >= 0 ? `${t} -> nearest k/511 is ${k}/511 (off by ${Math.abs(v - k/511).toExponential(1)})` : `no center near ${t}`; }
-  if (i < 0) { msg.textContent = note || `not found: "${text}" (try 7/511, 7, or 0.0137)`; return; }
+  if (i < 0) { msg.textContent = note || `not found: "${text}" (try 7/511, 7, 0.0137, or a puncture name)`; return; }
   const mk = T.markers[i]; V = Mq(mk.p); anim = null; reduceView(); dirty = true;
   inspect(mk.p, Infinity);
   msg.textContent = (note ? note + '; ' : '') + `centered on ${MI.items[i].title}`;
@@ -607,7 +607,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112213907"></script><script src="../../js/bitri.js?v=20261112213907"></script>
+<script src="../../js/pern_math.js?v=20261112214751"></script><script src="../../js/bitri.js?v=20261112214751"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */

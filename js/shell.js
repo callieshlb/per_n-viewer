@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261112213907').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112214751').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112213907'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112214751'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -324,7 +324,7 @@
     const L = d.info.split('\n'), t = L[0].trim(), m = t.match(/^(center|center|puncture) (\S+)/);
     if (!m) return null;
     const mk = { kind: m[1] === 'puncture' ? 'puncture' : 'centre', label: m[2], title: t, lines: L.slice(1) };   // titles may say center or center
-    if (m[1] === 'puncture') { const sh = d.info.match(/shared by centers: ([^\n]+)/); mk.labels = sh ? [...sh[1].matchAll(/(?:^|, )(\d+)/g)].map(x => +x[1]) : []; }
+    if (m[1] === 'puncture') { const sh = d.info.match(/shared by (?:\d+ )?cent(?:re|er)(?:s|\(s\))?: ([^\n]+)/); mk.labels = sh ? [...sh[1].matchAll(/(?:^|, )(\d+)/g)].map(x => +x[1]) : []; }
     return mk;
   }
   const POLY = {};
