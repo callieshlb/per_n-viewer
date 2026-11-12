@@ -1,5 +1,5 @@
 {
- "built_from": "f5f63d5",
+ "built_from": "606f05f",
  "models": [
   {
    "id": "per1",
@@ -246,9 +246,22 @@
    "id": "per9",
    "n": 9,
    "short": "Per<sub>9</sub>",
+   "title": "Per<sub>9</sub>(0)",
    "titleText": "Per_9(0)",
    "kind": "hyperbolic",
-   "placeholder": "Per_9: in preparation (E95 probe)"
+   "family": "cor",
+   "param": "(x, y)",
+   "page": "models/per9/index.html",
+   "genus": 188,
+   "source": "2026-11-10-E95-per9-full",
+   "info": {
+    "genus": 188,
+    "centers": 252,
+    "punctures": 156,
+    "circles": "at least 6",
+    "sheets": 43,
+    "tiling": "Tiling: the universal cover (Poincar\u00e9 disk) tiled by copies of one Dirichlet polygon for the Fuchsian group: 2250 sides in 1125 glued pairs, 750 vertex cycles (\u03c7 = 750 \u2212 1125 + 1 = -374), area 4\u03c0(g \u2212 1) = 748\u03c0."
+   }
   }
  ]
 }

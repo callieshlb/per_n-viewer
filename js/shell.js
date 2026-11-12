@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261112185921').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112195318').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112185921'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112195318'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -290,7 +290,8 @@
     return mk;
   }
   const POLY = {};
-  function loadPoly(n) { if (!POLY[n]) POLY[n] = fetch(`poly/poly_info_n${n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); return POLY[n]; }
+  function loadPoly(n) { if (n > 8) return Promise.resolve(null);   /* no polynomial cards for Per_9 yet */
+    if (!POLY[n]) POLY[n] = fetch(`poly/poly_info_n${n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); return POLY[n]; }
   async function showTree(mk) {                 // the center's Hubbard tree (polynomial coordinates, E92/E96 poly_info), via psi:
     TREE = null; const n = mk.n || cur.n, Mc = M; if (n < 2 || !Mc) return;     // 0 -> a0, c -> a1, inf -> omega (Moebius)
     const lab = mk.ks ? (mk.ks.find(k => k % 2 === 0) ?? mk.ks[0]) : +mk.label, D = await loadPoly(n); if (!D || M !== Mc) return;
@@ -402,7 +403,8 @@
   }
   let TREEERR = null;
   const GN = {};
-  function loadG(n) { if (!GN[n]) GN[n] = fetch(`models/Gn/G${n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); return GN[n]; }
+  function loadG(n) { if (n > 8) return Promise.resolve(null);   /* no G_9 yet */
+    if (!GN[n]) GN[n] = fetch(`models/Gn/G${n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); return GN[n]; }
   async function evenPath(n, lab) {              // shortest path in G_n with strictly more factors of 2 at each step, to 2^(n-1)
     const G = await loadG(n); if (!G) return null; const L = G.labels, v2 = k => { let v = 0; while (k > 0 && k % 2 === 0) { k /= 2; v++; } return v; };
     const adj = L.map(() => new Set()); for (const e of G.edges) if (e.b !== null && e.b >= 0) { adj[e.a].add(e.b); adj[e.b].add(e.a); }

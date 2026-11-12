@@ -62,7 +62,7 @@ bool torusXY(vec2 u, out vec2 x, out vec2 y){
   if (length(B + vv) >= length(B - vv)) { if (dot(A, A) < 1e-24) return false; x = cd(B + vv, 2.*A); } else x = cd(2.*C, B - vv);
   return true;
 }
-uniform vec3 CAP[8]; uniform int flatPal;                       // phase palette (0..255), flat = no time shading
+uniform vec3 CAP[9]; uniform int flatPal;                       // phase palette (0..255), flat = no time shading
 uniform int bands; uniform int plain; uniform int perCol;                                               // escape-time bands (Caroline 2026-11-10)
 vec3 shadeT(vec3 c, float t){
   float s = flatPal == 1 ? 1. : max(.3, min(1., 1. - .6*log(1. + t)/log(81.)));
@@ -80,7 +80,7 @@ vec3 fateColour(vec2 z, bool zi){
     for (int j = 0; j < 12; j++) { if (j >= nm) break;
       float dj = chN(z, zi, mk[j], mi[j]);
       if (dj < th[j]) { int ph = ((j - 1 - (it + 1)) % nm + nm) % nm;   // critical-value convention     // smooth capture time (superattracting cycle: distances square)
-        float ts = float(it + 1) - log2(max(1., log(max(dj, 1e-30))/log(th[j]))); return shadeT(CAP[ph % 8], max(ts, 0.)); } }
+        float ts = float(it + 1) - log2(max(1., log(max(dj, 1e-30))/log(th[j]))); return shadeT(CAP[ph % 9], max(ts, 0.)); } }
     if (tconv < 0. && it > 0 && chN(z, zi, ring[(it - 1) & 31], ringI[(it - 1) & 31]) < 1e-3) tconv = float(it);
     if (tconv >= 0. && it > 0 && chN(z, zi, ring[(it - 1) & 31], ringI[(it - 1) & 31]) > 1e-2) tconv = -1.;
     ring[it & 31] = z; ringI[it & 31] = zi;
@@ -116,12 +116,12 @@ void main(){
   return { fs: function () { return HEAD + MAIN; },
            vs: '#version 300 es\nin vec2 p; void main(){ gl_Position = vec4(p, 0., 1.); }',
            PERPAL: [[214, 170, 170], [170, 205, 175], [170, 185, 225], [225, 212, 160], [200, 172, 220], [160, 210, 212], [228, 190, 150], [190, 200, 140]],      // attracting-cycle tint by period 2..9 (option 'color components by period')
-           DEFPAL: [[42, 120, 214], [235, 104, 52], [27, 175, 122], [237, 161, 0], [232, 123, 164], [127, 63, 191], [160, 82, 45], [0, 150, 160]],
-           setPalette: function (gl, U, pal, flat) { var p = (pal || this.DEFPAL).concat(this.DEFPAL).slice(0, 8), a = new Float32Array(24);
+           DEFPAL: [[42, 120, 214], [235, 104, 52], [27, 175, 122], [237, 161, 0], [232, 123, 164], [127, 63, 191], [160, 82, 45], [0, 150, 160], [110, 110, 30]],   // 9th color = the Per_9 viewer's (E95)
+           setPalette: function (gl, U, pal, flat) { var p = (pal || this.DEFPAL).concat(this.DEFPAL).slice(0, 9), a = new Float32Array(27);
              p.forEach(function (c, i) { a.set(c, 3*i); }); gl.uniform3fv(U('CAP'), a); gl.uniform1i(U('flatPal'), flat ? 1 : 0); },
            LEGEND: function (n, pal) {
              var C = (pal || this.DEFPAL).map(function (c) { return 'rgb(' + c.join(',') + ')'; }), L = [];
-             for (var j = 0; j < Math.min(n, 8); j++) L.push([C[j], 'captured, phase ' + j]);
+             for (var j = 0; j < Math.min(n, 9); j++) L.push([C[j], 'captured, phase ' + j]);
              L.push(['#555555', 'attracting fixed point'], ['#a3a3a3', 'other attracting cycle'], ['#121212', 'undecided'], ['#551414', 'degenerate / overflow']);
              return L; } };
 })();
