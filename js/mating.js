@@ -135,7 +135,7 @@ var MATE = (function () {
   // Lavaurs' algorithm: the pairs of characteristic angles [k0, k1] / (2^n - 1) of all period-n components, n = 2..P (cached, extended on demand).
   // Smallest unused angle of period n is joined to the next unused angle of period n such that the chord crosses no earlier chord.
   var LAV = { P: 1, pairs: {}, ends: [], part: {} };                    // ends: sorted angles (float) of all chords so far; part[angle] = partner
-  function lavaurs(P) {
+  function lavaursOld(P) {
     for (var n = LAV.P + 1; n <= P; n++) { var D = Math.pow(2, n) - 1, ang = [], k, d;
       for (k = 1; k < D; k++) { var per = n; for (d = 1; d < n; d++) if (n % d === 0 && (k*(Math.pow(2, d) - 1)) % D === 0) { per = d; break; } if (per === n) ang.push(k); }
       var used = new Uint8Array(ang.length), out = [], lo = function (x) { var a = 0, b = LAV.ends.length; while (a < b) { var m = (a + b) >> 1; if (LAV.ends[m] < x) a = m + 1; else b = m; } return a; };
@@ -146,6 +146,25 @@ var MATE = (function () {
           used[i] = used[j] = 1; out.push([ang[i], ang[j]]); LAV.ends.splice(lo(A), 0, A); LAV.ends.splice(lo(B), 0, B); LAV.part[A] = B; LAV.part[B] = A; break; } }
       LAV.pairs[n] = out; LAV.P = n; }
     return LAV.pairs;
+  }
+  // Lavaurs' algorithm, linear time per period (2026-11-12; the first version was quadratic and stopped being usable at period 16): the chords of lower
+  // period cut the disk into gaps; the period-n angles of one gap, in increasing order, are joined 1st-2nd, 3rd-4th, ... A sweep over all endpoints with a
+  // stack of open chords gives each new angle its gap (the innermost open chord). Checked against the old version for n <= 14 (tests/m10_lavaurs_fast.js).
+  var LAV2 = { P: 1, pairs: { 1: [] }, ends: [] };          // ends: [angle, +id (opening) or -id (closing)], sorted by angle
+  function lavaurs(P) {
+    for (var n = LAV2.P + 1; n <= P; n++) { var D = Math.pow(2, n) - 1, ang = [], k, d, divs = [];
+      for (d = 1; d < n; d++) if (n % d === 0) divs.push(Math.pow(2, d) - 1);
+      for (k = 1; k < D; k++) { var prim = true; for (d = 0; d < divs.length; d++) if ((k*divs[d]) % D === 0) { prim = false; break; } if (prim) ang.push(k); }
+      var E = LAV2.ends, ei = 0, stack = [], last = {}, out = [], nid = E.length/2 + 1;
+      for (var i = 0; i < ang.length; i++) { var A = ang[i]/D;
+        while (ei < E.length && E[ei][0] < A) { if (E[ei][1] > 0) stack.push(E[ei][1]); else stack.pop(); ei++; }
+        var g = stack.length ? stack[stack.length - 1] : 0;
+        if (last[g] === undefined) last[g] = ang[i]; else { out.push([last[g], ang[i]]); last[g] = undefined; } }
+      out.sort(function (u, v) { return u[0] - v[0]; });
+      var add = []; out.forEach(function (pr) { var id = nid++; add.push([pr[0]/D, id], [pr[1]/D, -id]); }); add.sort(function (u, v) { return u[0] - v[0]; });
+      var M = [], x = 0, y = 0; while (x < E.length || y < add.length) { if (y >= add.length || (x < E.length && E[x][0] < add[y][0])) M.push(E[x++]); else M.push(add[y++]); }
+      LAV2.ends = M; LAV2.pairs[n] = out; LAV2.P = n; }
+    return LAV2.pairs;
   }
   // Vein of theta = a.p/a.q (REGISTRATION addendum 2026-11-10 (b), M7; extended (d), M9): the centers of period 2..P whose wake (k0/Q, k1/Q) strictly
   // contains theta, i.e. the hyperbolic components the combinatorial arc from 0 to the landing point of theta passes through. The K of lowest period
@@ -170,6 +189,6 @@ var MATE = (function () {
   // period of the free critical point (infinity) under the mated map m.R (chordal tolerance), or 0
   function omegaPeriod(m, maxP) { var z = null;
     for (var i = 1; i <= (maxP || 40); i++) { z = m.R(z); if (z === null || PM.chord(z, [1e9, 0]) < 1e-7) return i; } return 0; }
-  return { lavaurs: lavaurs, centerOf: centerOf, veinList: veinList, omegaPeriod: omegaPeriod, spiderCentre: spiderCentre, pcfFromAngle: pcfFromAngle, orbitOf: orbitOf, mate: mate, toChart: toChart, newtonCentre: newtonCentre };
+  return { lavaurs: lavaurs, lavaursOld: lavaursOld, centerOf: centerOf, veinList: veinList, omegaPeriod: omegaPeriod, spiderCentre: spiderCentre, pcfFromAngle: pcfFromAngle, orbitOf: orbitOf, mate: mate, toChart: toChart, newtonCentre: newtonCentre };
 })();
 if (typeof module !== 'undefined') module.exports = MATE;

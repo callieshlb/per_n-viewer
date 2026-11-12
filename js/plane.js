@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261112181426').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112183844').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261112181426').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261112183844').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -29,6 +29,7 @@
   window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && 'rgepja'.includes(d.key)) paneKey(d.key); });
   window.E96TEST_bt = pk => { if (!BT || !BT.length) return null; let b = BT[0]; if (pk) b = BT.reduce((u, v) => Math.hypot(v.p[0] - pk[0], v.p[1] - pk[1]) < Math.hypot(u.p[0] - pk[0], u.p[1] - pk[1]) ? v : u); pv.ctr = b.p.slice(); pv.redraw(); return pv.toScreen(b.p); };
   window.E96TEST_view = () => ({ ctr: pv.ctr, upp: pv.upp });
+  window.E96TEST_marks = () => MARKS.filter(m => m.vein).length;
   $('minb').onclick = () => { $('side').classList.toggle('min'); $('minb').textContent = $('side').classList.contains('min') ? '+' : '–'; };
   let picked = null; const MARKS = [];
   // bitransitive centers from periodic captures (REGISTRATION addendum 2026-11-10 (h)); key j
@@ -275,7 +276,9 @@
     $('rayclr').onclick = () => { RAYS = []; $('rayout').textContent = ''; parent.postMessage({ e96: 'rays', angles: [] }, '*'); pv.redraw(); }; }
   $('minb').onclick();                      // panel starts collapsed (Caroline 2026-11-10); + expands
   if (E.n < 2) $('matebox').style.display = 'none';
-  $('mgo').onclick = () => parent.postMessage({ e96: 'mateReq', label: $('mf').value, angle: $('mg').value }, '*');
+  $('mgo').onclick = () => parent.postMessage({ e96: 'mateReq', label: $('mf').value, angle: $('mg').value, K: $('mvn').checked ? +$('mvk').value || 0 : 0 }, '*');
+  $('mvk').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { $('mvn').checked = true; $('mgo').click(); } }); $('mvk').addEventListener('input', () => { $('mvn').checked = true; });
+  $('mclr').onclick = () => { MARKS.length = 0; pv.redraw(); };
   $('mg').addEventListener('keydown', e => { if (e.key === 'Enter') $('mgo').click(); });
   window.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'v') && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') parent.postMessage({ e96: 'key', key: e.key }, '*'); });
   window.E96READY = true;

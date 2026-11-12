@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261112181426').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112183844').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112181426'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112183844'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -226,7 +226,7 @@
   async function doVein(cf, n, lab, text, K) {
     const a = PM.parseAngle(text); if (!a) return '';
     const polys = {}; for (let m = 2; m <= 8; m++) polys[m] = await loadPoly(m);
-    let V = [], P = 8; for (const Pt of [8, 10, 12, 14]) { P = Pt; V = MATE.veinList(a, polys, K, Pt); if (V.length >= K) break; }       // periods up to 14 (Lavaurs + spider), M9
+    let V = [], P = 8; for (const Pt of [8, 10, 12, 14, 16, 18, 20]) { P = Pt; V = MATE.veinList(a, polys, K, Pt); if (V.length >= K) break; }       // periods up to 20 (linear-time Lavaurs + spider), M9, M10
     const W = $('frame').contentWindow; let ok = 0; const obs = [];
     for (const v of V) { const cg = MATE.centerOf(v), nm = `${v.k0}/${v.Q}`; if (!cg) { obs.push(nm + ' (center not found)'); continue; }
       const m = MATE.mate(cf, cg); if (!m.ok) { obs.push(nm); continue; }
@@ -235,7 +235,7 @@
       else if (cur.kind === 'torus') { const L = PM.torusLocate(ch.x, ch.y); if (!L) { obs.push(nm + ' (not located)'); continue; } msg = { p: L.u }; }
       else msg = { x: ch.x, y: ch.y };
       W.postMessage(Object.assign({ e96: 'mark', label: nm, vein: true, quiet: true }, msg), '*'); ok++; }
-    return `vein of ${a.text}: ${V.length} centers of period ≤ ${P} on the arc from z² to g (asked K = ${K}${V.length < K ? '; there are no more up to period 14' : ''}): ${ok} mated (small yellow dots, labeled by the lower angle of g_i)` +
+    return `vein of ${a.text}: ${V.length} centers of period ≤ ${P} on the arc from z² to g (asked K = ${K}${V.length < K ? `; the arc has only ${V.length} centers of period ≤ 20` : ''}): ${ok} mated (small yellow dots, labeled by the lower angle of g_i)` +
       (obs.length ? `; ${obs.length} obstructed or not placed: ${obs.slice(0, 12).join(', ')}${obs.length > 12 ? ', …' : ''}` : '');
   }
   function keyM() {                                   // 'm': mating prompt: f angle, g angle, Enter
@@ -245,7 +245,7 @@
     $('mdf').focus();          // always: type f, Tab (or Enter), type g, Enter (Caroline 2026-11-10)
   }
   $('mdf').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdg').focus(); $('mdg').select(); } });
-  $('mdg').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdlg').style.display = 'none'; mateFromText($('mdf').value.trim() || $('mdf').dataset.def || '', $('mdg').value, $('mdv').checked ? Math.max(0, Math.min(200, +$('mdk').value || 0)) : 0); } });
+  $('mdg').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdlg').style.display = 'none'; mateFromText($('mdf').value.trim() || $('mdf').dataset.def || '', $('mdg').value, $('mdv').checked ? Math.max(0, Math.min(400, +$('mdk').value || 0)) : 0); } });
   $('mdk').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdg').focus(); } });
   $('mdc').onclick = () => { $('frame').contentWindow.postMessage({ e96: 'clearMarks' }, '*'); };
   $('mdlg').addEventListener('keydown', e => { if (e.key === 'Escape') $('mdlg').style.display = 'none'; });
@@ -253,7 +253,7 @@
   window.addEventListener('keydown', e => { if (e.key === 'm' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { e.preventDefault(); keyM(); } });
   window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'm') { window.focus(); keyM(); } });
   window.addEventListener('message', ev => {                       // mating box in a model's side panel
-    const d = ev.data; if (!d || d.e96 !== 'mateReq' || !cur) return; mateFromText(d.label, d.angle);
+    const d = ev.data; if (!d || d.e96 !== 'mateReq' || !cur) return; mateFromText(d.label, d.angle, Math.max(0, Math.min(400, +d.K || 0)));
   });
   window.addEventListener('keydown', e => {          // 'o': orbit of the point under the cursor (dynamical plane)
     if (e.target.tagName === 'INPUT' || !M || e.key !== 'o' || !dv.mouse) return;
@@ -298,6 +298,7 @@
     $('status').textContent = statusText() + `\nHubbard tree of polynomial ${lab} (white), moved into this chart: max chordal |psi(P^k(0)) - a_k| = ${err.toExponential(1)}`;
   }
   // ---- captures (REGISTRATION addendum 2026-11-10 (g)); 'c': f ^ theta
+  $('tbm').onclick = () => keyM(); $('tbc').onclick = () => keyC();
   function keyC() { if (!cur) return; $('cdlg').style.display = 'block'; $('cdn').textContent = cur.n; $('cdf').value = ''; $('cdg').value = '';
     const cardLab = (document.querySelector('#dct b') || {}).textContent || '', m = cardLab.match(/^cent(?:er|re) (\d+)/); $('cdf').placeholder = m ? m[1] + ' (this card)' : 'angle or label'; $('cdf').dataset.def = m ? m[1] : ''; $('cdf').focus(); }
   async function doCapture(ft, gt, choice) {
