@@ -31,8 +31,8 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261112221734"></script>
-<script src="per7_core.js?v=20261112221734"></script>
+<script src="conformal_data.js?v=20261112222026"></script>
+<script src="per7_core.js?v=20261112222026"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -651,7 +651,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261112221734"></script><script src="../../js/bitri.js?v=20261112221734"></script>
+<script src="../../js/pern_math.js?v=20261112222026"></script><script src="../../js/bitri.js?v=20261112222026"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
@@ -774,6 +774,11 @@ var E96GP=null;window.addEventListener('message',function(ev){var d=ev.data;if(!
 cv.addEventListener('click',function(e){if(!E96BTON||!E96BT||!E96BT.length)return;var s=screenToDisk(e.clientX,e.clientY);if(cabs2(s)>=1)return;var q=fold(ap(V,s)),best=null,bd=12*dpr*2/((1-cabs2(s))*Rpx*zoom);
   E96BT.forEach(function(b){var d=hdist(q,b.pd);if(d<bd){bd=d;best=b;}});if(best)setTimeout(function(){var tt='';try{tt=e96tri(best);}catch(err){tt='triangles: '+err.message;}parent.postMessage({e96:'param',x:best.x,y:best.y,label:'bitransitive center (ω = a'+best.slot+')',marker:{kind:'bitrans',label:'bt',slot:best.slot,src:best.src,title:'bitransitive center '+best.first+': ω = a'+best.slot,lines:[tt]}},'*');},50);});})();
 </script>
+<script>/* E96: Command (or Ctrl) + click = zoom out by 2 (Caroline 2026-11-12). Capture phase: the viewer's own pan / click handlers do not see it. */
+(function(){var on=false;cv.addEventListener('pointerdown',function(e){if(!(e.metaKey||e.ctrlKey)||e.shiftKey)return;e.stopImmediatePropagation();e.preventDefault();on=true;},true);
+cv.addEventListener('pointerup',function(e){if(!on)return;e.stopImmediatePropagation();on=false;zoom=Math.max(1,zoom/2);dirty=true;if(typeof poke==='function')poke();},true);
+cv.addEventListener('click',function(e){if(e.metaKey||e.ctrlKey){e.stopImmediatePropagation();e.preventDefault();}},true);
+cv.addEventListener('contextmenu',function(e){if(e.ctrlKey)e.preventDefault();});})();</script>
 <script>/* E96: Shift + drag = zoom to the dragged rectangle (Caroline 2026-11-11). Capture phase, so the viewer's own pan / click handlers do not see it. */
 (function(){var r0=null,box=document.createElement('div');box.style.cssText='position:absolute;border:1.5px dashed #fff;outline:1px dashed #000;pointer-events:none;display:none;z-index:8';view.appendChild(box);
 function pos(e){var r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];}

@@ -72,7 +72,11 @@ function PlaneView(host, opts) {
     if (rect) { var rw = Math.abs(rect[2] - rect[0]), rh = Math.abs(rect[3] - rect[1]), rc = rect; rect = null; dirty = true;
       if (rw > 8 && rh > 8) { self.ctr = self.toPlane((rc[0] + rc[2])/2, (rc[1] + rc[3])/2); self.upp *= Math.max(rw/W, rh/H); poke(); } return; }
     if (!wasDown || moved > 4) return;
-    var r = gc.getBoundingClientRect(); self.onPick(self.toPlane(e.clientX - r.left, e.clientY - r.top), [e.clientX - r.left, e.clientY - r.top]); });
+    var r = gc.getBoundingClientRect();
+    if (e.metaKey || e.ctrlKey) {            // Command (or Ctrl) + click: zoom out by 2, keeping the clicked point where it is (Caroline 2026-11-12); no pick
+      var sx = e.clientX - r.left, sy = e.clientY - r.top, before = self.toPlane(sx, sy); self.upp = Math.min(10, self.upp*2); var after = self.toPlane(sx, sy);
+      self.ctr[0] += before[0] - after[0]; self.ctr[1] += before[1] - after[1]; dirty = true; poke(); return; }
+    self.onPick(self.toPlane(e.clientX - r.left, e.clientY - r.top), [e.clientX - r.left, e.clientY - r.top]); });
   // hotkeys (Caroline 2026-11-10): z = zoom in, x = zoom out, at the cursor; self.mouse = plane point under the cursor
   self.mouse = null; var lastXY = null;
   gc.addEventListener('pointermove', function (e) { var r = gc.getBoundingClientRect(); lastXY = [e.clientX - r.left, e.clientY - r.top]; self.mouse = self.toPlane(lastXY[0], lastXY[1]); });
