@@ -43,14 +43,14 @@
             font:12px/1.5 ui-monospace, Menlo, monospace; padding:4px 10px; box-sizing:border-box; overflow:auto; white-space:pre; }
   button.sm { font:inherit; padding:0 6px; border:1px solid #bbb; background:#fff; border-radius:4px; cursor:pointer; }
 </style>
-<script src="js/pern_math.js?v=20261112215648"></script>
-<script src="js/glsl.js?v=20261112215648"></script>
-<script src="js/planeview.js?v=20261112215648"></script>
-<script src="js/mating.js?v=20261112215648"></script>
-<script src="js/capture.js?v=20261112215648"></script>
-<script src="js/web.js?v=20261112215648"></script>
-<script src="js/tree.js?v=20261112215648"></script>
-<script src="js/spheres.js?v=20261112215648"></script>
+<script src="js/pern_math.js?v=20261112220232"></script>
+<script src="js/glsl.js?v=20261112220232"></script>
+<script src="js/planeview.js?v=20261112220232"></script>
+<script src="js/mating.js?v=20261112220232"></script>
+<script src="js/capture.js?v=20261112220232"></script>
+<script src="js/web.js?v=20261112220232"></script>
+<script src="js/tree.js?v=20261112220232"></script>
+<script src="js/spheres.js?v=20261112220232"></script>
 </head>
 <body>
 <div id="top"><h1>Per<sub>n</sub>(0) atlas</h1><div id="models"></div><span id="kind"></span></div>
@@ -68,7 +68,7 @@
         <span>Marked cycle (k)</span><input type="checkbox" id="dmk" checked>
         <span>Labels (l)</span><input type="checkbox" id="dml" checked>
         <span>Critical orbit</span><span><input type="checkbox" id="dorb"> <input type="number" id="dorbn" value="60" min="1" max="2000" style="width:60px"></span>
-        <span>Escape-time bands (b)</span><input type="checkbox" id="dbands" checked>
+        <span>Escape-time bands (o)</span><input type="checkbox" id="dbands" checked>
         <span title="free critical point at ∞, marked critical point at 0, scaled like w² + c">Polynomial view (i)</span><input type="checkbox" id="dinv">
         <span>Hubbard tree (t)</span><input type="checkbox" id="dtree" checked>
         <span>Orbit mode (o: orbit of the point under the cursor)</span><span><input type="checkbox" id="omode" title="click a point: draw z0 -> z1 -> ... -> zk"> k <input type="range" id="ok" min="1" max="200" value="20" style="width:80px"> <span id="okv">20</span></span>
@@ -77,7 +77,7 @@
       <div style="margin-top:6px;border-top:1px solid #d9d9d9;padding-top:5px"><b>Spheres</b> <span style="color:#a05a00">(experimental)</span> <button class="sm" id="sphb" title="group the marked cycle, ω and f(ω) by scale at this map (useful near a puncture)">find (u)</button>
         neck ε <input type="range" id="sphe" min="-4" max="-0.5" step="0.25" value="-2" style="width:70px"> <span id="sphev">1e-2</span>
         <div id="sphl" style="margin-top:4px;font:11px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap"></div></div>
-      <div style="margin-top:5px;color:#6b6b6b">Keys: z / x zoom in / out · m mating · c capture · u spheres · v view in Per<sub>m</sub> · r real circles · g G<sub>n</sub> edges · e violet arrows · p period colors · j bitransitive centers · a internal ray of the selected bitransitive</div>
+      <div style="margin-top:5px;color:#6b6b6b">Keys: z / x zoom in / out · m mating · c capture · u spheres · v view in Per<sub>m</sub> · r real circles · g G<sub>n</sub> edges · e violet arrows · p period colors · b bitransitive centers · o escape-time bands · a internal ray of the selected bitransitive</div>
       <div style="margin-top:6px;color:#6b6b6b">Colors: capture into the marked cycle by phase (j − t) mod n, as in the parameter pane;
         gray = basin of another attracting cycle; black = undecided (Julia set). White dots a<sub>j</sub>: the marked cycle
         (a<sub>0</sub> critical); yellow ω: the free critical point.</div>
@@ -99,6 +99,6 @@
   component of f; the second critical value is moved along that ray to the component's center. If the landing point lies on several components they are listed in the status line; pick one with “component #”.
   Type f, Tab, θ, Enter. Esc closes.</div></div>
 <div id="status">Choose a model, then click a parameter.</div>
-<script src="js/shell.js?v=20261112215648"></script>
+<script src="js/shell.js?v=20261112220232"></script>
 </body>
 </html>

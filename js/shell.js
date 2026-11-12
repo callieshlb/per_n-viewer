@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261112215648').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112220232').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112215648'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112220232'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -200,7 +200,7 @@
     if (!d.ok) $('status').textContent += `\nnot located in the disk (best chart residual ${d.res != null ? d.res.toExponential(1) : '?'})`; } });
   // hotkeys for the toggles (Caroline 2026-11-10). Dynamical pane (focus here): t tree, i polynomial view, b bands, l labels, k marked cycle, +/- iterates.
   // Parameter-pane toggles typed here are forwarded to the pane: r real circles, g G_n edges, e violet arrows, p period colors.
-  const DKEY = { t: 'dtree', i: 'dinv', b: 'dbands', l: 'dml', k: 'dmk' };
+  const DKEY = { t: 'dtree', i: 'dinv', o: 'dbands', l: 'dml', k: 'dmk' };
   function dynKey(key) {
     if (DKEY[key]) { const el = $(DKEY[key]); el.checked = !el.checked; el.dispatchEvent(new Event('change')); return true; }
     if (key === '+' || key === '=' || key === '-') { const el = $('dit'); el.value = Math.max(+el.min, Math.min(+el.max, +el.value + (key === '-' ? -1 : 1)*100)); el.dispatchEvent(new Event('input')); return true; }
@@ -208,7 +208,7 @@
   }
   window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return;
     if (dynKey(e.key)) { e.preventDefault(); return; }
-    if ('rgepja'.includes(e.key) && e.key.length === 1) { try { $('frame').contentWindow.postMessage({ e96: 'key', key: e.key }, '*'); } catch (err) {} } });
+    if ('rgepjab'.includes(e.key) && e.key.length === 1) { try { $('frame').contentWindow.postMessage({ e96: 'key', key: e.key }, '*'); } catch (err) {} } });
   window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && (d.key === 't' || d.key === 'i')) dynKey(d.key); });
   $('vin').onclick = viewM;
   window.addEventListener('keydown', e => { if (e.key === 'v' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { e.preventDefault(); viewM(); } });
@@ -447,7 +447,7 @@
   async function webShow(kind, lab) {
     const n = cur.n, D = await loadPoly(n), P = D && D.find(q => q.label === lab); if (!P) { $('status').textContent += `\n${kind}_f: no polynomial data for ${lab}`; return; }
     $('status').textContent += `\n${kind === 'V' ? 'V_f' : 'T′_f'} of center ${lab}: computing…`; await new Promise(r => setTimeout(r, 30));
-    const toP = q => { if (q.p) return q.p; if (cur.kind === 'torus' && q.x && q.y) { const L = PM.torusLocate(q.x, q.y); return L ? L.u : null; } return null; }, rgb = c => `rgb(${c.join(',')})`;
+    const hyp = cur.kind === 'hyperbolic', toP = q => { if (hyp) return q.x && q.y && isFinite(q.x[0] + q.x[1] + q.y[0] + q.y[1]) ? { x: q.x, y: q.y } : null; if (q.p) return q.p; if (cur.kind === 'torus' && q.x && q.y) { const L = PM.torusLocate(q.x, q.y); return L ? L.u : null; } return null; }, rgb = c => `rgb(${c.join(',')})`;   // disk models: (x, y), located by the viewer
     const pal = (cur.palette || WEBPAL).concat(WEBPAL), msg = { e96: 'web', id: kind + lab, paths: [], dots: [] }; let txt = '';
     if (kind === 'V') { const tab = await fetch(`models/bitrans_n${n}.json`).then(r => r.ok ? r.json() : []).catch(() => []), polys = {}; for (let m = 2; m <= 8; m++) polys[m] = await loadPoly(m);
       if (!MISTAB) MISTAB = await fetch('models/misiurewicz.json').then(r => r.ok ? r.json() : []).catch(() => []);
@@ -461,10 +461,13 @@
       for (const k in by) { by[k].sort((a, b) => a.t - b.t); msg.paths.push({ pts: by[k].map(q => q.u), color: rgb(pal[((+k === 0 ? n : +k) - 1) % 9]), width: 1.1 }); }
       const st = T.stats; txt = `T′_f of center ${lab}: ${st.placed} points placed (ring angles ${st.ring}, tree angles ${st.tree}); pruned in the critical-value sector ${st.pruned}; not placed: ${st.identified} glued matings (not handled yet), ${st.obstructed} obstructed (α rays). Colored dots: boundary of the periodic Fatou component x_i, joined in the order of the internal angle; white: tree points; hollow: periodic angle (center of the mating component as stand-in).`; }
     $('status').textContent = $('status').textContent.replace(/\n[^\n]*computing…$/, '') + '\n' + txt;
+    if (hyp) txt += '\n(disk model: each point is being located in the disk; the count placed follows)';
+    $('status').textContent = $('status').textContent.replace(/\n\(disk model:[^\n]*$/, '') + (hyp ? '\n(disk model: each point is being located in the disk; the count placed follows)' : '');
     $('frame').contentWindow.postMessage(msg, '*');
   }
   window.E96TEST_web = webShow;
-  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'webReq' && cur && cur.kind !== 'hyperbolic') webShow(d.kind, +d.label); });
+  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'webDone') $('status').textContent = $('status').textContent.replace(/\n\(disk model:[^\n]*$/, '') + `\n${d.id}: located in the disk ${d.ok} of ${d.n} points (${d.ms} ms)`; });
+  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'webReq' && cur) webShow(d.kind, +d.label); });
   async function gPath(n, from, to) {            // shortest path between two centers of G_n (labels), or null
     const G = await loadG(n); if (!G) return null; const L = G.labels, s = L.indexOf(from), t = L.indexOf(to); if (s < 0 || t < 0) return null;
     const adj = L.map(() => new Set()); for (const e of G.edges) if (e.b !== null && e.b >= 0 && e.a !== e.b) { adj[e.a].add(e.b); adj[e.b].add(e.a); }
@@ -536,16 +539,17 @@
     return out;
   }
   // bitransitive card (REGISTRATION addendum 2026-11-12 (v)): the captures f ^ theta of the clicked component; a click highlights the attached part
+  const negA = a => { const m = String(a).split('/'); return `−${+m[1] - +m[0]}/${m[1]}`; };      // theta = -(q - p)/q mod 1 (Caroline 2026-11-12: show both)
   function btCard(mk) {
     const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;'), src = mk.src || [], n = cur.n;
-    $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(`${src.length} periodic capture${src.length === 1 ? '' : 's'} f ^ θ land here (f = polynomial label, θ = the capture's ray, [component, side]):\n` + src.map(s => `  ${s.f} ^ ${s.angle}   [x${s.i}, ${s.side}]`).join('\n') + '\n' + mk.lines.join('\n'));
+    $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(`${src.length} periodic capture${src.length === 1 ? '' : 's'} f ^ θ land here (f = polynomial label, θ = the capture's ray, also written as −(1 − θ); [component, side]):\n` + src.map(s => `  ${s.f} ^ ${s.angle} = ${s.f} ^ ${negA(s.angle)}   [x${s.i}, ${s.side}]`).join('\n') + '\n' + mk.lines.join('\n'));
     const B = $('dcb'); B.innerHTML = ''; const note = document.createElement('div'); note.style.cssText = 'width:100%;font-size:11px;color:#555;margin:2px 0';
     note.textContent = 'Highlight (experimental rule): each capture is attached to the corner of the component nearest to its mating f ⊔ g(1 − θ); − and + of one (f, x_i) at two corners: the triangle between them; otherwise the two hexants at that corner.'; B.appendChild(note);
     const res = document.createElement('div'); res.style.cssText = 'width:100%;font-size:11px;margin-top:3px;white-space:pre-wrap';
     const btn = (txt, fn) => { const b = document.createElement('button'); b.className = 'sm'; b.textContent = txt; b.onclick = fn; B.appendChild(b); };
     const run = async (label, entries) => { res.textContent = 'computing…'; const D = await loadPoly(n), pts = [], miss = [];
       for (const s of entries) { const P = D && D.find(q => q.label === s.f); if (!P) { miss.push(s.f); continue; } const q = WEBS.place([Number(P.c_str[0]), Number(P.c_str[1])], PM.parseAngle(s.angle));
-        if (!q.ok) { miss.push(`${s.f} ^ ${s.angle}: ${q.why.slice(0, 40)}`); continue; } let u = q.p; if (!u && cur.kind === 'torus') { const L = PM.torusLocate(q.x, q.y); u = L ? L.u : null; } if (u) pts.push(u); else miss.push(`${s.f} ^ ${s.angle}: not located`); }
+        if (!q.ok) { miss.push(`${s.f} ^ ${s.angle}: ${q.why.slice(0, 40)}`); continue; } let u = q.p; if (cur.kind === 'hyperbolic') u = { x: q.x, y: q.y }; else if (!u && cur.kind === 'torus') { const L = PM.torusLocate(q.x, q.y); u = L ? L.u : null; } if (u) pts.push(u); else miss.push(`${s.f} ^ ${s.angle}: not located`); }
       BTKEY = label; BTMISS = miss; $('frame').contentWindow.postMessage({ e96: 'btHL', pts, key: label }, '*'); if (!pts.length) res.textContent = `${label}: no mating found (${miss.join('; ')})`; };
     BTRES = res; const groups = {}; for (const s of src) (groups[s.f + '|' + s.i] = groups[s.f + '|' + s.i] || []).push(s);
     for (const k in groups) { const G = groups[k]; btn(`${G[0].f} ^ {${G.map(s => s.angle).join(', ')}}  [x${G[0].i}]`, () => run(`${G[0].f} ^ {${G.map(s => s.angle).join(', ')}}`, G)); }
@@ -554,6 +558,7 @@
   }
   let BTRES = null, BTKEY = '', BTMISS = [];
   window.addEventListener('message', ev => { const d = ev.data; if (!d || d.e96 !== 'btHLdone' || !BTRES) return; const ks = [...new Set(d.info.map(x => x.k))];
+    if (!d.info.length) { BTRES.textContent = `${d.key}: the mating point could not be placed in this model` + (BTMISS.length ? `\nnot used: ${BTMISS.join('; ')}` : ''); return; }
     BTRES.textContent = `${d.key}: ` + d.info.map(x => `corner ${x.k} (mating at ${x.d.toExponential(1)} from it; next corner ${x.next.toExponential(1)})`).join('; ') + (ks.length >= 2 ? ' → the triangle between the two corners' : ' → the two hexants at that corner') + (BTMISS.length ? `\nnot used: ${BTMISS.join('; ')}` : ''); });
   function showMarker(mk) {
     if (GOTO && mk.label === GOTO.lab) { clearInterval(GOTO.t); GOTO = null; }
@@ -568,7 +573,7 @@
         const lab = mk.ks ? mk.ks.find(k => k % 2 === 0) ?? mk.ks[0] : +mk.label;
         if (n !== cur.n && man.models.some(q => q.id === 'per' + n && !q.placeholder))
           btn(`View in Per_${n}`, () => viewIn(n, lab));
-        if (cur.n >= 3 && n === cur.n && cur.kind !== 'hyperbolic') {           // V_f / T'_f, beta (REGISTRATION addendum (u)); plane and torus models first
+        if (cur.n >= 3 && n === cur.n && n <= 8) {           // V_f / T'_f, beta (REGISTRATION addendum (u)); plane, torus and (2026-11-12) disk models
           btn('V_f: veins to its captures (beta)', () => webShow('V', +lab)); btn("T′_f: ringed tree in Per_" + n + ' (beta)', () => webShow('T', +lab));
           btn('clear V / T′', () => { $('frame').contentWindow.postMessage({ e96: 'webClear' }, '*'); }); }
         btn('Polynomial card: Hubbard tree, rays, addresses', () => overlay(`Per_${n}: polynomial ${lab}`, [[`${lab}/${D}`, `poly/index.html#n=${n}&label=${lab}`]]));

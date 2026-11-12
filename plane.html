@@ -28,9 +28,9 @@
   details summary { cursor:pointer; color:var(--muted); }
   .nf { font-size:12px; background:#fff; border:1px solid var(--faint); padding:4px 6px; margin:4px 0; }
 </style>
-<script src="js/pern_math.js?v=20261112215648"></script>
-<script src="js/glsl.js?v=20261112215648"></script>
-<script src="js/planeview.js?v=20261112215648"></script>
+<script src="js/pern_math.js?v=20261112220232"></script>
+<script src="js/glsl.js?v=20261112220232"></script>
+<script src="js/planeview.js?v=20261112220232"></script>
 </head>
 <body>
 <div id="view"></div>
@@ -45,13 +45,13 @@
     <span>Labels (l)</span><input type="checkbox" id="ml" checked>
     <span id="rcl" style="display:none">Real circles (r)</span><input type="checkbox" id="rc" style="display:none">
     <span title="tint the components where the free critical point has its own attracting cycle by the period of that cycle">Color components by period (p)</span><span><input type="checkbox" id="pc"> <span id="pcl"></span></span>
-    <span title="centers where the free critical point sits on the marked cycle, labeled by the polynomial and periodic component whose capture gives them">Bitransitive centers = periodic captures f·x<sub>i</sub> (j)</span><span><input type="checkbox" id="bt"> <span id="btn"></span></span>
+    <span title="centers where the free critical point sits on the marked cycle, labeled by the polynomial and periodic component whose capture gives them">Bitransitive centers = periodic captures f ^ θ (b)</span><span><input type="checkbox" id="bt"> <span id="btn"></span></span>
     <span title="with a bitransitive center selected (click a diamond): internal angle, optionally followed by the triangle 0, 1 or 2 (light, medium, dark shade); all three if omitted. Enter to run.">Internal ray → boundary point: angle [triangle] (a)</span><span><input id="bta" size="9" placeholder="1/4 2" style="width:70px"> <button id="btac" title="remove the drawn internal rays">clear</button></span>
     <span id="gnl" style="display:none">G<sub>n</sub> tip capture edges (g)</span><input type="checkbox" id="gn" style="display:none">
     <span id="vil" style="display:none" title="from each center, an arrow to its G_n neighbor(s) whose label has the most factors of 2 (when more than its own)">violet arrows, to the more even (e)</span><input type="checkbox" id="vi" style="display:none">
     <span id="sml" style="display:none">Torus seams (s)</span><input type="checkbox" id="sm" checked style="display:none">
     <span>Coloring</span><select id="plain"><option value="0" selected>dynamics (per pixel)</option><option value="1">plain surface (no dynamics)</option></select>
-    <span>Escape-time bands (b)</span><input type="checkbox" id="bands" checked>
+    <span>Escape-time bands (o)</span><input type="checkbox" id="bands" checked>
     <span>Iterates (+ / −)</span><span><input type="range" id="pit" min="50" max="4000" step="50" value="600"> <span id="pitv">600</span></span>
     <span>Capture δ</span><span><input type="range" id="del" min="-5" max="-1" step="0.25" value="-3"> <span id="delv">1e-3</span> (rel.)</span>
   </div>
@@ -83,7 +83,7 @@
     <div id="mlist"></div></details>
   <details><summary>What this is</summary><div id="about" class="sub"></div></details>
 </div>
-<script src="js/bitri.js?v=20261112215648"></script>
-<script src="js/plane.js?v=20261112215648"></script>
+<script src="js/bitri.js?v=20261112220232"></script>
+<script src="js/plane.js?v=20261112220232"></script>
 </body>
 </html>
