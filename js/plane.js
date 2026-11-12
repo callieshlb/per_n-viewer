@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261112183844').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112185524').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261112183844').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261112185524').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -276,7 +276,7 @@
     $('rayclr').onclick = () => { RAYS = []; $('rayout').textContent = ''; parent.postMessage({ e96: 'rays', angles: [] }, '*'); pv.redraw(); }; }
   $('minb').onclick();                      // panel starts collapsed (Caroline 2026-11-10); + expands
   if (E.n < 2) $('matebox').style.display = 'none';
-  $('mgo').onclick = () => parent.postMessage({ e96: 'mateReq', label: $('mf').value, angle: $('mg').value, K: $('mvn').checked ? +$('mvk').value || 0 : 0 }, '*');
+  $('mgo').onclick = () => parent.postMessage({ e96: 'mateReq', label: $('mf').value, angle: $('mg').value, K: $('mvn').checked ? +$('mvk').value || 0 : 0, mis: $('mvm').checked }, '*');
   $('mvk').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { $('mvn').checked = true; $('mgo').click(); } }); $('mvk').addEventListener('input', () => { $('mvn').checked = true; });
   $('mclr').onclick = () => { MARKS.length = 0; pv.redraw(); };
   $('mg').addEventListener('keydown', e => { if (e.key === 'Enter') $('mgo').click(); });

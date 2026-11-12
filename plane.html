@@ -28,9 +28,9 @@
   details summary { cursor:pointer; color:var(--muted); }
   .nf { font-size:12px; background:#fff; border:1px solid var(--faint); padding:4px 6px; margin:4px 0; }
 </style>
-<script src="js/pern_math.js?v=20261112183844"></script>
-<script src="js/glsl.js?v=20261112183844"></script>
-<script src="js/planeview.js?v=20261112183844"></script>
+<script src="js/pern_math.js?v=20261112185524"></script>
+<script src="js/glsl.js?v=20261112185524"></script>
+<script src="js/planeview.js?v=20261112185524"></script>
 </head>
 <body>
 <div id="view"></div>
@@ -58,7 +58,7 @@
   <div id="btao" style="white-space:pre-wrap;font-size:11px;margin:2px 0 6px"></div>
   <div id="matebox" style="margin:4px 0"><b>Mating</b> f = <input id="mf" size="4" placeholder="angle or k"> ⊔ g = <input id="mg" size="7" placeholder="angle 1/7">
     <button id="mgo">f ⊔ g</button>
-    <div style="margin-top:3px"><label title="also mate f with the centers on the arc of the Mandelbrot set from z² to g (small yellow dots)"><input type="checkbox" id="mvn"> mating vein:</label> <input id="mvk" type="number" min="1" max="400" value="30" style="width:52px"> points <button id="mclr" title="remove all yellow mating marks">clear</button></div><div class="sub">f: a polynomial of this Per<sub>n</sub> by its label (the even numerator k of its angles
+    <div style="margin-top:3px"><label title="also mate f with the centers on the arc of the Mandelbrot set from z² to g (small yellow dots)"><input type="checkbox" id="mvn"> mating vein:</label> <input id="mvk" type="number" min="1" max="400" value="30" style="width:52px"> points <label title="also use Misiurewicz points (preperiodic g) with two or more rays on the arc; preperiod + period ≤ 12"><input type="checkbox" id="mvm" checked> + preperiodic</label> <button id="mclr" title="remove all yellow mating marks">clear</button></div><div class="sub">f: a polynomial of this Per<sub>n</sub> by its label (the even numerator k of its angles
     k/(2<sup>n</sup> − 1)); g: any external angle. The result is marked with a yellow star; details in the status line. Vein: the given number of lowest-period centers (period ≤ 20) between z² and g; an arc can have fewer (the status line says how many exist). Same dialog from the keyboard: m.</div></div>
   <div class="legend" id="legend"></div>
   <div class="sub" style="margin-top:-4px">Phase k (capture): the free critical orbit reaches the marked critical value a<sub>1</sub> at times ≡ −k (mod n).</div>
@@ -80,7 +80,7 @@
     <div id="mlist"></div></details>
   <details><summary>What this is</summary><div id="about" class="sub"></div></details>
 </div>
-<script src="js/bitri.js?v=20261112183844"></script>
-<script src="js/plane.js?v=20261112183844"></script>
+<script src="js/bitri.js?v=20261112185524"></script>
+<script src="js/plane.js?v=20261112185524"></script>
 </body>
 </html>

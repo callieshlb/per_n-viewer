@@ -170,11 +170,16 @@ var MATE = (function () {
   // contains theta, i.e. the hyperbolic components the combinatorial arc from 0 to the landing point of theta passes through. The K of lowest period
   // (ties: wider wake first) are kept and returned in order along the arc (widest wake first). polys[n] = poly_info_n<n>.json (n <= 8, exact c);
   // for n > 8 the center comes from the spider algorithm (c: null until centerOf is called).
-  function veinList(a, polys, K, P) {
+  function veinList(a, polys, K, P, mis) {
     var out = [], th = Number(a.p)/Number(a.q), pairs = lavaurs(P || 8);
     for (var n = 2; n <= (P || 8); n++) { var Q = Math.pow(2, n) - 1, Qb = BigInt(Q);
       pairs[n].forEach(function (pr) { var k0 = BigInt(pr[0]), k1 = BigInt(pr[1]);
         if (k0*a.q < a.p*Qb && a.p*Qb < k1*a.q) out.push({ n: n, k0: pr[0], k1: pr[1], Q: Q, width: (pr[1] - pr[0])/Q, c: null }); }); }
+    // addendum (q): Misiurewicz points with >= 2 rays (table data/misiurewicz.json) whose sector between two consecutive rays contains theta; they count
+    // with "period" l + p in the choice of the K simplest points. Exact comparison of the angles (BigInt).
+    if (mis) mis.forEach(function (G) { if (G.l + G.p > (P || 8)) return;
+      for (var i = 0; i + 1 < G.a.length; i++) { var u = G.a[i], v = G.a[i + 1];
+        if (BigInt(u[0])*a.q < a.p*BigInt(u[1]) && a.p*BigInt(v[1]) < BigInt(v[0])*a.q) { out.push({ n: G.l + G.p, mis: true, l: G.l, p: G.p, lo: u, hi: v, width: v[0]/v[1] - u[0]/u[1], c: G.c, name: u[0] + '/' + u[1] }); break; } } });
     out.sort(function (u, v) { return u.n - v.n || v.width - u.width; });
     if (K !== undefined && K !== null) out = out.slice(0, K);
     out.sort(function (u, v) { return v.width - u.width; });

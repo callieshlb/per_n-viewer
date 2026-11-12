@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261112183844').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112185524').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112183844'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261112185524'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -212,30 +212,34 @@
     else if (/^\d+$/.test(t)) P = D.find(q => String(q.label) === t) || D.find(q => q.ks.includes(+t));
     return P || null;
   }
-  async function mateFromText(ft, gt, K) {
+  async function mateFromText(ft, gt, K, useMis) {
     if (!cur) return; const n = cur.n;
     if (n < 2) { $('status').textContent = 'Mating: choose Per_n with n ≥ 2 (in Per_1, z² ⊔ g = g).'; return; }
     const P = await resolveF(ft, n);
     if (!P) { $('status').textContent = `Mating: "${ft}" is not a period-${n} center (give its label k, or either angle k/${2**n - 1})`; return; }
     const cf = [Number(P.c_str[0]), Number(P.c_str[1])]; let vtxt = '';
-    if (K > 0) vtxt = await doVein(cf, n, P.label, gt, K);
+    if (K > 0) vtxt = await doVein(cf, n, P.label, gt, K, useMis !== false);
     doMate(cf, n, P.label, gt, null);
     if (vtxt) { const o = MATEOUT && MATEOUT.out; if (MATEOUT) MATEOUT.base += '\n' + vtxt; $('status').textContent += '\n' + vtxt; }
   }
   // mating vein (REGISTRATION addendum 2026-11-10 (b), M7): f ⊔ g_i for the centers g_i (period ≤ 8) on the arc from 0 to g
-  async function doVein(cf, n, lab, text, K) {
+  let MISTAB = null;
+  async function doVein(cf, n, lab, text, K, useMis) {
     const a = PM.parseAngle(text); if (!a) return '';
     const polys = {}; for (let m = 2; m <= 8; m++) polys[m] = await loadPoly(m);
-    let V = [], P = 8; for (const Pt of [8, 10, 12, 14, 16, 18, 20]) { P = Pt; V = MATE.veinList(a, polys, K, Pt); if (V.length >= K) break; }       // periods up to 20 (linear-time Lavaurs + spider), M9, M10
+    if (useMis && !MISTAB) MISTAB = await fetch('models/misiurewicz.json').then(r => r.ok ? r.json() : []).catch(() => []);
+    const mis = useMis ? MISTAB : null;
+    let V = [], P = 8; for (const Pt of [8, 10, 12, 14, 16, 18, 20]) { P = Pt; V = MATE.veinList(a, polys, K, Pt, mis); if (V.length >= K) break; }       // periods up to 20 (linear-time Lavaurs + spider), M9, M10
     const W = $('frame').contentWindow; let ok = 0; const obs = [];
-    for (const v of V) { const cg = MATE.centerOf(v), nm = `${v.k0}/${v.Q}`; if (!cg) { obs.push(nm + ' (center not found)'); continue; }
+    for (const v of V) { const cg = MATE.centerOf(v), nm = v.mis ? v.name : `${v.k0}/${v.Q}`; if (!cg) { obs.push(nm + ' (center not found)'); continue; }
       const m = MATE.mate(cf, cg); if (!m.ok) { obs.push(nm); continue; }
       const ch = MATE.toChart(m); if (!ch) continue; let msg;
       if (cur.kind === 'plane') msg = { p: ch.p };
       else if (cur.kind === 'torus') { const L = PM.torusLocate(ch.x, ch.y); if (!L) { obs.push(nm + ' (not located)'); continue; } msg = { p: L.u }; }
       else msg = { x: ch.x, y: ch.y };
       W.postMessage(Object.assign({ e96: 'mark', label: nm, vein: true, quiet: true }, msg), '*'); ok++; }
-    return `vein of ${a.text}: ${V.length} centers of period ≤ ${P} on the arc from z² to g (asked K = ${K}${V.length < K ? `; the arc has only ${V.length} centers of period ≤ 20` : ''}): ${ok} mated (small yellow dots, labeled by the lower angle of g_i)` +
+    const nm_ = V.filter(v => v.mis).length;
+    return `vein of ${a.text}: ${V.length} points on the arc from z² to g (${V.length - nm_} centers of period ≤ ${P}${useMis ? `, ${nm_} Misiurewicz points with preperiod + period ≤ ${Math.min(P, 12)}` : ''}; asked K = ${K}${V.length < K ? `; there are no more up to period 20${useMis ? ' / preperiod + period 12' : ''}` : ''}): ${ok} mated (small yellow dots, labeled by the lower angle of g_i; an even denominator means preperiodic)` +
       (obs.length ? `; ${obs.length} obstructed or not placed: ${obs.slice(0, 12).join(', ')}${obs.length > 12 ? ', …' : ''}` : '');
   }
   function keyM() {                                   // 'm': mating prompt: f angle, g angle, Enter
@@ -245,7 +249,7 @@
     $('mdf').focus();          // always: type f, Tab (or Enter), type g, Enter (Caroline 2026-11-10)
   }
   $('mdf').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdg').focus(); $('mdg').select(); } });
-  $('mdg').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdlg').style.display = 'none'; mateFromText($('mdf').value.trim() || $('mdf').dataset.def || '', $('mdg').value, $('mdv').checked ? Math.max(0, Math.min(400, +$('mdk').value || 0)) : 0); } });
+  $('mdg').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdlg').style.display = 'none'; mateFromText($('mdf').value.trim() || $('mdf').dataset.def || '', $('mdg').value, $('mdv').checked ? Math.max(0, Math.min(400, +$('mdk').value || 0)) : 0, $('mdm').checked); } });
   $('mdk').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdg').focus(); } });
   $('mdc').onclick = () => { $('frame').contentWindow.postMessage({ e96: 'clearMarks' }, '*'); };
   $('mdlg').addEventListener('keydown', e => { if (e.key === 'Escape') $('mdlg').style.display = 'none'; });
@@ -253,7 +257,7 @@
   window.addEventListener('keydown', e => { if (e.key === 'm' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { e.preventDefault(); keyM(); } });
   window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'm') { window.focus(); keyM(); } });
   window.addEventListener('message', ev => {                       // mating box in a model's side panel
-    const d = ev.data; if (!d || d.e96 !== 'mateReq' || !cur) return; mateFromText(d.label, d.angle, Math.max(0, Math.min(400, +d.K || 0)));
+    const d = ev.data; if (!d || d.e96 !== 'mateReq' || !cur) return; mateFromText(d.label, d.angle, Math.max(0, Math.min(400, +d.K || 0)), d.mis !== false);
   });
   window.addEventListener('keydown', e => {          // 'o': orbit of the point under the cursor (dynamical plane)
     if (e.target.tagName === 'INPUT' || !M || e.key !== 'o' || !dv.mouse) return;
