@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261112211834').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261112212315').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261112211834').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261112212315').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -30,6 +30,7 @@
   window.E96TEST_bt = pk => { if (!BT || !BT.length) return null; let b = BT[0]; if (pk) b = BT.reduce((u, v) => Math.hypot(v.p[0] - pk[0], v.p[1] - pk[1]) < Math.hypot(u.p[0] - pk[0], u.p[1] - pk[1]) ? v : u); pv.ctr = b.p.slice(); pv.redraw(); return pv.toScreen(b.p); };
   window.E96TEST_view = () => ({ ctr: pv.ctr, upp: pv.upp });
   window.E96TEST_marks = () => MARKS.filter(m => m.vein).length;
+  window.E96TEST_webs = () => WEBL.map(w => ({ id: w.id, paths: w.paths.length, dots: w.dots.length }));
   window.E96TEST_gp = () => ({ path: GPATH, edges: (C.edges || []).filter(e => GPATH.some((L, i) => i && ((GPATH[i - 1] === e.a && L === e.b) || (GPATH[i - 1] === e.b && L === e.a)))).length });
   window.E96TEST_pern = () => ({ n: PERN.length, tuned: PERN.filter(m => m.tuned).map(m => ({ label: m.label, p: m.p, line: m.lines.find(l => /TUNING/.test(l)).slice(0, 70) })) });
   window.E96TEST_pickPuncture = i => { const m = markers.filter(q => q.kind === 'puncture')[i]; if (m) pick(m.p, m); return !!m; };
@@ -154,6 +155,13 @@
     if (COMPR) { const Q = 2**COMPR.n - 1; COMPR.rays.forEach((r, i) => { g.beginPath(); r.forEach((q, j) => { const s = pv.toScreen(q); j ? g.lineTo(...s) : g.moveTo(...s); }); g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = 3.5; g.stroke(); g.strokeStyle = '#6ff'; g.lineWidth = 1.6; g.stroke();
         const e = pv.toScreen(r[Math.min(r.length - 1, Math.floor(r.length*0.35))]), t = `${COMPR.ks[i]}/${Q}`; g.font = '600 11px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(t, e[0] + 6, e[1]); g.fillStyle = '#9ff'; g.fillText(t, e[0] + 6, e[1]); });
       const s0 = pv.toScreen(COMPR.c); g.beginPath(); g.arc(s0[0], s0[1], 4.5, 0, 2*Math.PI); g.fillStyle = '#6ff'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke(); }
+    for (const w of WEBL) for (const o of offs) {
+      for (const pa of w.paths) { g.beginPath(); let prev = null; for (const q0 of pa.pts) { let q = q0;
+          if (torus && prev) { const m = Math.round((prev[0] - q0[0])/T5.W1), l = Math.round((prev[1] - q0[1])/T5.W2); q = [q0[0] + m*T5.W1, q0[1] + l*T5.W2]; }      // nearest lattice translate: the chain is continuous on the torus
+          const s = pv.toScreen([q[0] + o[0], q[1] + o[1]]); if (prev) g.lineTo(s[0], s[1]); else g.moveTo(s[0], s[1]); prev = q; }
+        g.setLineDash(pa.dash || []); g.strokeStyle = 'rgba(0,0,0,.75)'; g.lineWidth = (pa.width || 2) + 2; g.stroke(); g.strokeStyle = pa.color; g.lineWidth = pa.width || 2; g.stroke(); g.setLineDash([]); }
+      for (const d of w.dots) { const s = pv.toScreen([d.p[0] + o[0], d.p[1] + o[1]]); if (s[0] < -6 || s[1] < -6 || s[0] > W + 6 || s[1] > H + 6) continue;
+        g.beginPath(); g.arc(s[0], s[1], d.r || 3, 0, 2*Math.PI); if (d.hollow) { g.fillStyle = 'rgba(0,0,0,.55)'; g.fill(); g.strokeStyle = d.color; g.lineWidth = 1.6; g.stroke(); } else { g.fillStyle = d.color; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 0.8; g.stroke(); } } }
     if (RAYS.length) drawRays(g, W, H);
     if (E.rays) drawPerN(g, W, H);
     const VL = [];                                        // vein labels already drawn (skip overlapping ones)
@@ -185,6 +193,7 @@
   }
   let COMPR = null;
   let GPATH = [];
+  const WEBL = [];                                     // V_f / T'_f overlays (REGISTRATION addendum (u))
   let PERSEL = null;                                   // the selected period-n center (its labels and rays highlighted)
   function perRays(m) {                                // parameter rays of the two characteristic angles (traced once, cached)
     if (!m.rays && PERNn >= 2) { const Q = BigInt(2**PERNn - 1); m.rays = m.ks.map(k => PM.traceRay('param', { p: BigInt(k), q: Q, text: `${k}/${2**PERNn - 1}` }, null, 8, 30*8).pts); }
@@ -282,6 +291,8 @@
   window.addEventListener('message', ev => { const d = ev.data;
     if (d && d.e96 === 'clearMarks') { MARKS.length = 0; pv.redraw(); return; }
     if (d && d.e96 === 'gpath') { GPATH = (d.labels || []).map(String); pv.redraw(); return; }
+    if (d && d.e96 === 'webClear') { WEBL.length = 0; pv.redraw(); return; }
+    if (d && d.e96 === 'web') { const k = WEBL.findIndex(w => w.id === d.id); if (k >= 0) WEBL.splice(k, 1); WEBL.push(d); pv.redraw(); return; }
     if (d && d.e96 === 'compRays') {                     // (s) the clicked component of Per_1: its center and the two rays landing at its root
       COMPR = { c: d.c, n: d.n, ks: d.ks, rays: [] }; if (d.ks && d.n >= 2) { const Q = BigInt(2**d.n - 1); COMPR.rays = d.ks.map(k => PM.traceRay('param', { p: BigInt(k), q: Q, text: `${k}/${2**d.n - 1}` }, null, 8, 30*8).pts); }
       if (d.go) { picked = d.c; } pv.redraw(); return; }
