@@ -23,8 +23,8 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261113174311"></script>
-<script src="per9_core.js?v=20261113174311"></script>
+<script src="conformal_data.js?v=20261113174912"></script>
+<script src="per9_core.js?v=20261113174912"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
@@ -640,7 +640,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261113174311"></script><script src="../../js/bitri.js?v=20261113174311"></script>
+<script src="../../js/pern_math.js?v=20261113174912"></script><script src="../../js/bitri.js?v=20261113174912"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
@@ -794,7 +794,7 @@ window.addEventListener('keydown',function(e){var t=e.target;if((t.tagName==='IN
 function pos(e){var r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];}
 cv.addEventListener('pointerdown',function(e){if(!e.shiftKey)return;e.stopImmediatePropagation();r0=pos(e).concat([e.clientX,e.clientY]);cv.setPointerCapture(e.pointerId);},true);
 cv.addEventListener('pointermove',function(e){if(!r0)return;e.stopImmediatePropagation();var p=pos(e);box.style.display='block';box.style.left=Math.min(r0[0],p[0])+'px';box.style.top=Math.min(r0[1],p[1])+'px';box.style.width=Math.abs(p[0]-r0[0])+'px';box.style.height=Math.abs(p[1]-r0[1])+'px';},true);
-cv.addEventListener('pointerup',function(e){if(!r0)return;e.stopImmediatePropagation();var p=pos(e),rw=Math.abs(p[0]-r0[0]),rh=Math.abs(p[1]-r0[1]),a=r0;r0=null;box.style.display='none';if(rw<8||rh<8)return;
+cv.addEventListener('pointerup',function(e){if(!r0)return;e.stopImmediatePropagation();var p=pos(e),rw=Math.abs(p[0]-r0[0]),rh=Math.abs(p[1]-r0[1]),a=r0;r0=null;box.style.display='none';if(rw<8&&rh<8&&(e.metaKey||e.ctrlKey)){e96pushView(false);zoom=Math.max(1,zoom/2);dirty=true;if(typeof poke==='function')poke();return;}/* Command + Shift + click: zoom out by 2 */if(rw<8||rh<8)return;
   var s=screenToDisk((a[2]+e.clientX)/2,(a[3]+e.clientY)/2);if(cabs2(s)>=0.98)return;var r=cv.getBoundingClientRect();e96pushView(false);V=comp(V,Mq(s));anim=null;reduceView();zoom=Math.min(2000,zoom/Math.max(rw/r.width,rh/r.height));dirty=true;},true);})();
 </script>
 <script>/* E96 hotkeys (Caroline 2026-11-10): r real circles, g tip capture edges, e violet arrows, p period colors, l labels, k markers, d tile edges, n edge numbers, +/- iterates */
@@ -804,7 +804,7 @@ var pi=document.getElementById('pit');if(pi&&pi.parentNode.previousElementSiblin
 function key(k){if(K[k]){var el=document.getElementById(K[k]);if(!el)return true;el.checked=!el.checked;if(el.onchange)el.onchange({target:el});else el.dispatchEvent(new Event('change'));return true;}
 if(k==='+'||k==='='||k==='-'){if(!pi)return true;pi.value=Math.max(+pi.min,Math.min(+pi.max,+pi.value+(k==='-'?-1:1)*100));pi.dispatchEvent(new Event('input'));if(pi.oninput)0;return true;}
 if(k==='a'){if(document.body.classList.contains('e96min'))document.getElementById('e96tog').click();window.focus();var ia=document.getElementById('e96bta');if(ia){ia.focus();ia.select();}return true;}
-if(k==='t'||k==='i'||k==='u'||k==='c'){parent.postMessage({e96:'key',key:k},'*');return true;}return false;}
+if(k==='t'||k==='i'||k==='o'||k==='u'||k==='c'){parent.postMessage({e96:'key',key:k},'*');return true;}return false;}
 window.addEventListener('keydown',function(e){var t=e.target;if((t.tagName==='INPUT'&&t.type!=='checkbox'&&t.type!=='range')||t.tagName==='SELECT'||e.metaKey||e.ctrlKey||e.altKey)return;if(key(e.key))e.preventDefault();});
 window.addEventListener('message',function(ev){var d=ev.data;if(d&&d.e96==='key'&&'rgepjab'.indexOf(d.key)>=0)key(d.key);});})();
 </script>

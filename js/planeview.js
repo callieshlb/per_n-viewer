@@ -75,6 +75,7 @@ function PlaneView(host, opts) {
   gc.addEventListener('pointerup', function (e) { pts.delete(e.pointerId); if (pts.size) return;
     var wasDown = down; down = null;
     if (rect) { var rw = Math.abs(rect[2] - rect[0]), rh = Math.abs(rect[3] - rect[1]), rc = rect; rect = null; dirty = true;
+      if (rw <= 8 && rh <= 8 && (e.metaKey || e.ctrlKey)) { pushView(false); var zb = self.toPlane(rc[0], rc[1]); self.upp = Math.min(10, self.upp*2); var za = self.toPlane(rc[0], rc[1]); self.ctr[0] += zb[0] - za[0]; self.ctr[1] += zb[1] - za[1]; poke(); return; }   // Command + Shift + click: zoom out by 2 (Caroline 2026-11-13)
       if (rw > 8 && rh > 8) { pushView(false); self.ctr = self.toPlane((rc[0] + rc[2])/2, (rc[1] + rc[3])/2); self.upp *= Math.max(rw/W, rh/H); poke(); } return; }
     if (!wasDown || moved > 4) return;
     var r = gc.getBoundingClientRect();

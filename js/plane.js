@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261113174311').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261113174912').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261113174311').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261113174912').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -17,12 +17,12 @@
   $('pcl').innerHTML = GLSL.PERPAL.map((c, i) => `<span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(${c.join(',')})">${i + 2}</span>`).join('');
   $('pc').onchange = e => { pv.perCol = e.target.checked; pv.redraw(); };
   // hotkeys (Caroline 2026-11-10): r real circles, g G_n edges, e violet arrows, p period colors, l labels, k markers, b bands, s seams, +/- iterates; t, i go to the dynamical pane
-  const PKEY = { r: 'rc', g: 'gn', e: 'vi', p: 'pc', l: 'ml', k: 'mk', o: 'bands', s: 'sm', b: 'bt', j: 'bt' };   // b = bitransitive centers (Caroline 2026-11-12; j kept), o = escape-time bands (was b)
+  const PKEY = { r: 'rc', g: 'gn', e: 'vi', p: 'pc', l: 'ml', k: 'mk', w: 'bands', s: 'sm', b: 'bt', j: 'bt' };   // b = bitransitive centers (Caroline 2026-11-12; j kept), w = escape-time bands (was o, before that b); o goes to the dynamical pane (critical orbit)
   function paneKey(key) {
     if (PKEY[key]) { const el = $(PKEY[key]); if (!el || el.style.display === 'none') return true; el.checked = !el.checked; el.dispatchEvent(new Event('change')); return true; }
     if (key === '+' || key === '=' || key === '-') { const el = $('pit'); el.value = Math.max(+el.min, Math.min(+el.max, +el.value + (key === '-' ? -1 : 1)*100)); el.dispatchEvent(new Event('input')); return true; }
     if (key === 'a') { $('side').classList.remove('min'); $('minb').textContent = '–'; window.focus(); $('bta').focus(); $('bta').select(); return true; }
-    if (key === 't' || key === 'i' || key === 'u' || key === 'c' || key === 'h') { parent.postMessage({ e96: 'key', key }, '*'); return true; }
+    if (key === 't' || key === 'i' || key === 'o' || key === 'u' || key === 'c' || key === 'h') { parent.postMessage({ e96: 'key', key }, '*'); return true; }
     return false;
   }
   window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return; if (paneKey(e.key)) e.preventDefault(); });

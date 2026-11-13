@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261113174311').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261113174912').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261113174311'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261113174912'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -201,7 +201,7 @@
     if (!d.ok) $('status').textContent += `\nnot located in the disk (best chart residual ${d.res != null ? d.res.toExponential(1) : '?'})`; } });
   // hotkeys for the toggles (Caroline 2026-11-10). Dynamical pane (focus here): t tree, i polynomial view, b bands, l labels, k marked cycle, +/- iterates.
   // Parameter-pane toggles typed here are forwarded to the pane: r real circles, g G_n edges, e violet arrows, p period colors.
-  const DKEY = { t: 'dtree', i: 'dinv', o: 'dbands', l: 'dml', k: 'dmk' };
+  const DKEY = { t: 'dtree', i: 'dinv', o: 'dorb', w: 'dbands', l: 'dml', k: 'dmk' };   // o = critical orbit, w = escape-time bands (Caroline 2026-11-13; o was bands)
   function dynKey(key) {
     if (DKEY[key]) { const el = $(DKEY[key]); el.checked = !el.checked; el.dispatchEvent(new Event('change')); return true; }
     if (key === '+' || key === '=' || key === '-') { const el = $('dit'); el.value = Math.max(+el.min, Math.min(+el.max, +el.value + (key === '-' ? -1 : 1)*100)); el.dispatchEvent(new Event('input')); return true; }
@@ -210,7 +210,7 @@
   window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return;
     if (dynKey(e.key)) { e.preventDefault(); return; }
     if ('rgepjab'.includes(e.key) && e.key.length === 1) { try { $('frame').contentWindow.postMessage({ e96: 'key', key: e.key }, '*'); } catch (err) {} } });
-  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && (d.key === 't' || d.key === 'i')) dynKey(d.key); });
+  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && (d.key === 't' || d.key === 'i' || d.key === 'o')) dynKey(d.key); });
   $('vin').onclick = viewM;
   window.addEventListener('keydown', e => { if (e.key === 'v' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { e.preventDefault(); viewM(); } });
   window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'v') viewM(); });
