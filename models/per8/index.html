@@ -31,8 +31,8 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261113172835"></script>
-<script src="per8_core.js?v=20261113172835"></script>
+<script src="conformal_data.js?v=20261113174311"></script>
+<script src="per8_core.js?v=20261113174311"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -763,7 +763,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261113172835"></script><script src="../../js/bitri.js?v=20261113172835"></script>
+<script src="../../js/pern_math.js?v=20261113174311"></script><script src="../../js/bitri.js?v=20261113174311"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
@@ -899,18 +899,26 @@ var _rv=reduceView;reduceView=function(){_rv.apply(this,arguments);V=su11(V);};w
 <script>/* E96: Per_9 chart files are gzip-packed; browsers without DecompressionStream cannot unpack them (Caroline 2026-11-12: say so on the page) */
 if(typeof DecompressionStream==='undefined'&&/per9/.test(location.pathname)){var e96ob=document.createElement('div');e96ob.id='e96oldbrowser';e96ob.style.cssText='position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);max-width:460px;background:#fff;color:#111;border:2px solid #b00;border-radius:8px;padding:16px 18px;font:14px/1.45 system-ui;z-index:99999';
 e96ob.textContent='Per_9 cannot be shown in this browser. Its chart data (76 MB) is stored compressed, and unpacking it needs a browser feature (DecompressionStream) that this browser does not have: Safari before 16.4, Chrome / Edge before 80, Firefox before 113. Per_1 to Per_8 work here. If you need Per_9 in an older browser, please get in touch with the author of this site.';document.body.appendChild(e96ob);}</script>
-<script>/* E96: Command (or Ctrl) + click = zoom out by 2 (Caroline 2026-11-12). Capture phase: the viewer's own pan / click handlers do not see it. */
-(function(){var on=false;cv.addEventListener('pointerdown',function(e){if(!(e.metaKey||e.ctrlKey)||e.shiftKey)return;e.stopImmediatePropagation();e.preventDefault();on=true;},true);
-cv.addEventListener('pointerup',function(e){if(!on)return;e.stopImmediatePropagation();on=false;zoom=Math.max(1,zoom/2);dirty=true;if(typeof poke==='function')poke();},true);
+<script>/* E96: zoom history (Caroline 2026-11-13). Command (or Ctrl) + click undoes the last zoom or unzoom (wheel, z / x, Shift-drag box, Reset zoom); a run of wheel events is one step. Capture phase: the viewer's own handlers do not see the click. */
+(function(){var hist=[],lastCont=0,on=false;
+window.e96pushView=function(cont){var now=Date.now();if(cont&&now-lastCont<600){lastCont=now;return;}if(cont)lastCont=now;hist.push([V,zoom]);if(hist.length>200)hist.shift();};
+window.e96undoZoom=function(){var h=hist.pop();if(!h)return false;V=h[0];zoom=h[1];anim=null;lastCont=0;dirty=true;if(typeof poke==='function')poke();return true;};
+cv.addEventListener('wheel',function(){e96pushView(true);},true);
+var zo=document.getElementById('zout');if(zo)zo.addEventListener('click',function(){e96pushView(false);},true);
+cv.addEventListener('pointerdown',function(e){if(!(e.metaKey||e.ctrlKey)||e.shiftKey)return;e.stopImmediatePropagation();e.preventDefault();on=true;},true);
+cv.addEventListener('pointerup',function(e){if(!on)return;e.stopImmediatePropagation();on=false;e96undoZoom();},true);
 cv.addEventListener('click',function(e){if(e.metaKey||e.ctrlKey){e.stopImmediatePropagation();e.preventDefault();}},true);
-cv.addEventListener('contextmenu',function(e){if(e.ctrlKey)e.preventDefault();});})();</script>
+cv.addEventListener('contextmenu',function(e){if(e.ctrlKey)e.preventDefault();});
+/* z / x: zoom in / out about the center of the disk view, as in the plane panes */
+window.addEventListener('keydown',function(e){var t=e.target;if((t.tagName==='INPUT'&&t.type!=='checkbox'&&t.type!=='range')||t.tagName==='SELECT'||e.metaKey||e.ctrlKey||e.altKey||(e.key!=='z'&&e.key!=='x'))return;
+  e96pushView(false);zoom=Math.min(2000,Math.max(1,zoom*(e.key==='z'?1.6:1/1.6)));dirty=true;if(typeof poke==='function')poke();});})();</script>
 <script>/* E96: Shift + drag = zoom to the dragged rectangle (Caroline 2026-11-11). Capture phase, so the viewer's own pan / click handlers do not see it. */
 (function(){var r0=null,box=document.createElement('div');box.style.cssText='position:absolute;border:1.5px dashed #fff;outline:1px dashed #000;pointer-events:none;display:none;z-index:8';view.appendChild(box);
 function pos(e){var r=cv.getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top];}
 cv.addEventListener('pointerdown',function(e){if(!e.shiftKey)return;e.stopImmediatePropagation();r0=pos(e).concat([e.clientX,e.clientY]);cv.setPointerCapture(e.pointerId);},true);
 cv.addEventListener('pointermove',function(e){if(!r0)return;e.stopImmediatePropagation();var p=pos(e);box.style.display='block';box.style.left=Math.min(r0[0],p[0])+'px';box.style.top=Math.min(r0[1],p[1])+'px';box.style.width=Math.abs(p[0]-r0[0])+'px';box.style.height=Math.abs(p[1]-r0[1])+'px';},true);
 cv.addEventListener('pointerup',function(e){if(!r0)return;e.stopImmediatePropagation();var p=pos(e),rw=Math.abs(p[0]-r0[0]),rh=Math.abs(p[1]-r0[1]),a=r0;r0=null;box.style.display='none';if(rw<8||rh<8)return;
-  var s=screenToDisk((a[2]+e.clientX)/2,(a[3]+e.clientY)/2);if(cabs2(s)>=0.98)return;var r=cv.getBoundingClientRect();V=comp(V,Mq(s));anim=null;reduceView();zoom=Math.min(2000,zoom/Math.max(rw/r.width,rh/r.height));dirty=true;},true);})();
+  var s=screenToDisk((a[2]+e.clientX)/2,(a[3]+e.clientY)/2);if(cabs2(s)>=0.98)return;var r=cv.getBoundingClientRect();e96pushView(false);V=comp(V,Mq(s));anim=null;reduceView();zoom=Math.min(2000,zoom/Math.max(rw/r.width,rh/r.height));dirty=true;},true);})();
 </script>
 <script>/* E96 hotkeys (Caroline 2026-11-10): r real circles, g tip capture edges, e violet arrows, p period colors, l labels, k markers, d tile edges, n edge numbers, +/- iterates */
 (function(){var K={r:'ov2',g:'gc',e:'g2',p:'e96pc',l:'ml',k:'mk',d:'ed',n:'lt',j:'e96bt',b:'e96bt'};

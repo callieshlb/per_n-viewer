@@ -9,6 +9,7 @@
   html, body { margin:0; height:100%; font:13px/1.4 -apple-system, system-ui, sans-serif; color:var(--ink); background:var(--bg); overflow:hidden; }
   #view { position:absolute; inset:0 380px 0 0; cursor:grab; }
   #view.drag { cursor:grabbing; }
+  body.noside #side { display:none; } body.noside #view { inset:0; }   /* shell's Minimize: text panel hidden, picture kept (Caroline 2026-11-13) */
   #jc, #ov { position:absolute; inset:0; width:100%; height:100%; }
   #ov { pointer-events:none; }
   #side { position:absolute; top:0; right:0; width:380px; bottom:0; overflow:auto; background:#fafaf8; border-left:1px solid var(--faint); padding:10px 12px; box-sizing:border-box; }
@@ -36,7 +37,7 @@
   <h1 id="title">Polynomial</h1>
   <div class="sub">Dynamical plane of z² + c at this period-n center: filled Julia set, Hubbard tree (white) and the external rays at
   the characteristic angles θ± and all their doubling iterates, which land at the roots of the periodic Fatou components.
-  Drag to pan, scroll to zoom.</div>
+  Drag to pan, scroll or z / x to zoom, Shift-drag to zoom to a box, ⌘-click (or Ctrl-click) to undo the last zoom.</div>
   <div class="ctrl"><span>Polynomial</span><select id="pick"></select>
     <label><input type="checkbox" id="cRayM" checked> rays of θ− orbit</label><label><input type="checkbox" id="cRayP" checked> rays of θ+ orbit</label><label><input type="checkbox" id="cLab" checked> ray labels</label>
     <label><input type="checkbox" id="cTree" checked> tree</label><button id="reset">Reset view</button></div>
@@ -63,7 +64,7 @@
     <div id="checks" class="mono"></div>
   </details>
 </div>
-<script src="../js/entropy.js?v=20261113172835"></script>
+<script src="../js/entropy.js?v=20261113174311"></script>
 <script>
 'use strict';
 const NN = +((location.hash.match(/n=(\d+)/) || [0, 6])[1]), DD = 2**NN - 1;   // E96: period from the URL (#n=..&label=..)
@@ -192,9 +193,22 @@ function show(lbl) {
 }
 // interaction
 let drag = null;
-$('view').addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY, view.cx, view.cy]; $('view').classList.add('drag'); $('view').setPointerCapture(e.pointerId); });
+// zoom controls as in the atlas panes (Caroline 2026-11-13): z / x at the cursor, Shift-drag = zoom to the box, Command / Ctrl + click = undo the last zoom or unzoom
+const hist = []; let lastCont = 0, box = null, mouse = null;
+const pushView = cont => { const now = Date.now(); if (cont && now - lastCont < 600) { lastCont = now; return; } if (cont) lastCont = now; hist.push({ ...view }); if (hist.length > 200) hist.shift(); };
+const undoZoom = () => { const h = hist.pop(); if (!h) return; view = h; lastCont = 0; overlay(); render(); };
+const boxEl = document.createElement('div'); boxEl.style.cssText = 'position:absolute;border:1.5px dashed #111;background:rgba(255,255,255,.15);pointer-events:none;display:none'; $('view').appendChild(boxEl);
+window.addEventListener('keydown', e => { if (!mouse || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || (e.key !== 'z' && e.key !== 'x')) return;
+  pushView(false); const [x, y] = toPlane(mouse[0]*dpr, mouse[1]*dpr), f = e.key === 'z' ? 1/1.6 : 1.6; view.s *= f; view.cx = x + (view.cx - x)*f; view.cy = y + (view.cy - y)*f; overlay(); schedule(); });
+$('view').addEventListener('pointermove', e => { const r = $('view').getBoundingClientRect(); mouse = [e.clientX - r.left, e.clientY - r.top];
+  if (box) { box[2] = mouse[0]; box[3] = mouse[1]; boxEl.style.cssText += `;display:block;left:${Math.min(box[0], box[2])}px;top:${Math.min(box[1], box[3])}px;width:${Math.abs(box[2] - box[0])}px;height:${Math.abs(box[3] - box[1])}px`; } });
+$('view').addEventListener('pointerdown', e => { if (!e.shiftKey) return; const r = $('view').getBoundingClientRect(); box = [e.clientX - r.left, e.clientY - r.top, e.clientX - r.left, e.clientY - r.top]; });
+$('view').addEventListener('pointerdown', e => { if (e.shiftKey) { $('view').setPointerCapture(e.pointerId); return; } drag = [e.clientX, e.clientY, view.cx, view.cy]; $('view').classList.add('drag'); $('view').setPointerCapture(e.pointerId); });
 $('view').addEventListener('pointermove', e => { if (!drag) return; view.cx = drag[2] - (e.clientX - drag[0])*view.s; view.cy = drag[3] + (e.clientY - drag[1])*view.s; overlay(); schedule(); });
 $('view').addEventListener('pointerup', e => { const d0 = drag; drag = null; $('view').classList.remove('drag');
+  if (box) { const b = box, r = $('view').getBoundingClientRect(), rw = Math.abs(b[2] - b[0]), rh = Math.abs(b[3] - b[1]); box = null; boxEl.style.display = 'none';
+    if (rw > 8 && rh > 8) { pushView(false); const [x, y] = toPlane((b[0] + b[2])/2*dpr, (b[1] + b[3])/2*dpr); view.cx = x; view.cy = y; view.s *= Math.max(rw/r.width, rh/r.height); overlay(); render(); } return; }
+  if ((e.metaKey || e.ctrlKey) && d0 && Math.hypot(e.clientX - d0[0], e.clientY - d0[1]) <= 4) { undoZoom(); return; }
   // E96 (a): a click (no drag) = capture request to the atlas: on a drawn ray -> capture along that ray; elsewhere -> capture at the Fatou component of the point
   if (!d0 || !P || !$('cCap').checked || Math.hypot(e.clientX - d0[0], e.clientY - d0[1]) > 4) return;
   const r = ov.getBoundingClientRect(), sx = (e.clientX - r.left)*dpr, sy = (e.clientY - r.top)*dpr, om = new Set(P.orbit_minus);
@@ -207,15 +221,16 @@ $('view').addEventListener('pointerup', e => { const d0 = drag; drag = null; $('
   else { const z = toPlane(sx, sy); parent.postMessage({ e96: 'capReq', n: NN, label: P.label, point: z }, '*'); $('capmsg').textContent = `capture at the Fatou component of ${z[0].toFixed(4)} ${z[1] < 0 ? '−' : '+'} ${Math.abs(z[1]).toFixed(4)}i sent to the atlas`; }
 });
 $('view').addEventListener('wheel', e => {
+  pushView(true);
   e.preventDefault(); const r = $('view').getBoundingClientRect(), [x, y] = toPlane((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr);
   const f = Math.exp(e.deltaY*0.0015); view.s *= f; view.cx = x + (view.cx - x)*f; view.cy = y + (view.cy - y)*f; overlay(); schedule();
 }, { passive: false });
 let tmr = null; function schedule() { clearTimeout(tmr); tmr = setTimeout(render, 120); }
 for (const id of ['cRayM', 'cRayP', 'cLab', 'cTree']) $(id).onchange = overlay;
-$('reset').onclick = () => { fitView(); render(); };
+$('reset').onclick = () => { pushView(false); fitView(); render(); };
 $('pick').onchange = () => show($('pick').value);
 window.addEventListener('hashchange', () => { const m = location.hash.match(/label=(\d+)/); if (m && (!P || +m[1] !== P.label)) show(m[1]); });
-window.addEventListener('resize', () => { size(); render(); });
+window.addEventListener('resize', () => { size(); if (P) render(); });
 fetch(`poly_info_n${NN}.json`).then(r => r.json()).then(j => {
   DATA = j.sort((p, q) => p.label - q.label);
   $('pick').innerHTML = DATA.map(p => `<option value="${p.label}">${p.label}: ${p.ks[0]}/${DD}, ${p.ks[1]}/${DD}</option>`).join('');

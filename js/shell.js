@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261113172835').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261113174311').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261113172835'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261113174311'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -310,14 +310,19 @@
   function hideCard() { $('dcard').style.display = 'none'; }
   $('dcx').onclick = hideCard;
   $('dovx').onclick = () => { $('dover').style.display = 'none'; $('dovf').src = 'about:blank'; };
-  $('dovm').onclick = () => { const m = $('dover').classList.toggle('min'); $('dovm').textContent = m ? 'Restore' : 'Minimise'; };
+  // Minimize (Caroline 2026-11-13): hide only the card's text panel and keep its picture (pages with #side, i.e. the polynomial card); other pages shrink to the bar as before
+  let DOVMIN = false;
+  const dovApply = () => { let doc = null, w = null; try { w = $('dovf').contentWindow; doc = w.document; } catch (e) {} const side = doc && doc.getElementById('side');
+    if (side) { $('dover').classList.remove('min'); doc.body.classList.toggle('noside', DOVMIN); try { w.dispatchEvent(new Event('resize')); } catch (e) {} } else $('dover').classList.toggle('min', DOVMIN);
+    $('dovm').textContent = DOVMIN ? (side ? 'Show text' : 'Restore') : 'Minimise'; $('dovm').title = side ? 'hide / show the text panel of the card; the picture stays' : 'shrink to this bar; the card stays open'; };
+  $('dovm').onclick = () => { DOVMIN = !DOVMIN; dovApply(); }; $('dovf').addEventListener('load', dovApply);
   $('dcm').onclick = () => { const m = $('dcard').classList.toggle('min'); $('dcm').textContent = m ? '+' : '–'; };
   function overlay(title, tabs) {
     $('dovt').textContent = title; $('dovtabs').innerHTML = '';
     tabs.forEach((t, i) => { const b = document.createElement('button'); b.className = 'sm'; b.textContent = t[0];
       b.onclick = () => { $('dovf').src = t[1]; [...$('dovtabs').children].forEach(x => x.style.fontWeight = ''); b.style.fontWeight = '700'; };
       $('dovtabs').appendChild(b); if (i === 0) b.onclick(); });
-    $('dover').classList.remove('min'); $('dovm').textContent = 'Minimise'; $('dover').style.display = 'block';
+    DOVMIN = false; $('dover').classList.remove('min'); $('dovm').textContent = 'Minimise'; $('dover').style.display = 'block';
   }
   function parseMarker(d) {        // structured (plane / torus pages) or the hyperbolic viewers' info text
     if (d.marker) return d.p && !d.marker.p ? Object.assign({ p: d.p }, d.marker) : d.marker;

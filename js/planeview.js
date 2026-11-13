@@ -61,21 +61,24 @@ function PlaneView(host, opts) {
   gc.addEventListener('pointermove', function (e) {
     if (!pts.has(e.pointerId)) return; pts.set(e.pointerId, [e.clientX, e.clientY]);
     if (pts.size === 2) { var a = Array.from(pts.values()), d = Math.hypot(a[0][0] - a[1][0], a[0][1] - a[1][1]);
-      if (pinch0) { self.upp *= pinch0/d; dirty = true; poke(); } pinch0 = d; return; }
+      if (pinch0) { pushView(true); self.upp *= pinch0/d; dirty = true; poke(); } pinch0 = d; return; }
     if (!down) return;
     if (rect) { var r1 = gc.getBoundingClientRect(); rect[2] = e.clientX - r1.left; rect[3] = e.clientY - r1.top; moved = 99; dirty = true; return; }
     moved = Math.max(moved, Math.hypot(e.clientX - down[0], e.clientY - down[1]));
     self.ctr[0] -= (e.clientX - last[0])*self.upp; self.ctr[1] += (e.clientY - last[1])*self.upp; last = [e.clientX, e.clientY];
     dirty = true; poke(); });
+  // zoom history (Caroline 2026-11-13): Command / Ctrl + click undoes the last zoom or unzoom (z / x, wheel, pinch, Shift-drag box); a run of wheel / pinch events is one step
+  var hist = [], lastCont = 0;
+  var pushView = function (cont) { var now = Date.now(); if (cont && now - lastCont < 600) { lastCont = now; return; } if (cont) lastCont = now; hist.push([self.ctr[0], self.ctr[1], self.upp]); if (hist.length > 200) hist.shift(); };
+  self.undoZoom = function () { var h = hist.pop(); if (!h) return false; self.ctr = [h[0], h[1]]; self.upp = h[2]; lastCont = 0; dirty = true; poke(); return true; };
+  self.pushView = pushView;
   gc.addEventListener('pointerup', function (e) { pts.delete(e.pointerId); if (pts.size) return;
     var wasDown = down; down = null;
     if (rect) { var rw = Math.abs(rect[2] - rect[0]), rh = Math.abs(rect[3] - rect[1]), rc = rect; rect = null; dirty = true;
-      if (rw > 8 && rh > 8) { self.ctr = self.toPlane((rc[0] + rc[2])/2, (rc[1] + rc[3])/2); self.upp *= Math.max(rw/W, rh/H); poke(); } return; }
+      if (rw > 8 && rh > 8) { pushView(false); self.ctr = self.toPlane((rc[0] + rc[2])/2, (rc[1] + rc[3])/2); self.upp *= Math.max(rw/W, rh/H); poke(); } return; }
     if (!wasDown || moved > 4) return;
     var r = gc.getBoundingClientRect();
-    if (e.metaKey || e.ctrlKey) {            // Command (or Ctrl) + click: zoom out by 2, keeping the clicked point where it is (Caroline 2026-11-12); no pick
-      var sx = e.clientX - r.left, sy = e.clientY - r.top, before = self.toPlane(sx, sy); self.upp = Math.min(10, self.upp*2); var after = self.toPlane(sx, sy);
-      self.ctr[0] += before[0] - after[0]; self.ctr[1] += before[1] - after[1]; dirty = true; poke(); return; }
+    if (e.metaKey || e.ctrlKey) { self.undoZoom(); return; }      // Command (or Ctrl) + click: undo the last zoom / unzoom; no pick
     self.onPick(self.toPlane(e.clientX - r.left, e.clientY - r.top), [e.clientX - r.left, e.clientY - r.top]); });
   // hotkeys (Caroline 2026-11-10): z = zoom in, x = zoom out, at the cursor; self.mouse = plane point under the cursor
   self.mouse = null; var lastXY = null;
@@ -83,10 +86,10 @@ function PlaneView(host, opts) {
   gc.addEventListener('pointerleave', function () { lastXY = null; self.mouse = null; });
   window.addEventListener('keydown', function (e) {
     if (!lastXY || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || (e.key !== 'z' && e.key !== 'x')) return;
-    var before = self.toPlane(lastXY[0], lastXY[1]); self.upp *= e.key === 'z' ? 1/1.6 : 1.6; self.upp = Math.min(10, Math.max(1e-7, self.upp));
+    pushView(false); var before = self.toPlane(lastXY[0], lastXY[1]); self.upp *= e.key === 'z' ? 1/1.6 : 1.6; self.upp = Math.min(10, Math.max(1e-7, self.upp));
     var after = self.toPlane(lastXY[0], lastXY[1]); self.ctr[0] += before[0] - after[0]; self.ctr[1] += before[1] - after[1]; dirty = true; poke(); });
   gc.addEventListener('wheel', function (e) { e.preventDefault();
-    var r = gc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, before = self.toPlane(sx, sy);
+    pushView(true); var r = gc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, before = self.toPlane(sx, sy);
     self.upp = Math.min(10, Math.max(1e-7, self.upp*Math.exp(e.deltaY*0.0015)));
     var after = self.toPlane(sx, sy); self.ctr[0] += before[0] - after[0]; self.ctr[1] += before[1] - after[1];
     dirty = true; poke(); }, { passive: false });
