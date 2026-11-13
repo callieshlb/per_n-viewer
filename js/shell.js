@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261113003053').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261113172835').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261113003053'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261113172835'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -247,7 +247,7 @@
   // f of a mating: a label (even numerator k), or either characteristic angle p/q of a period-n center (Caroline 2026-11-10)
   async function resolveF(text, n) {
     const D = n >= 2 ? await loadPoly(n) : null; if (!D) return null; const t = String(text).trim(), Q = 2**n - 1; let P = null, m;
-    if ((m = t.match(/^(\d+)\s*\/\s*(\d+)$/))) { const k = +m[1]*Q/+m[2]; if (Number.isInteger(k)) P = D.find(q => q.ks.includes(k)); }
+    if (!/^\d+$/.test(t) && (m = PM.parseAngle(t))) { const kb = m.p*BigInt(Q); if (kb % m.q === 0n) { const k = Number(kb/m.q); P = D.find(q => q.ks.includes(k)); } }   /* p/q or binary */
     else if (/^\d+$/.test(t)) P = D.find(q => String(q.label) === t) || D.find(q => q.ks.includes(+t));
     return P || null;
   }
@@ -348,7 +348,7 @@
     const n = cur.n, st = t => { $('status').textContent = t; };
     if (n < 2) { st('Capture: choose Per_n with n ≥ 2.'); return; }
     const P = await resolveF(ft, n); if (!P) { st(`Capture: "${ft}" is not a period-${n} center (give its label k, or either angle k/${2**n - 1})`); return; }
-    const a = PM.parseAngle(gt); if (!a) { st('Capture: enter the angle θ as p/q'); return; }
+    const a = PM.parseAngle(gt); if (!a) { st('Capture: enter the angle θ as p/q or binary, e.g. 3/7 or (011)'); return; }
     const cf = [Number(P.c_str[0]), Number(P.c_str[1])], m = CAP.capture(cf, n, a, { choice: Math.max(0, (choice || 1) - 1) }), label = `${P.label} ^ ${a.text}`;
     const cl = m.comps ? `\nFatou components at the landing point of the ray ${a.text} (z = ${PM.fmt(m.landing, 6)}): ` + m.comps.map((v, i) => `#${i + 1}: center ${PM.fmt(v.x, 5)}${v.cycIndex >= 0 ? ' = x' + (v.cycIndex === 0 ? n : v.cycIndex) + ' (periodic)' : ', reaches the cycle after ' + v.t + ' step' + (v.t === 1 ? '' : 's')}`).join(';  ') : '';
     if (!m.ok) { st(`${label}: no capture: ${m.why}${m.iters !== undefined ? ' at pullback ' + m.iters : ''}` + cl); return; }
@@ -491,7 +491,7 @@
   // ---- mating calculator (mating.js; REGISTRATION addendum 2026-11-10, checks M1-M5 in log.md)
   function doMate(cf, n, lab, text, out) {
     out = out || { set textContent(t) { $('status').textContent = t; } };
-    const a = PM.parseAngle(text); if (!a || !cf) { out.textContent = 'enter an angle p/q'; return; }
+    const a = PM.parseAngle(text); if (!a || !cf) { out.textContent = 'enter an angle p/q or binary, e.g. 3/7 or (011)'; return; }
     const g = MATE.pcfFromAngle(a), m = MATE.mate(cf, g.c), gname = `g = ${g.kind === 'centre' ? 'center' : g.kind} of angle ${a.text} (c = ${PM.fmt(g.c, 6)})`;
     if (g.kind === 'misiurewicz' && g.moved > 0.05) { out.textContent = `g not found: the parameter ray of ${a.text} did not land well enough (Newton moved ${g.moved.toExponential(1)} from the ray's end)`; return; }
     if (!m.ok) { out.textContent = `not converged: ${m.why} (${gname})`; return; }

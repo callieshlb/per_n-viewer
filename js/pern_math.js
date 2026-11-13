@@ -89,6 +89,13 @@ var PM = (function () {
   function parseAngle(s) {
     s = String(s).trim(); var m;
     if ((m = s.match(/^(\d+)\s*\/\s*(\d+)$/))) { var p = BigInt(m[1]), q = BigInt(m[2]); if (q === 0n) return null; return { p: p % q, q: q, text: s }; }
+    // binary expansions (Caroline 2026-11-13): the repeating block in parentheses, e.g. (011) = .(011) = 0.(011) = 3/7, 01(10) = .01(10) = 5/12;
+    // a finite expansion needs the prefix b, e.g. b0101 = b.0101 = 5/16 (without it .0101 is read as a decimal, as before). text = the reduced fraction.
+    if ((m = s.match(/^(?:b\s*)?(?:0?\.)?([01]*)\(([01]+)\)$/i)) || (m = s.match(/^b\s*(?:0?\.)?([01]+)()$/i))) {
+      var pre = m[1], per = m[2], l = BigInt(pre.length), k = BigInt(per.length), P2 = per ? 2n**k - 1n : 1n;
+      var pb = (pre ? BigInt('0b' + pre) : 0n)*P2 + (per ? BigInt('0b' + per) : 0n), qb = (2n**l)*P2; pb = pb % qb;
+      var ga = pb, gb = qb; while (gb) { var gt = ga % gb; ga = gb; gb = gt; } if (ga > 1n) { pb /= ga; qb /= ga; }
+      return { p: pb, q: qb, text: pb + '/' + qb, binary: s }; }
     if ((m = s.match(/^0?\.(\d+)$/))) { var q2 = 10n ** BigInt(m[1].length); return { p: BigInt(m[1]) % q2, q: q2, text: s }; }
     return null;
   }

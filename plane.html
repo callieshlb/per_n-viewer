@@ -28,9 +28,9 @@
   details summary { cursor:pointer; color:var(--muted); }
   .nf { font-size:12px; background:#fff; border:1px solid var(--faint); padding:4px 6px; margin:4px 0; }
 </style>
-<script src="js/pern_math.js?v=20261113003053"></script>
-<script src="js/glsl.js?v=20261113003053"></script>
-<script src="js/planeview.js?v=20261113003053"></script>
+<script src="js/pern_math.js?v=20261113172835"></script>
+<script src="js/glsl.js?v=20261113172835"></script>
+<script src="js/planeview.js?v=20261113172835"></script>
 </head>
 <body>
 <div id="view"></div>
@@ -73,7 +73,7 @@
     <div class="sub">White dots: the centers of period n (pink: tunings, i.e. renormalizable; the data card names base ⊥ inner); optional: their two parameter rays (which land at the root). Click a dot or a ray
       for its angles, data card, dynamical plane, Hubbard tree and polynomial card.</div></div>
   <details open id="raybox" style="display:none"><summary><b>External rays</b></summary>
-    <div class="sub">Angles as p/q or decimals, separated by commas, e.g. <code>1/3, 2/3, 1/7, 1/6</code>. Parameter rays are drawn
+    <div class="sub">Angles as p/q, decimals, or binary with the repeating block in parentheses, separated by commas, e.g. <code>1/3, 2/3, (001), 0(01)</code> (the last two are 1/7 and 1/6; a finite binary expansion needs the prefix b: <code>b0101</code> = 5/16). Parameter rays are drawn
       here; the dynamic rays of the same angles are drawn in the dynamical plane (for the selected c). Rational angles get their
       exact landing point (a root, or a Misiurewicz point).</div>
     <input id="rayin" size="24" value="" placeholder="e.g. 1/3, 2/3, 1/7, 1/6" style="margin:4px 0"> <button id="raygo">Draw</button> <button id="rayclr">Clear</button>
@@ -83,7 +83,7 @@
     <div id="mlist"></div></details>
   <details><summary>What this is</summary><div id="about" class="sub"></div></details>
 </div>
-<script src="js/bitri.js?v=20261113003053"></script>
-<script src="js/plane.js?v=20261113003053"></script>
+<script src="js/bitri.js?v=20261113172835"></script>
+<script src="js/plane.js?v=20261113172835"></script>
 </body>
 </html>
