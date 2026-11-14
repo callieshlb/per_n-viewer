@@ -23,14 +23,14 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261113174912"></script>
-<script src="per9_core.js?v=20261113174912"></script>
+<script src="conformal_data.js?v=20261114035848"></script>
+<script src="per9_core.js?v=20261114035848"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
 <div id="side">
   <h1>Per<sub>9</sub>(0): conformal model, live dynamics</h1>
-<div style="background:#fff3cd;border:1px solid #e0b84d;border-radius:4px;padding:5px 7px;margin:4px 0 8px;font-size:12px"><b>Numerical model, not a theorem</b> (E95). Checks U1-U5 pass (U5 with the centers inserted as mesh vertices; the first placement missed the 5% bound on one pair of 31 626). <b>Punctures</b>: the continuation check A3 found only 127 distinct places for the 156 punctures; the red markers are placed instead along the internal rays of the polynomial components (multiplier e<sup>−2πi p/q</sup>): 156 of 156 placed, all at distinct places. <b>U6 (real circles)</b>: 2 of the 6 traced real circles pass and are drawn; the other 4 do not pass and are not drawn. The discs |y| &lt; 0.04 around the places over y = 0 are <b>masked</b> (gray): the sheets collapse there and x could not be tracked exactly. Pixel colors are computed from the chart values of the two zeros (x, w) of the map. See REGISTRATION.md / result.md.</div>
+<div style="background:#fff3cd;border:1px solid #e0b84d;border-radius:4px;padding:5px 7px;margin:4px 0 8px;font-size:12px"><b>Numerical model, not a theorem</b> (E95). Checks U1-U5 pass (U5 with the centers inserted as mesh vertices; the first placement missed the 5% bound on one pair of 31 626). <b>Punctures</b>: the continuation check A3 found only 127 distinct places for the 156 punctures; the red markers are placed instead along the internal rays of the polynomial components (multiplier e<sup>−2πi p/q</sup>): 156 of 156 placed, all at distinct places. <b>U6 (real circles)</b>: 4 of the 6 traced real circles pass and are drawn; the other 2 do not pass and are not drawn. The discs |y| &lt; 0.04 around the places over y = 0 are <b>masked</b> (gray): the sheets collapse there and x could not be tracked exactly. Pixel colors are computed from the chart values of the two zeros (x, w) of the map. See REGISTRATION.md / result.md.</div>
   <div class="sub">The compact genus-188 curve uniformized: the disk is its universal cover, every tile is the same Dirichlet polygon, and the picture is conformal. The colors are computed afresh at every screen pixel from (a<sub>3</sub>, a<sub>8</sub>) at that point, as in the 2-D explorer, so zooming in sharpens them. Drag to slide, click to center a point, scroll to magnify.</div>
   <div class="ctrl">
     <span>Tile edges</span><input type="checkbox" id="ed" checked>
@@ -70,7 +70,7 @@
     the limits of single precision and of the chart data.</p>
     <p>Up to discretization error the picture is conformal: hyperbolic components keep their shape when moved to the center.
     Checks (angle sums, area 748π, side pairings, mesh convergence) are in REGISTRATION.md (E95).</p>
-    <p><b>Real circles</b>: 2 of the 6 traced real circles are drawn (cyan, yellow; census ovals 4, 5, closed geodesics of lengths 8.873, 7.021, each through 3 punctures): those that pass check U6. The other 4 do not pass and are not drawn; the 6 traced circles are a lower bound for the real locus (8 real arcs did not land). <b>G<sub>9</sub> edges</b> (white, off by default): the 933 pairs of centers joined in G<sub>9</sub> (E91 construction), each drawn as the shortest geodesic between them.</p>
+    <p><b>Real circles</b>: 4 of the 6 traced real circles are drawn (cyan: census oval 0, length 60.883, 23 punctures, yellow: census oval 3, length 42.237, 15 punctures, green: census oval 4, length 8.873, 3 punctures, magenta: census oval 5, length 7.021, 3 punctures): those that pass check U6 (closed geodesics). The other 2 do not pass and are not drawn; the 6 traced circles are a lower bound for the real locus (8 real arcs did not land). <b>G<sub>9</sub> edges</b> (white, off by default): the 933 pairs of centers joined in G<sub>9</sub> (E91 construction), each drawn as the shortest geodesic between them.</p>
     <p>Click a marker (white dot or red dot) to see its data: for a polynomial center z<sup>2</sup> + c its c, characteristic
     angles, internal address and kneading; for a puncture the centers sharing it, k, q, multiplicity, its census loop point and how it was placed (internal ray of a polynomial component).</p>
     <p>White dots: polynomial centers (label k means angle k/511). Red: punctures (the marker sits at the census loop point, next to the puncture).</p>
@@ -640,7 +640,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261113174912"></script><script src="../../js/bitri.js?v=20261113174912"></script>
+<script src="../../js/pern_math.js?v=20261114035848"></script><script src="../../js/bitri.js?v=20261114035848"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
