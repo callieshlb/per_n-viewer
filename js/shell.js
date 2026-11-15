@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261114035848').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261115013052').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261114035848'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261115013052'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -530,6 +530,21 @@
   }
   // puncture card (REGISTRATION addendum 2026-11-12 (t)): what happens to the marked cycle near the puncture. Plane / torus models: the maps at the
   // puncture's chart point displaced by 1e-3 and 1e-5; disk models: the map at the census loop point (the marker's own x, y).
+  // addendum (y): active rescaling limit of each center sharing the puncture (Caroline 2026-11-15)
+  async function rescaleLines(mk, n) {
+    let labs = mk.labels || (mk.thetas ? mk.thetas.filter(k => k % 2 === 0) : []); if (!labs.length && mk.thetas) labs = mk.thetas; if (!labs.length || n < 2 || n > 9) return;
+    const D = await loadPoly(n); if (!D) return; const out = [], Q = 2**n - 1, key = mk.title;
+    for (const L of labs) { const P = D.find(q => String(q.label) === String(L)) || D.find(q => q.ks.includes(+L)); if (!P) { out.push(`  ${L}: no polynomial data`); continue; }
+      const [p, q] = P.limb, a = P.ks.map(k => RESC.active(n, k, p, q)), A = a[0], R = A.rabbit, RQ = 2**q - 1, rab = R ? `R_${p}/${q} = (${R[0]}/${RQ}, ${R[1]}/${RQ})` : `R_${p}/${q}`;
+      if (A.kind === 'tuned' && A.m === 1) out.push(`  f = ${P.label}: the rabbit ${rab} itself (g = z²): active rescaling limit z² ⊔ C, in Per_1(1) ∩ Per_1(0); rescaling period q = ${q}`);
+      else if (A.kind === 'tuned') { const m = A.m, mq = 2**m - 1, inner = a.map(x => x.inner).sort((x, y) => x - y); let G = null; try { const Dm = await loadPoly(m); G = Dm && Dm.find(g => g.ks.includes(inner[0])); } catch (e) {}
+        out.push(`  f = ${P.label} = ${rab} ⊥ g, g = ${G ? 'center ' + G.label + ' of period ' + m : 'the period-' + m + ' center'} (angles ${inner.map(k => k + '/' + mq).join(', ')}): active rescaling limit g ⊔ C, in Per_1(1) ∩ Per_${m}(0); rescaling period q = ${q}`); }
+      else if (A.kind === 'dyadic') out.push(`  f = ${P.label}: in the decoration of ${rab} at the dyadic t = ${A.l}/${2**A.k}: active rescaling limit t ⊔ C, t = the Misiurewicz polynomial of angle ${A.l}/${2**A.k} (critical orbit reaches β after ${A.k} step${A.k === 1 ? '' : 's'}${A.l === 1 && A.k === 1 ? '; t = z² − 2' : ''}), in Per_1(1) ∩ PrePer_{${A.k},1} [this label is E96's reading]; rescaling period q = ${q}`);
+      else out.push(`  f = ${P.label}: not decided (${A.kind}${A.why ? ': ' + A.why : ''})`); }
+    if (!$('dct').innerHTML.includes(String(key).replace(/&/g, '&amp;').replace(/</g, '&lt;').slice(0, 30))) return;      // another card was opened meanwhile
+    const el = document.createElement('div'); el.id = 'resc'; el.style.cssText = 'white-space:pre-wrap;margin-top:4px';
+    el.textContent = 'Active rescaling limit (what survives in the sphere of the critical value; C = cauliflower z² + 1/4), from the angles of each center sharing the puncture:\n' + out.join('\n'); $('dct').appendChild(el); window.E96RESC = out;
+  }
   function punctLines(mk) {
     const out = [], maps = [];
     try {
@@ -580,6 +595,7 @@
     const n = mk.n || cur.n, D = 2**n - 1, esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(mk.lines.join('\n'));
     if (mk.kind === 'puncture') { const extra = punctLines(mk); if (extra.length) $('dct').innerHTML += '\n' + esc(extra.join('\n')); }
+    if (mk.kind === 'puncture') rescaleLines(mk, n);
     if (mk.kind === 'bitrans') { btCard(mk); $('dcard').style.display = 'block'; return; }
     const B = $('dcb'); B.innerHTML = '';
     const btn = (txt, fn) => { const b = document.createElement('button'); b.className = 'sm'; b.textContent = txt; b.onclick = fn; B.appendChild(b); };
