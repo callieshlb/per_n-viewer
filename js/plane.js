@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261115013052').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261117064117').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261115013052').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261117064117').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -280,6 +280,7 @@
   $('bands').onchange = e => { pv.bands = e.target.checked; pv.redraw(); };
   $('pit').oninput = e => { pv.maxIt = +e.target.value; $('pitv').textContent = pv.maxIt; pv.redraw(); };
   $('del').oninput = e => { pv.delta = Math.pow(10, +e.target.value); $('delv').textContent = pv.delta.toExponential(0); pv.redraw(); };
+  $('globe').onclick = () => parent.postMessage({ e96: 'globe', m: id, title: E.short }, '*');
   $('home').onclick = () => { pv.ctr = E.view.ctr.slice(); pv.upp = E.view.upp; pv.redraw(); };
   function buildList() {
     const q = $('mfilter').value.trim().toLowerCase(), box = $('mlist'); box.innerHTML = '';
