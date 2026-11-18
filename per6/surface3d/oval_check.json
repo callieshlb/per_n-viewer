@@ -2,39 +2,39 @@
  {
   "oval": 0,
   "arcs": 10,
-  "points": 4661,
-  "ambiguous_points": 178,
-  "max_lift_step": 0.12908644110954462,
-  "max_x_mismatch": 0.00011890515360359103,
-  "trace": 2811.6875770369106,
-  "trace_imag": 3.0143616243094584e-06,
-  "geodesic_length": 15.883080033586651,
-  "polyline_length": 15.884552120775773,
-  "length_ratio_minus_1": 9.268272816154166e-05,
+  "points": 4646,
+  "ambiguous_points": 0,
+  "max_lift_step": 0.12973204350394163,
+  "max_x_mismatch": 1.1516136109495675e-07,
+  "trace": 2808.313463198927,
+  "trace_imag": 0.0020187350164633244,
+  "geodesic_length": 15.880678528623319,
+  "polyline_length": 15.882276069441843,
+  "length_ratio_minus_1": 0.00010059650887361826,
   "axis_fixed_point_moduli": [
-   1.0000000000000526,
-   1.0
+   1.0000000000000049,
+   0.9999999999999959
   ],
-  "max_dist_to_axis": 0.0016068248267571371,
-  "median_dist_to_axis": 4.299229463276183e-05
+  "max_dist_to_axis": 0.0015833598000444692,
+  "median_dist_to_axis": 3.9301718209845636e-05
  },
  {
   "oval": 1,
   "arcs": 4,
   "points": 1659,
-  "ambiguous_points": 97,
-  "max_lift_step": 0.08314994455786712,
-  "max_x_mismatch": 0.00015104847252153398,
-  "trace": -14.169040889005272,
-  "trace_imag": 5.1464610351104056e-11,
-  "geodesic_length": 5.292081405481806,
-  "polyline_length": 5.294326264490759,
-  "length_ratio_minus_1": 0.00042419207811650317,
+  "ambiguous_points": 69,
+  "max_lift_step": 0.08292773825123524,
+  "max_x_mismatch": 0.00014958090423046417,
+  "trace": -14.163680683930718,
+  "trace_imag": 5.8477667153056245e-12,
+  "geodesic_length": 5.291316998002474,
+  "polyline_length": 5.291900939682817,
+  "length_ratio_minus_1": 0.00011035847607754334,
   "axis_fixed_point_moduli": [
-   1.0000000000000104,
-   0.9999999999999882
+   1.0000000000000002,
+   0.9999999999999992
   ],
-  "max_dist_to_axis": 0.002640599239398842,
-  "median_dist_to_axis": 4.535442205792131e-06
+  "max_dist_to_axis": 0.0017226099876130364,
+  "median_dist_to_axis": 8.289072688593839e-06
  }
 ]

@@ -209,17 +209,19 @@ class HSet:
     checked, theta wrap handled). Distinct orbit points of a surface group are >= 2*injectivity radius apart (>> EPS)."""
     EPS = 1e-4
     def __init__(self): self.c = set()
+    # E99 fix (bestiary-style harness bug): E92 used theta*sinh(d) with each point's OWN d, so two points within EPS could
+    # land many theta-cells apart (the index shifts by theta*cosh(d)*dd/EPS). Now each d-row has its own fixed theta scale
+    # sinh(row*EPS); a point is filed in its row, and the lookup recomputes the theta index with each neighbouring row's scale.
     @staticmethod
-    def _cell(z):
-        d = float(hd0(z)); th = float(np.angle(z)); s = np.sinh(d)
-        return int(np.floor(d/HSet.EPS)), th, s
+    def _tkey(th, row): return int(np.floor(th*np.sinh(max(row, 0)*HSet.EPS)/HSet.EPS))
     def _keys(self, z):
-        kd, th, s = self._cell(z); out = []
+        d = float(hd0(z)); th = float(np.angle(z)); kd = int(np.floor(d/HSet.EPS)); out = []
         ths = [th] + ([th - 2*np.pi*np.sign(th)] if abs(th) > np.pi - 1e-3 else [])
-        for t in ths:
-            kt = int(np.floor(t*s/HSet.EPS))
-            out += [(kd + a, kt + b) for a in (-1, 0, 1) for b in (-1, 0, 1)]
-        return out, (kd, int(np.floor(th*s/HSet.EPS)))
+        for a in (-1, 0, 1):
+            for t in ths:
+                kt = HSet._tkey(t, kd + a)
+                out += [(kd + a, kt + b) for b in (-2, -1, 0, 1, 2)]
+        return out, (kd, HSet._tkey(th, kd))
     def add_if_new(self, z):
         ks, own = self._keys(z)
         if any(k in self.c for k in ks): return False

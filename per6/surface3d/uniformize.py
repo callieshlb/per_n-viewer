@@ -40,7 +40,7 @@ def selftest():
             fd = (Ap - Am)/(2*h)
             dAda = np.sinh(a)/(np.sinh(b)*np.sinh(c)*np.sin(A))
             an = {'a': dAda, 'b': -dAda*np.cos(C), 'c': -dAda*np.cos(B)}[name]
-            worst = max(worst, float(abs(fd - an)/max(1, abs(an))))
+            worst = max(worst, float((abs(fd - an)/max(1, abs(an).item())).item()))   # E99: .item() (numpy 2)
     print('selftest: max relative error of analytic angle derivatives vs finite differences', f'{worst:.2e}')
     # Jacobian of angle sums vs finite differences on a small random closed-ish patch is checked in solve() (symmetry)
     return worst

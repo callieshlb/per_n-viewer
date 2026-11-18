@@ -115,7 +115,7 @@ for a in range(nf):
     faces.append(dict(u=[U_[a].real, U_[a].imag], t=float(Tt[a]), gi=[gi[0, 0].real, gi[0, 0].imag, gi[0, 1].real, gi[0, 1].imag,
                       gi[1, 0].real, gi[1, 0].imag, gi[1, 1].real, gi[1, 1].imag], pair=pid[min(a, pair_of[a])], partner=int(pair_of[a]),
                       P=[P.real, P.imag], Q=[Q.real, Q.imag], mid=[mid.real, mid.imag]))
-td = open('tiling_data.js').read(); TD = json.loads(td[td.index('{'):td.rindex('}') + 1])
+td = open('vertex_fields.js').read(); TD = json.loads(td[td.index('{'):td.rindex('}') + 1])   # E99: per-vertex fields of this mesh (vertex_fields.py)
 vcls = [0]*nf
 for n_, m in enumerate(cls.values()):
     for a in m: vcls[a] = n_

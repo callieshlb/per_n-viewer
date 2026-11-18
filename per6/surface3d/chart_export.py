@@ -134,7 +134,7 @@ for k, c in enumerate(centres):
     N_ = AhW @ A
     for col, vals in ((0, Yf), (2, Xf)):
         rhs = (AhW @ vals[nb][:, :, None])[:, :, 0]
-        coef = np.linalg.solve(N_, rhs)
+        coef = np.linalg.solve(N_, rhs[..., None])[..., 0]   # E99: numpy-2 solve broadcasting (as E93)
         g = coef[:, 0].reshape(S, S)
         grids[k, :, :, col] = g.real; grids[k, :, :, col + 1] = g.imag
         res = np.abs((A @ coef[:, :, None])[:, :, 0] - vals[nb])[:, :6]
@@ -172,5 +172,3 @@ coef = json.load(open('../explorer/data.json'))['coef']
 json.dump(dict(NC=NC, S=S, RU=R_U, RUH=R_U_H, RCOV=R_COV, coverage=cov, charts=meta, placements=placements, mapSize=size, coef=coef),
           open('chart_meta.json', 'w'))
 print(f'wrote chart_grids.bin ({grids.nbytes/1e6:.1f} MB), chart_map.png ({len(bi.getvalue())/1e6:.2f} MB), chart_meta.json', flush=True)
-
-import subprocess, sys; subprocess.run([sys.executable, 'make_file_data.py'], check=True)  # refresh the click-to-open sidecars

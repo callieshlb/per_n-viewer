@@ -1,5 +1,5 @@
-// E92 3-D step 2: roots per vertex (atlas labels), sheet maps along every edge, groups at branch vertices.
-const C = require('../explorer/per6_core.js'); C.init(require('../explorer/data.json'));
+// E99 copy of E92 3-D step 2 (uses per6_core_mesh.js; logs min root separation): roots per vertex (atlas labels), sheet maps along every edge, groups at branch vertices.
+const C = require('../explorer/per6_core_mesh.js'); C.init(require('../explorer/data.json'));
 const M = require('./sphere_mesh.json');
 const fs = require('fs');
 const nV = M.y.length, EPS = 1e-4;
@@ -39,11 +39,13 @@ function trackStraight(xs, a, c) {          // straight; on failure via a midpoi
 }
 const R = new Array(nV), group = {}, off = {};
 let fails = 0, worst = 0;
-const t0 = Date.now();
+const t0 = Date.now(); let minSep = Infinity, minSepV = -1;
 for (let v = 0; v < nV; v++) {
   if (isB(v)) continue;
-  R[v] = C.globalRoots(M.y[v]); if (!R[v]) fails++;
+  R[v] = C.globalRoots(M.y[v]); if (!R[v]) { fails++; continue; }
+  for (let i = 0; i < 5; i++) for (let j = i+1; j < 5; j++) { const d = C.chord(R[v][i], R[v][j]); if (d < minSep) { minSep = d; minSepV = v; } }
 }
+console.log(`normal vertices: min chordal root separation ${minSep.toExponential(3)} at vertex ${minSepV} y = ${M.y[minSepV]}; global-root failures ${fails}; ${(Date.now()-t0)/1000} s`);
 // branch vertices: roots at an offset point, groups = cycles of the small loop around b
 for (let v = 0; v < nV; v++) {
   if (!isB(v)) continue;

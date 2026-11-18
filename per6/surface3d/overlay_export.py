@@ -93,5 +93,3 @@ for kind in ('capture', 'mating', 'puncture'):
           f'certified shortest {sum(e["certified"] for e in ek)}/{len(ek)}')
 json.dump(dict(ovals=ovals, edges=edges), open('overlay_data.json', 'w'))
 print('wrote overlay_data.json')
-
-import subprocess, sys; subprocess.run([sys.executable, 'make_file_data.py'], check=True)  # refresh the click-to-open sidecars
