@@ -23,8 +23,8 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261118224743"></script>
-<script src="per6_core.js?v=20261118224743"></script>
+<script src="conformal_data.js?v=20261118225136"></script>
+<script src="per6_core.js?v=20261118225136"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
@@ -120,6 +120,7 @@ uniform vec4 fA[${MAXF}]; uniform vec4 fB[${MAXF}]; uniform vec4 fC[${MAXF}];
 uniform sampler2D tex; uniform int edges; uniform vec3 bg;
 uniform highp sampler2DArray charts; uniform highp sampler2D cmapT; uniform highp sampler2D ptab; uniform highp sampler2D ctab;
 uniform highp sampler2D ovT; uniform int nOv; uniform int showOv;
+uniform int coneOn; uniform vec2 coneP; uniform float coneK; uniform vec2 coneC; uniform float coneQ[48]; uniform int coneLay[64];
 uniform float RU; uniform int SS; uniform float mapSize; uniform float coefU[48]; uniform int live; uniform int maxIt; uniform float delta; uniform float tolP;
 out vec4 o;
 vec2 cm(vec2 a, vec2 b){ return vec2(a.x*b.x - a.y*b.y, a.x*b.y + a.y*b.x); }
@@ -189,6 +190,56 @@ vec3 liveColour(vec2 z){
   }
   return vec3(18.)/255.;
 }
+
+// E99 fu1: option (c) near a cone point (offsets dy = y - yc, dx = x - xc; no float32 cancellation in the decode, the x
+// polish, the map data or the map itself). Same classes and colors as liveColour.
+vec3 liveColourCone(vec2 z){
+  vec2 mt = vec2(.5 + .5*z.x, .5 - .5*z.y)*mapSize; ivec2 mi = clamp(ivec2(mt), ivec2(0), ivec2(int(mapSize) - 1));
+  vec4 cmv = texelFetch(cmapT, mi, 0);
+  int pidx = int(cmv.r*255. + .5) + 256*int(cmv.g*255. + .5);
+  vec4 pa = texelFetch(ptab, ivec2(0, pidx), 0), pb = texelFetch(ptab, ivec2(1, pidx), 0), pc = texelFetch(ptab, ivec2(2, pidx), 0);
+  int k0 = int(pc.x + .5); int k = coneLay[k0];
+  if (k < 0) return liveColour(z);
+  vec2 u = cd(cm(pa.xy, z) + pa.zw, cm(pb.xy, z) + pb.zw);
+  vec2 f = vec2((u.x + RU)/(2.*RU), (RU - u.y)/(2.*RU))*float(SS - 1);
+  vec4 g = bicubic(k, f);
+  vec4 ca = texelFetch(ctab, ivec2(0, k), 0), cb = texelFetch(ctab, ivec2(1, k), 0);
+  vec2 one = vec2(1., 0.), Cy = vec2(coneC.x, 0.), Cx = vec2(coneC.y, 0.);
+  vec2 dy = cd(cm(g.xy, Cy - ca.zw), one - g.xy);
+  vec2 dx = cd(cm(g.zw, Cx - cb.zw), one - g.zw);
+  vec2 c[6];
+  for (int kk = 0; kk < 6; kk++) { vec2 acc = vec2(0.); for (int j = 7; j >= 0; j--) acc = cm(acc, dy) + vec2(coneQ[kk*8 + j], 0.); c[kk] = acc; }
+  for (int it = 0; it < 4; it++) {
+    vec2 P = vec2(0.), dP = vec2(0.);
+    for (int kk = 5; kk >= 0; kk--) { dP = cm(dP, dx) + P; P = cm(P, dx) + c[kk]; }
+    if (dot(dP, dP) > 0.) dx -= cd(P, dP);
+  }
+  vec2 y = Cy + dy, x = Cx + dx;
+  vec2 w = cd(vec2(coneC.y + coneC.x - 1., 0.) + dx + dy, vec2(coneC.y - 1., 0.) + dx), s = x + w, p = cm(x, w), om = cd(2.*p, s);
+  vec2 a4; bool a4i = false;
+  { float r2 = dot(y, y); if (r2 < 1e-24) a4i = true; else { vec2 iz = cinv(y); a4 = cm(cm(vec2(coneC.x - coneC.y, 0.) + dy - dx, y - w), cm(iz, iz)); } }
+  vec2 mk[6]; bool mi6[6];
+  mk[0] = vec2(0.); mi6[0] = false; mk[1] = vec2(0.); mi6[1] = true; mk[2] = one; mi6[2] = false;
+  mk[3] = y; mi6[3] = false; mk[4] = a4; mi6[4] = a4i; mk[5] = x; mi6[5] = false;
+  float th[6];
+  for (int j = 0; j < 6; j++) { float m = 1.; for (int i = 0; i < 6; i++) if (i != j) m = min(m, chN(mk[j], mi6[j], mk[i], mi6[i])); th[j] = delta*m; }
+  vec2 zc = om; bool zi = false;
+  vec2 ring[32]; bool ringI[32];
+  for (int it = 0; it < 6000; it++) {
+    if (it >= maxIt) break;
+    if (zi) { zc = one; zi = false; }
+    else { float r2 = dot(zc, zc); if (r2 < 1e-24) zi = true; else { vec2 iz = cinv(zc); zc = cm(cm(zc - x, zc - w), cm(iz, iz)); if (dot(zc, zc) > 1e30) zi = true; } }
+    for (int j = 0; j < 6; j++) if (chN(zc, zi, mk[j], mi6[j]) < th[j]) {
+      int ph = ((j - 1 - (it + 1)) % 6 + 6) % 6;   /* E96: critical-value phase */ return shadeT(CAP[ph], float(it + 1)); }
+    ring[it & 31] = zc; ringI[it & 31] = zi;
+  }
+  for (int per = 1; per <= 24; per++) {
+    int a = (maxIt - 1 - per + 3200) & 31, b = (maxIt - 1) & 31;
+    if (chN(ring[b], ringI[b], ring[a], ringI[a]) < tolP) return per == 1 ? vec3(85.)/255. : (perCol == 1 ? perColor(per) : vec3(163.)/255.);
+  }
+  return vec3(18.)/255.;
+}
+bool inCone(vec2 z){ if (coneOn == 0) return false; vec2 d = z - coneP; return dot(d, d) < coneK*(1. - dot(z, z))*(1. - dot(coneP, coneP)); }
 void main(){
   vec2 s = (gl_FragCoord.xy - .5*res)/(Rpx*zoom);
   float r2 = dot(s, s);
@@ -205,7 +256,7 @@ void main(){
   float pxh = 2./((1. - r2)*Rpx*zoom);
   float g = .5*(1. - zz)/((1. - r2)*Rpx*zoom);
   vec3 col;
-  if (live == 2) col = vec3(.94, .93, .90); else if (live == 1) col = liveColour(z); else col = textureGrad(tex, vec2(.5 + .5*z.x, .5 - .5*z.y), vec2(g, 0.), vec2(0., g)).rgb;
+  if (live == 2) col = vec3(.94, .93, .90); else if (live == 1) col = inCone(z) ? liveColourCone(z) : liveColour(z); else col = textureGrad(tex, vec2(.5 + .5*z.x, .5 - .5*z.y), vec2(g, 0.), vec2(0., g)).rgb;
   if (edges == 1) {
     float bestd = 1e9; float bp = 0.;
     for (int a = 0; a < ${MAXF}; a++) {
@@ -301,6 +352,10 @@ function poke() { interacting = true; clearTimeout(idleT); idleT = setTimeout(()
     const v2 = k => { let v = 0; while (k > 0 && k % 2 === 0) { k /= 2; v++; } return v; };
     G6E.forEach(e => { e.vgap = (e.kind === 'capture' && e.b >= 0 && CL[e.a] > 0 && CL[e.b] > 0) ? v2(CL[e.b]) - v2(CL[e.a]) : 0; }); const MV = {}; G6E.forEach(e => { if (e.kind !== 'capture' || e.b < 0) return; MV[e.a] = Math.max(MV[e.a] ?? -1, v2(CL[e.b])); MV[e.b] = Math.max(MV[e.b] ?? -1, v2(CL[e.a])); }); G6E.forEach(e => { if (!e.vgap) return; const lo = e.vgap > 0 ? e.a : e.b, hi = e.vgap > 0 ? e.b : e.a; if (v2(CL[hi]) < MV[lo]) e.vgap = 0; }); }
   gl.activeTexture(gl.TEXTURE0);
+  { const cn = (meta.cones || [])[0]; gl.uniform1i(U('coneOn'), cn ? 1 : 0);
+    if (cn) { gl.uniform2f(U('coneP'), cn.p[0], cn.p[1]); gl.uniform1f(U('coneK'), Math.pow(Math.sinh(cn.R/2), 2));
+      gl.uniform2f(U('coneC'), cn.yc, cn.xc); gl.uniform1fv(U('coneQ'), new Float32Array(cn.Q));
+      const L = new Int32Array(64).fill(-1); cn.layer.forEach((v, i) => { L[i] = v; }); gl.uniform1iv(U('coneLay'), L); } }
   gl.uniform1i(U('charts'), 1); gl.uniform1i(U('ptab'), 2); gl.uniform1i(U('ctab'), 3); gl.uniform1i(U('cmapT'), 4);
   gl.uniform1f(U('RU'), meta.RU); gl.uniform1i(U('SS'), meta.S); gl.uniform1f(U('mapSize'), meta.mapSize);
   gl.uniform1fv(U('coefU'), new Float32Array(meta.coef.flatMap(r => { const q = r.slice(); while (q.length < 8) q.push(0); return q; })));
@@ -559,7 +614,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261118224743"></script><script src="../../js/bitri.js?v=20261118224743"></script>
+<script src="../../js/pern_math.js?v=20261118225136"></script><script src="../../js/bitri.js?v=20261118225136"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */

@@ -1,4 +1,4 @@
-Per_n(0) atlas, built by runs/2026-11-09-E96-pern-site/make_site.py at commit dd39469
+Per_n(0) atlas, built by runs/2026-11-09-E96-pern-site/make_site.py at commit 2cdb97d
 n 3 puncture 0 loop0 x = -10003.0001 + 0i -> inf (distance 1e+04) -> c = 2 + 0i
 n 3 puncture 1 loop0 x = 4.99900005e-05 + 0.009997875474i -> 0 (distance 0.01) -> c = 0 + 0i
 n 4 puncture 0 loop0 y = -40013.00078 + 0i -> inf (distance 4e+04) -> c = 0 + 0i
@@ -6,7 +6,7 @@ n 4 puncture 1 loop0 y = 0.99990003 + 0i -> 1 (distance 0.0001) -> c = 0.2618033
 n 4 puncture 2 loop0 y = 0.4999906257 - 0.001767443841i -> 0.5 (distance 0.00177) -> c = -0.8472135955 + 0i
 n 4 puncture 3 loop0 y = 9.99750045e-05 + 0.0099980004i -> 0 (distance 0.01) -> c = -0.1618033989 + 0i
 G5: 37 edges in G5.json, 36 distinct centre pairs drawn
-per6: 2026-11-07-E92-per6-atlas viewer + 8 files, 24.8 MB, largest file 14.9 MB
+per6: 2026-11-07-E92-per6-atlas viewer + 8 files, 25.3 MB, largest file 14.9 MB
 per7 chart_map.png from cc07c24
 per7: 2026-11-08-E93-per7-conformal viewer + 9 files, 52.9 MB, largest file 45.9 MB
 per8 chart_map.png from abfd100
@@ -23,4 +23,4 @@ per8 tiling: 822-gon, 411 pairs, 274 vertex cycles, genus 69 (Euler check passed
 per9 tiling: 2250-gon, 1125 pairs, 750 vertex cycles, genus 188 (Euler check passed)
 American English applied to 32 files
 no src/intro.md: no intro page
-cache-busting stamp 20261118224743
+cache-busting stamp 20261118225136
