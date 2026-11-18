@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261117064117').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261118224743').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261117064117').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261118224743').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -30,6 +30,7 @@
   window.E96TEST_bt = pk => { if (!BT || !BT.length) return null; let b = BT[0]; if (pk) b = BT.reduce((u, v) => Math.hypot(v.p[0] - pk[0], v.p[1] - pk[1]) < Math.hypot(u.p[0] - pk[0], u.p[1] - pk[1]) ? v : u); pv.ctr = b.p.slice(); pv.redraw(); return pv.toScreen(b.p); };
   window.E96TEST_view = () => ({ ctr: pv.ctr, upp: pv.upp });
   window.E96TEST_marks = () => MARKS.filter(m => m.vein).length;
+  window.E96TEST_chain = () => MARKS.filter(m => m.vg).map(m => [m.vg, m.vi, m.label]);
   window.E96TEST_webs = () => WEBL.map(w => ({ id: w.id, paths: w.paths.length, dots: w.dots.length }));
   window.E96TEST_gp = () => ({ path: GPATH, edges: (C.edges || []).filter(e => GPATH.some((L, i) => i && ((GPATH[i - 1] === e.a && L === e.b) || (GPATH[i - 1] === e.b && L === e.a)))).length });
   window.E96TEST_pern = () => ({ n: PERN.length, tuned: PERN.filter(m => m.tuned).map(m => ({ label: m.label, p: m.p, line: m.lines.find(l => /TUNING/.test(l)).slice(0, 70) })) });
@@ -168,6 +169,11 @@
         g.beginPath(); g.arc(s[0], s[1], d.r || 3, 0, 2*Math.PI); if (d.hollow) { g.fillStyle = 'rgba(0,0,0,.55)'; g.fill(); g.strokeStyle = d.color; g.lineWidth = 1.6; g.stroke(); } else { g.fillStyle = d.color; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 0.8; g.stroke(); } } }
     if (RAYS.length) drawRays(g, W, H);
     if (E.rays) drawPerN(g, W, H);
+    if ($('mvl') && $('mvl').checked) {                    // vein chains (2026-11-18): f ⊔ g_i -> f ⊔ g_(i+1) in arc order, last -> f ⊔ g; torus: nearest lattice translate
+      const G = {}; for (const m of MARKS) if (m.vg) (G[m.vg] = G[m.vg] || []).push(m);
+      for (const k in G) { const L = G[k].sort((a, b) => a.vi - b.vi), pts = []; for (const m of L) { let q = m.p.slice(); if (torus && pts.length) { const pr = pts[pts.length - 1]; q[0] -= T5.W1*Math.round((q[0] - pr[0])/T5.W1); q[1] -= T5.W2*Math.round((q[1] - pr[1])/T5.W2); } pts.push(q); }
+        for (const o of torus ? lattice(W, H) : [[0, 0]]) { g.beginPath(); pts.forEach((q, i) => { const s = pv.toScreen([q[0] + o[0], q[1] + o[1]]); if (i) g.lineTo(s[0], s[1]); else g.moveTo(s[0], s[1]); });
+          g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.7)'; g.stroke(); g.lineWidth = 1.4; g.strokeStyle = '#ffe600'; g.stroke(); } } }
     const VL = [];                                        // vein labels already drawn (skip overlapping ones)
     for (const mk of MARKS) for (const o of torus ? lattice(W, H) : [[0, 0]]) {        // matings (yellow)
       const s = pv.toScreen([mk.p[0] + o[0], mk.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
@@ -311,7 +317,8 @@
       COMPR = { c: d.c, n: d.n, ks: d.ks, rays: [] }; if (d.ks && d.n >= 2) { const Q = BigInt(2**d.n - 1); COMPR.rays = d.ks.map(k => PM.traceRay('param', { p: BigInt(k), q: Q, text: `${k}/${2**d.n - 1}` }, null, 8, 30*8).pts); }
       if (d.go) { picked = d.c; } pv.redraw(); return; }
     if (d && d.e96 === 'mark' && d.p) { const k = MARKS.findIndex(q => q.label === d.label && !q.vein && !d.vein); if (k >= 0) MARKS.splice(k, 1);
-      MARKS.push({ p: d.p, label: d.label, vein: !!d.vein }); if (d.go) pv.ctr = d.p.slice(); pv.redraw();
+      if (d.vg) { const k2 = MARKS.findIndex(q => q.vg === d.vg && q.vi === d.vi); if (k2 >= 0) MARKS.splice(k2, 1); }
+      MARKS.push({ p: d.p, label: d.label, vein: !!d.vein, vg: d.vg, vi: d.vi }); if (d.go) pv.ctr = d.p.slice(); pv.redraw();
       if (d.go) parent.postMessage({ e96: 'markDone', label: d.label, ok: true, res: 0, tag: d.tag }, '*'); return; }
     if (d && d.e96 === 'goto' && d.label !== undefined) { const m = markers.find(q => q.kind === 'centre' && q.label === String(d.label)); if (m) { pv.ctr = m.p.slice(); pv.redraw(); pick(m.p, m); } return; }
     if (d && d.e96 === 'goto' && d.p) { pv.ctr = d.p.slice(); pv.redraw(); pick(d.p, null); } });
@@ -321,6 +328,7 @@
     $('rayclr').onclick = () => { RAYS = []; $('rayout').textContent = ''; parent.postMessage({ e96: 'rays', angles: [] }, '*'); pv.redraw(); }; }
   $('minb').onclick();                      // panel starts collapsed (Caroline 2026-11-10); + expands
   if (E.n < 2) $('matebox').style.display = 'none';
+  $('mvl').onchange = () => pv.redraw(); window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'veinLines') { $('mvl').checked = !!d.on; pv.redraw(); } });
   $('mgo').onclick = () => parent.postMessage({ e96: 'mateReq', label: $('mf').value, angle: $('mg').value, K: $('mvn').checked ? +$('mvk').value || 0 : 0, mis: $('mvm').checked }, '*');
   $('mvk').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { $('mvn').checked = true; $('mgo').click(); } }); $('mvk').addEventListener('input', () => { $('mvn').checked = true; });
   $('mclr').onclick = () => { MARKS.length = 0; pv.redraw(); };

@@ -14,8 +14,17 @@
   <div style="margin-top:5px"><label><input type="checkbox" id="bands" checked> escape-time bands (w)</label> <label><input type="checkbox" id="spin"> rotate slowly</label></div>
   <div style="margin-top:3px">iterations <input type="range" id="it" min="100" max="2000" step="50" value="600" style="width:110px;vertical-align:middle"> <span id="itv">600</span></div>
   <div style="margin-top:4px"><button id="reset">Reset view</button></div>
+  <div id="tubebox" style="display:none;margin-top:5px"><label><input type="checkbox" id="tubes"> show node tubes (t)</label> <span id="tubestat" class="sub"></span>
+  <details style="margin-top:3px"><summary>What are the tubes?</summary><div style="max-height:260px;overflow:auto;margin-top:3px">
+  <p style="margin:3px 0">Per<sub>5</sub>(0) as drawn here is its normalization, a smooth torus. Each point is a quadratic rational map whose critical point 0 has exact period 5, together with that marking.</p>
+  <p style="margin:3px 0"><b>Nodes.</b> At a bitransitive map both critical points lie on the 5-cycle, so the map appears twice on Per<sub>5</sub>(0), once with each critical point marked. Forgetting the marking (passing to the moduli space M<sub>2</sub>) glues the two points together, and the image curve has a node there. The 20 bitransitive points form 10 pairs: within a pair the Möbius invariants (σ<sub>1</sub>, σ<sub>2</sub>) of the fixed-point multipliers agree to <span id="tubeerr">…</span>, and points of different pairs differ by at least <span id="tubesep">…</span>. Each tube joins the two points of a pair; the color marks the pair.</p>
+  <p style="margin:3px 0"><b>Why tubes.</b> For small λ ≠ 0, Per<sub>5</sub>(λ) (a marked 5-cycle of multiplier λ) is a nearby curve on which each node is smoothed out into a thin neck. A neck joining two points of a connected surface adds a handle, so adds 1 to the genus. Heuristically genus Per<sub>5</sub>(λ) = genus Per<sub>5</sub>(0) + 10 = 1 + 10 = 11, and in general genus Per<sub>n</sub>(λ) = genus Per<sub>n</sub>(0) + N<sub>B</sub>(n)/2, where N<sub>B</sub>(n) is the number of bitransitive points. This assumes the nodes are the only change as λ → 0: no other singularities, and the punctures at infinity behave.</p>
+  <p style="margin:3px 0"><b>Status: CONJECTURE / heuristic.</b> Not proved, not independently verified. Evidence so far: the 10 pairs (numerical); genus-11 slit-torus frames work for λ ∈ [−0.0625, 0], and at λ = −0.01 the torus part has τ = −0.000080 + 0.886957i, against 0.887394i for Per<sub>5</sub>(0). An independent test on Per<sub>3</sub>(λ) is planned.
+  <b>Open:</b> the numbers of bitransitive points found for n = 3 … 9 are 2, 6, 20, 46, 128, 289, 690 (numerical); 289 is odd, so the pairing needs care at n = 8 (self-paired or degenerate points?).</p>
+  <p style="margin:3px 0"><b>The picture.</b> The tubes are an immersed drawing of the necks and may cross each other. The genus is a property of the curve, not of this drawing.</p></div></details></div>
   <div class="sub" style="margin-top:4px">Drag to rotate, scroll to zoom.</div></div></div>
-<script src="js/pern_math.js?v=20261117064117"></script>
-<script src="js/glsl.js?v=20261117064117"></script>
-<script src="js/globe.js?v=20261117064117"></script>
+<script>window.E96TUBES = false;</script>
+<script src="js/pern_math.js?v=20261118224743"></script>
+<script src="js/glsl.js?v=20261118224743"></script>
+<script src="js/globe.js?v=20261118224743"></script>
 </body></html>
