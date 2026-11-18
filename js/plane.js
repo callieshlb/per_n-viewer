@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261118232101').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261118234915').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261118232101').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261118234915').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -17,7 +17,7 @@
   $('pcl').innerHTML = GLSL.PERPAL.map((c, i) => `<span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(${c.join(',')})">${i + 2}</span>`).join('');
   $('pc').onchange = e => { pv.perCol = e.target.checked; pv.redraw(); };
   // hotkeys (Caroline 2026-11-10): r real circles, g G_n edges, e violet arrows, p period colors, l labels, k markers, b bands, s seams, +/- iterates; t, i go to the dynamical pane
-  const PKEY = { r: 'rc', g: 'gn', e: 'vi', p: 'pc', l: 'ml', k: 'mk', w: 'bands', s: 'sm', b: 'bt', j: 'bt' };   // b = bitransitive centers (Caroline 2026-11-12; j kept), w = escape-time bands (was o, before that b); o goes to the dynamical pane (critical orbit)
+  const PKEY = { G: 'gl', r: 'rc', g: 'gn', e: 'vi', p: 'pc', l: 'ml', k: 'mk', w: 'bands', s: 'sm', b: 'bt', j: 'bt' };   // b = bitransitive centers (Caroline 2026-11-12; j kept), w = escape-time bands (was o, before that b); o goes to the dynamical pane (critical orbit)
   function paneKey(key) {
     if (PKEY[key]) { const el = $(PKEY[key]); if (!el || el.style.display === 'none') return true; el.checked = !el.checked; el.dispatchEvent(new Event('change')); return true; }
     if (key === '+' || key === '=' || key === '-') { const el = $('pit'); el.value = Math.max(+el.min, Math.min(+el.max, +el.value + (key === '-' ? -1 : 1)*100)); el.dispatchEvent(new Event('input')); return true; }
@@ -26,7 +26,7 @@
     return false;
   }
   window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return; if (paneKey(e.key)) e.preventDefault(); });
-  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && 'rgepjab'.includes(d.key)) paneKey(d.key); });
+  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && 'rgepjabG'.includes(d.key)) paneKey(d.key); });
   window.E96TEST_bt = pk => { if (!BT || !BT.length) return null; let b = BT[0]; if (pk) b = BT.reduce((u, v) => Math.hypot(v.p[0] - pk[0], v.p[1] - pk[1]) < Math.hypot(u.p[0] - pk[0], u.p[1] - pk[1]) ? v : u); pv.ctr = b.p.slice(); pv.redraw(); return pv.toScreen(b.p); };
   window.E96TEST_view = () => ({ ctr: pv.ctr, upp: pv.upp });
   window.E96TEST_marks = () => MARKS.filter(m => m.vein).length;
@@ -121,6 +121,18 @@
         g.strokeStyle = '#ffffff'; g.lineWidth = 2; g.stroke();
       }
     }
+    if ($('gl').checked && GL && GL.edges) {   // G^larger_n (orange): straight segments between center markers; torus: nearest lattice translate
+      for (const o of torus ? offs : [[0, 0]]) for (const e of GL.edges) { const A = GLP[e.a], B0 = GLP[e.b]; if (!A || !B0) continue; let B = B0;
+        if (torus) B = [B0[0] - T5.W1*Math.round((B0[0] - A[0])/T5.W1), B0[1] - T5.W2*Math.round((B0[1] - A[1])/T5.W2)];
+        const a = pv.toScreen([A[0] + o[0], A[1] + o[1]]), b = pv.toScreen([B[0] + o[0], B[1] + o[1]]);
+        if (Math.max(a[0], b[0]) < 0 || Math.min(a[0], b[0]) > W || Math.max(a[1], b[1]) < 0 || Math.min(a[1], b[1]) > H) continue;
+        g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 3; g.stroke(); g.strokeStyle = '#ff9d2e'; g.lineWidth = 1.3; g.stroke(); } }
+    if (GPATH.length > 1) {                      // path pairs that are not G_n census edges (G^larger_n paths): straight segments between the centers (lime)
+      const have = new Set((torus && C.edges ? C.edges : []).map(e => e.a + '|' + e.b)), pos = L => { const c = C.centers.find(q => String(q.label) === String(L)); return c && c.p; };
+      for (let i = 1; i < GPATH.length; i++) { if (have.has(GPATH[i - 1] + '|' + GPATH[i]) || have.has(GPATH[i] + '|' + GPATH[i - 1])) continue; const A = pos(GPATH[i - 1]), B0 = pos(GPATH[i]); if (!A || !B0) continue;
+        const B = torus ? [B0[0] - T5.W1*Math.round((B0[0] - A[0])/T5.W1), B0[1] - T5.W2*Math.round((B0[1] - A[1])/T5.W2)] : B0;
+        for (const o of torus ? offs : [[0, 0]]) { const a = pv.toScreen([A[0] + o[0], A[1] + o[1]]), b = pv.toScreen([B[0] + o[0], B[1] + o[1]]);
+          g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.strokeStyle = 'rgba(0,0,0,.8)'; g.lineWidth = 6.5; g.stroke(); g.strokeStyle = '#8dff3a'; g.lineWidth = 3.5; g.stroke(); } } }
     if (torus && GPATH.length > 1 && C.edges) {   // shortest G_n path chosen in a center's card (lime)
       const want = new Set(); for (let i = 1; i < GPATH.length; i++) { want.add(GPATH[i - 1] + '|' + GPATH[i]); want.add(GPATH[i] + '|' + GPATH[i - 1]); }
       for (const o of offs) for (const e of C.edges) { if (!want.has(e.a + '|' + e.b)) continue; const a = pv.toScreen([e.P[0] + o[0], e.P[1] + o[1]]), b = pv.toScreen([e.Q[0] + o[0], e.Q[1] + o[1]]);
@@ -203,7 +215,10 @@
     pv.redraw();
   }
   let COMPR = null;
-  let GPATH = [];
+  let GPATH = [], GL = null, GLP = [];
+  $('gl').onchange = async () => { if ($('gl').checked && !GL) { GL = await fetch(`models/Gn/GL${E.n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); if (GL) GLP = GL.labels.map(L => { const c = C.centers.find(q => +q.label === +L); return c ? c.p : null; }); } pv.redraw(); };
+  if (E.n < 3) { $('gl').style.display = 'none'; $('gll').style.display = 'none'; }
+  window.E96TEST_gl = () => GL ? { pairs: GL.edges.length, placed: GLP.filter(Boolean).length, labels: GL.labels.length } : null;
   const WEBL = [];                                     // V_f / T'_f overlays (REGISTRATION addendum (u))
   let PERSEL = null;                                   // the selected period-n center (its labels and rays highlighted)
   function perRays(m) {                                // parameter rays of the two characteristic angles (traced once, cached)

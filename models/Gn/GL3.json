@@ -1,0 +1,1 @@
+{"n": 3, "definition": "g -- g' if captures f ^ theta, f' ^ theta' with theta an angle of g, theta' an angle of g' are the same bitransitive map (periodic captures of the capture table)", "labels": [2, 4, 6], "edges": [{"a": 0, "b": 1, "mult": 8}, {"a": 0, "b": 2, "mult": 8}, {"a": 1, "b": 2, "mult": 8}]}
