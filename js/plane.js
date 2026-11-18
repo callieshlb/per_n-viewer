@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261118231029').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261118232101').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261118231029').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261118232101').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -336,8 +336,9 @@
   $('mclr').onclick = () => { MARKS.length = 0; pv.redraw(); };
   if (E.n >= 3) { $('webbox').style.display = ''; const wgo = k => { const l = parseInt($('wf').value, 10); if (isFinite(l)) parent.postMessage({ e96: 'webReq', kind: k, label: l }, '*'); };
     $('wv').onclick = () => wgo('V'); $('wt').onclick = () => wgo('T'); $('wc').onclick = () => { WEBL.length = 0; pv.redraw(); }; $('wf').addEventListener('keydown', e => e.stopPropagation()); }
+  $('adlgb').onclick = () => parent.postMessage({ e96: 'key', key: 'A' }, '*');
   $('mdlgb').onclick = () => parent.postMessage({ e96: 'key', key: 'm' }, '*'); $('cdlgb').onclick = () => parent.postMessage({ e96: 'key', key: 'c' }, '*');
   $('mg').addEventListener('keydown', e => { if (e.key === 'Enter') $('mgo').click(); });
-  window.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'v') && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') parent.postMessage({ e96: 'key', key: e.key }, '*'); });
+  window.addEventListener('keydown', e => { if ((e.key === 'm' || e.key === 'v' || e.key === 'A') && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') parent.postMessage({ e96: 'key', key: e.key }, '*'); });
   window.E96READY = true;
 })().catch(e => { document.body.innerHTML = '<pre style="color:#fff;padding:20px">' + e.stack + '</pre>'; console.error(e); });

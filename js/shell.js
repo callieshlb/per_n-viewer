@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261118231029').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261118232101').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261118231029'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261118232101'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -155,7 +155,7 @@
     else why = 'angles are tabulated up to period 14 only';
     if (M !== Mc) return;
     let t = `\ncomponent of period ${m}: center c = ${PM.fmt(c0, 12)}`;
-    if (ent && m >= 2) { t += `; parameter rays landing at its root: ${ent.ks[0]}/${Q} and ${ent.ks[1]}/${Q}`;
+    if (ent && m >= 2) { t += `; parameter rays landing at its root: ${ent.ks[0]}/${Q} and ${ent.ks[1]}/${Q}`; try { t += `\n  angled internal address: ${ADDR.fmt(ent.address && ent.angled ? { address: ent.address, angled: ent.angled } : ADDR.of(m, ent.ks[0]))}`; } catch (e) {}
       for (const u of ent.tuning || []) { const Qd = 2**u.d - 1, Qm = 2**u.inner_period - 1; t += `\n  tuning: (${u.base_ks[0]}/${Qd}, ${u.base_ks[1]}/${Qd})${u.base_name ? ' ' + u.base_name : ''} ⊥ (${u.inner_ks[0]}/${Qm}, ${u.inner_ks[1]}/${Qm})${u.inner_name ? ' ' + u.inner_name : ''}`; } }
     else if (m >= 2) t += `; root rays: ${why}`;
     $('status').textContent += t; COMP = { m, c: c0, ent };
@@ -298,6 +298,38 @@
   $('mdlg').addEventListener('keydown', e => { if (e.key === 'Escape') $('mdlg').style.display = 'none'; });
   $('mdx').onclick = () => { $('mdlg').style.display = 'none'; };
   window.addEventListener('keydown', e => { if (e.key === 'm' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { e.preventDefault(); keyM(); } });
+  // find components by (angled) internal address (2026-11-18): periods 2..9 from the polynomial tables, 10..14 from the center tables;
+  // addresses filtered by the kneading sequence (ADDR.kneadAddr), angles by wakes (ADDR.of); both checked against the stored addresses of periods 2..9 (tests/aia_check.out)
+  let ADJOB = 0;
+  function keyA() { $('adlg').style.display = 'block'; $('adin').focus(); $('adin').select(); }
+  $('adx').onclick = () => { $('adlg').style.display = 'none'; ADJOB++; };
+  $('adin').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') findAddr(); else if (e.key === 'Escape') $('adx').onclick(); });
+  $('adgo').onclick = () => findAddr();
+  window.addEventListener('keydown', e => { if (e.key === 'A' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') { e.preventDefault(); keyA(); } });
+  window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'A') { window.focus(); keyA(); } });
+  function showInPer1(c, label) { choose('per1'); let k = 0; const t = setInterval(() => { if (++k > 10) { clearInterval(t); return; } try { $('frame').contentWindow.postMessage({ e96: 'mark', label, p: c, go: true }, '*'); } catch (e) {} }, 900); }
+  async function findAddr() {
+    const job = ++ADJOB, q = ADDR.parse($('adin').value), out = $('adout'), list = $('adlist'); list.innerHTML = '';
+    if (!q) { out.textContent = 'Could not read the address: give increasing periods starting at 1, e.g. 1 3 6 (angles p/q may follow a period).'; return; }
+    const n = q.address[q.address.length - 1]; if (n > 14 || n < 2) { out.textContent = `Period ${n}: available for periods 2 to 14.`; return; }
+    out.textContent = 'searching…'; const Q = 2**n - 1, key = q.address.join(' '), cand = [];
+    if (n <= 9) { const D = await loadPoly(n); for (const P of D || []) if (P.address.join(' ') === key) cand.push({ ks: P.ks, label: P.label, c: [Number(P.c_str[0]), Number(P.c_str[1])], A: { address: P.address, angled: P.angled } }); }
+    else { const T = await loadCen(n); if (T) for (let i = 0; i < T.length; i += 4) if (ADDR.kneadAddr(n, T[i]).join(' ') === key) cand.push({ ks: [T[i], T[i + 1]], label: T[i] % 2 === 0 ? T[i] : T[i + 1], c: [T[i + 2], T[i + 3]], A: null }); }
+    const hits = [];
+    for (let i = 0; i < cand.length; i++) { if (job !== ADJOB) return; const C = cand[i]; if (!C.A) C.A = ADDR.of(n, C.ks[0]);
+      if (q.angles.every((a, j) => !a || (C.A.angled[j] && C.A.angled[j][0]*a[1] === a[0]*C.A.angled[j][1] && C.A.angled[j][1] === a[1]))) hits.push(C);
+      if (i % 200 === 199) { out.textContent = `searching… ${i + 1} of ${cand.length}`; await new Promise(r => setTimeout(r, 0)); } }
+    if (job !== ADJOB) return;
+    out.textContent = `${hits.length} hyperbolic component${hits.length === 1 ? '' : 's'} of period ${n} with internal address ${q.address.join(' → ')}` + (q.angles.some(Boolean) ? ' and the given angles' : '') + ` (${cand.length} with this address before the angles).` + (hits.length > 300 ? ' First 300 shown.' : '') + ' Click a row for its card (periods ≤ 9) or to see it in Per_1.';
+    hits.sort((a, b) => a.ks[0] - b.ks[0]).slice(0, 300).forEach(C => { const r = document.createElement('div'); r.style.cssText = 'padding:2px 3px;border-bottom:1px solid #eee';
+      r.innerHTML = `<b>${C.label}</b> (${C.ks[0]}/${Q}, ${C.ks[1]}/${Q}): ${ADDR.fmt(C.A).replace(/&/g, '&amp;').replace(/</g, '&lt;')} `;
+      const btn = (t, f) => { const b = document.createElement('button'); b.className = 'sm'; b.textContent = t; b.style.marginLeft = '4px'; b.onclick = f; r.appendChild(b); };
+      if (n <= 9) btn('card', () => overlay(`Per_${n}: polynomial ${C.label}`, [[`${C.label}/${Q}`, `poly/index.html#n=${n}&label=${C.label}`]]));
+      btn('in Per_1', () => { $('adlg').style.display = 'none'; showInPer1(C.c, `${C.label}/${Q} (period ${n})`); });
+      if (n <= 9) btn(`in Per_${n}`, () => { $('adlg').style.display = 'none'; viewIn(n, C.label); });
+      list.appendChild(r); });
+    window.E96ADDR = { n, cand: cand.length, hits: hits.map(C => [C.label, ADDR.fmt(C.A)]) };
+  }
   window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'm') { window.focus(); keyM(); } });
   window.addEventListener('message', ev => {                       // mating box in a model's side panel
     const d = ev.data; if (!d || d.e96 !== 'mateReq' || !cur) return; mateFromText(d.label, d.angle, Math.max(0, Math.min(400, +d.K || 0)), d.mis !== false);
