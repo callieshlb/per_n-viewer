@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261118225136').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261118231029').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261118225136'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261118231029'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -290,6 +290,7 @@
     $('mdf').focus();          // always: type f, Tab (or Enter), type g, Enter (Caroline 2026-11-10)
   }
   $('mdf').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdg').focus(); $('mdg').select(); } });
+  $('mdlab').onchange = e => { try { $('frame').contentWindow.postMessage({ e96: 'veinLabels', on: e.target.checked }, '*'); } catch (err) {} };
   $('mdl').onchange = e => { try { $('frame').contentWindow.postMessage({ e96: 'veinLines', on: e.target.checked }, '*'); } catch (err) {} };
   $('mdg').addEventListener('keydown', e => { if (e.key === 'Enter') { try { $('frame').contentWindow.postMessage({ e96: 'veinLines', on: $('mdl').checked }, '*'); } catch (err) {} $('mdlg').style.display = 'none'; mateFromText($('mdf').value.trim() || $('mdf').dataset.def || '', $('mdg').value, $('mdv').checked ? Math.max(0, Math.min(400, +$('mdk').value || 0)) : 0, $('mdm').checked); } });
   $('mdk').addEventListener('keydown', e => { if (e.key === 'Enter') { $('mdg').focus(); } });

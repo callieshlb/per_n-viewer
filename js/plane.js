@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261118225136').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261118231029').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261118225136').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261118231029').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -30,7 +30,8 @@
   window.E96TEST_bt = pk => { if (!BT || !BT.length) return null; let b = BT[0]; if (pk) b = BT.reduce((u, v) => Math.hypot(v.p[0] - pk[0], v.p[1] - pk[1]) < Math.hypot(u.p[0] - pk[0], u.p[1] - pk[1]) ? v : u); pv.ctr = b.p.slice(); pv.redraw(); return pv.toScreen(b.p); };
   window.E96TEST_view = () => ({ ctr: pv.ctr, upp: pv.upp });
   window.E96TEST_marks = () => MARKS.filter(m => m.vein).length;
-  window.E96TEST_chain = () => MARKS.filter(m => m.vg).map(m => [m.vg, m.vi, m.label]);
+  window.E96TEST_chain = () => MARKS.filter(m => m.vg).map(m => [m.vg, m.vi, m.label, m.p]);
+  window.E96TEST_setView = (c, u) => { pv.ctr = c.slice(); pv.upp = u; pv.redraw(); };
   window.E96TEST_webs = () => WEBL.map(w => ({ id: w.id, paths: w.paths.length, dots: w.dots.length }));
   window.E96TEST_gp = () => ({ path: GPATH, edges: (C.edges || []).filter(e => GPATH.some((L, i) => i && ((GPATH[i - 1] === e.a && L === e.b) || (GPATH[i - 1] === e.b && L === e.a)))).length });
   window.E96TEST_pern = () => ({ n: PERN.length, tuned: PERN.filter(m => m.tuned).map(m => ({ label: m.label, p: m.p, line: m.lines.find(l => /TUNING/.test(l)).slice(0, 70) })) });
@@ -178,7 +179,7 @@
     for (const mk of MARKS) for (const o of torus ? lattice(W, H) : [[0, 0]]) {        // matings (yellow)
       const s = pv.toScreen([mk.p[0] + o[0], mk.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
       if (mk.vein) { g.beginPath(); g.arc(s[0], s[1], 3.2, 0, 2*Math.PI); g.fillStyle = '#ffe600'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1; g.stroke();
-        if (opt.ml && !VL.some(q => Math.abs(q[0] - s[0]) < 46 && Math.abs(q[1] - s[1]) < 11)) { VL.push(s); g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(mk.label, s[0] + 6, s[1]); g.fillStyle = '#ffe600'; g.fillText(mk.label, s[0] + 6, s[1]); }
+        if (opt.ml && $('mvlab').checked && !VL.some(q => Math.abs(q[0] - s[0]) < 46 && Math.abs(q[1] - s[1]) < 11)) { VL.push(s); g.font = '500 10px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(mk.label, s[0] + 6, s[1]); g.fillStyle = '#ffe600'; g.fillText(mk.label, s[0] + 6, s[1]); }
         continue; }
       g.beginPath(); for (let k = 0; k < 10; k++) { const r = k % 2 ? 3 : 7, t = -Math.PI/2 + k*Math.PI/5; g.lineTo(s[0] + r*Math.cos(t), s[1] + r*Math.sin(t)); } g.closePath();
       g.fillStyle = '#ffe600'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
@@ -328,7 +329,8 @@
     $('rayclr').onclick = () => { RAYS = []; $('rayout').textContent = ''; parent.postMessage({ e96: 'rays', angles: [] }, '*'); pv.redraw(); }; }
   $('minb').onclick();                      // panel starts collapsed (Caroline 2026-11-10); + expands
   if (E.n < 2) $('matebox').style.display = 'none';
-  $('mvl').onchange = () => pv.redraw(); window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'veinLines') { $('mvl').checked = !!d.on; pv.redraw(); } });
+  $('mvl').onchange = () => pv.redraw(); $('mvlab').onchange = () => pv.redraw();
+  window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'veinLabels') { $('mvlab').checked = !!d.on; pv.redraw(); } }); window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'veinLines') { $('mvl').checked = !!d.on; pv.redraw(); } });
   $('mgo').onclick = () => parent.postMessage({ e96: 'mateReq', label: $('mf').value, angle: $('mg').value, K: $('mvn').checked ? +$('mvk').value || 0 : 0, mis: $('mvm').checked }, '*');
   $('mvk').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') { $('mvn').checked = true; $('mgo').click(); } }); $('mvk').addEventListener('input', () => { $('mvn').checked = true; });
   $('mclr').onclick = () => { MARKS.length = 0; pv.redraw(); };
