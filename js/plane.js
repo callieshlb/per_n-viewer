@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261118234915').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261119001729').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261118234915').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261119001729').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -27,6 +27,7 @@
   }
   window.addEventListener('keydown', e => { if (e.target.tagName === 'INPUT' && e.target.type !== 'checkbox' && e.target.type !== 'range' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || e.altKey) return; if (paneKey(e.key)) e.preventDefault(); });
   window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'key' && 'rgepjabG'.includes(d.key)) paneKey(d.key); });
+  window.E96TEST_btName = nm => { const b = (BT || []).find(q => q.name === nm); return b ? b.p : null; };
   window.E96TEST_bt = pk => { if (!BT || !BT.length) return null; let b = BT[0]; if (pk) b = BT.reduce((u, v) => Math.hypot(v.p[0] - pk[0], v.p[1] - pk[1]) < Math.hypot(u.p[0] - pk[0], u.p[1] - pk[1]) ? v : u); pv.ctr = b.p.slice(); pv.redraw(); return pv.toScreen(b.p); };
   window.E96TEST_view = () => ({ ctr: pv.ctr, upp: pv.upp });
   window.E96TEST_marks = () => MARKS.filter(m => m.vein).length;

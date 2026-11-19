@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261118234915').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261119001729').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,7 +26,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261118234915'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261119001729'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -610,6 +610,8 @@
       const el = document.createElement('div'); el.style.cssText = 'white-space:pre-wrap;font-size:12px;margin-top:4px';
       el.textContent = `Name by lowest core entropy: ${nm}\n  rule: minimize min(h(f), h(g)), then max(h(f), h(g)), then the label of f, then θ` + (ties > 1 ? `; the entropy minimum is shared by ${ties} different pairs {f, g}, so the choice among them is only by label` : '; the pair {f, g} with the entropy minimum is unique') +
         `\nCore entropies (g = polynomial of angle 1 − θ; f ^ θ = f ^ g = g ^ f as unmarked maps):\n` + rows.map(r => `  ${r.s.f} ^ ${r.s.angle}:  h(f = ${r.s.f}) = ${r.hf.toFixed(6)},  h(g = ${r.g}) = ${r.hg.toFixed(6)}`).join('\n');
+      { const names = [...new Set(rows.map(r => { const aq = String(r.s.angle).split('/').map(Number), k = Math.round(aq[0]*Q/aq[1]), G2 = D.find(q => q.ks.indexOf(k) >= 0); return G2 ? +G2.label : NaN; }).filter(isFinite))].sort((a, b) => a - b), prs = []; for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) prs.push(names[i] + '–' + names[j]);
+        el.textContent += `\nG^larger_${n} edges from this map: ${prs.length ? prs.join(', ') : 'none'}   (each capture f ^ θ is named by g = the center with angle θ, as in G_${n}; any two names of the same map are joined)`; window.E96BTGL = prs; }
       $('dct').appendChild(el); window.E96BTNAME = { name: nm, ties, rows: rows.map(r => [r.s.f, r.s.angle, r.g, r.hf, r.hg]) }; })();
     const B = $('dcb'); B.innerHTML = ''; const note = document.createElement('div'); note.style.cssText = 'width:100%;font-size:11px;color:#555;margin:2px 0';
     note.textContent = 'Highlight (experimental rule): each capture is attached to the corner of the component nearest to its mating f ⊔ g(1 − θ); − and + of one (f, x_i) at two corners: the triangle between them; otherwise the two hexants at that corner.'; B.appendChild(note);
