@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261119001729').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261119002929').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261119001729').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261119002929').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -114,7 +114,8 @@
         g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.strokeStyle = 'rgba(0,0,0,.75)'; g.lineWidth = 4.5; g.stroke();
         g.strokeStyle = ['#00e5ff', '#ffdb1a'][comp]; g.lineWidth = 2.2; g.stroke(); }
     }
-    if (torus && opt.gn && C.edges) {
+    if (torus && opt.gn && C.edges && thru()) { for (const e of C.edges) for (const i of witness(e.a, e.b)) { const bp = BTP[i] && BTP[i].p, cq = cpos(e.b); if (bp && cq) seg3(g, e.P, bp, cq, '#ffffff', 2, offs); } }
+    else if (torus && opt.gn && C.edges) {
       for (const o of offs) for (const e of C.edges) {
         const P = [e.P[0] + o[0], e.P[1] + o[1]], Q = [e.Q[0] + o[0], e.Q[1] + o[1]], a = pv.toScreen(P), b = pv.toScreen(Q);
         if (Math.max(a[0], b[0]) < 0 || Math.min(a[0], b[0]) > W || Math.max(a[1], b[1]) < 0 || Math.min(a[1], b[1]) > H) continue;
@@ -122,19 +123,27 @@
         g.strokeStyle = '#ffffff'; g.lineWidth = 2; g.stroke();
       }
     }
-    if ($('gl').checked && GL && GL.edges) {   // G^larger_n (orange): straight segments between center markers; torus: nearest lattice translate
+    if ($('gl').checked && GL && thru()) {       // G^larger_n through the bitransitives: a star from every bitransitive b to the names of its captures
+      for (let i = 0; i < VIA.names.length; i++) { const bp = BTP[i] && BTP[i].p; if (!bp) continue;
+        for (const L of VIA.names[i]) { const cp = cpos(L); if (!cp) continue; const c = near(cp, bp);
+          for (const o of torus ? offs : [[0, 0]]) { const a = pv.toScreen([bp[0] + o[0], bp[1] + o[1]]), b = pv.toScreen([c[0] + o[0], c[1] + o[1]]);
+            if (Math.max(a[0], b[0]) < 0 || Math.min(a[0], b[0]) > W || Math.max(a[1], b[1]) < 0 || Math.min(a[1], b[1]) > H) continue;
+            g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 3; g.stroke(); g.strokeStyle = '#ff9d2e'; g.lineWidth = 1.3; g.stroke(); } } } }
+    else if ($('gl').checked && GL && GL.edges) {   // G^larger_n (orange): straight segments between center markers; torus: nearest lattice translate
       for (const o of torus ? offs : [[0, 0]]) for (const e of GL.edges) { const A = GLP[e.a], B0 = GLP[e.b]; if (!A || !B0) continue; let B = B0;
         if (torus) B = [B0[0] - T5.W1*Math.round((B0[0] - A[0])/T5.W1), B0[1] - T5.W2*Math.round((B0[1] - A[1])/T5.W2)];
         const a = pv.toScreen([A[0] + o[0], A[1] + o[1]]), b = pv.toScreen([B[0] + o[0], B[1] + o[1]]);
         if (Math.max(a[0], b[0]) < 0 || Math.min(a[0], b[0]) > W || Math.max(a[1], b[1]) < 0 || Math.min(a[1], b[1]) > H) continue;
         g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = 3; g.stroke(); g.strokeStyle = '#ff9d2e'; g.lineWidth = 1.3; g.stroke(); } }
-    if (GPATH.length > 1) {                      // path pairs that are not G_n census edges (G^larger_n paths): straight segments between the centers (lime)
+    if (GPATH.length > 1 && thru()) {             // path through the witnesses (first witness of each step)
+      for (let i = 1; i < GPATH.length; i++) { const A = cpos(GPATH[i - 1]), Cq = cpos(GPATH[i]), w = witness(GPATH[i - 1], GPATH[i]), bp = w.length && BTP[w[0]] && BTP[w[0]].p; if (A && Cq && bp) seg3(g, A, bp, Cq, '#8dff3a', 3.5, torus ? offs : [[0, 0]]); } }
+    else if (GPATH.length > 1) {                      // path pairs that are not G_n census edges (G^larger_n paths): straight segments between the centers (lime)
       const have = new Set((torus && C.edges ? C.edges : []).map(e => e.a + '|' + e.b)), pos = L => { const c = C.centers.find(q => String(q.label) === String(L)); return c && c.p; };
       for (let i = 1; i < GPATH.length; i++) { if (have.has(GPATH[i - 1] + '|' + GPATH[i]) || have.has(GPATH[i] + '|' + GPATH[i - 1])) continue; const A = pos(GPATH[i - 1]), B0 = pos(GPATH[i]); if (!A || !B0) continue;
         const B = torus ? [B0[0] - T5.W1*Math.round((B0[0] - A[0])/T5.W1), B0[1] - T5.W2*Math.round((B0[1] - A[1])/T5.W2)] : B0;
         for (const o of torus ? offs : [[0, 0]]) { const a = pv.toScreen([A[0] + o[0], A[1] + o[1]]), b = pv.toScreen([B[0] + o[0], B[1] + o[1]]);
           g.beginPath(); g.moveTo(...a); g.lineTo(...b); g.strokeStyle = 'rgba(0,0,0,.8)'; g.lineWidth = 6.5; g.stroke(); g.strokeStyle = '#8dff3a'; g.lineWidth = 3.5; g.stroke(); } } }
-    if (torus && GPATH.length > 1 && C.edges) {   // shortest G_n path chosen in a center's card (lime)
+    if (torus && GPATH.length > 1 && C.edges && !thru()) {   // shortest G_n path chosen in a center's card (lime)
       const want = new Set(); for (let i = 1; i < GPATH.length; i++) { want.add(GPATH[i - 1] + '|' + GPATH[i]); want.add(GPATH[i] + '|' + GPATH[i - 1]); }
       for (const o of offs) for (const e of C.edges) { if (!want.has(e.a + '|' + e.b)) continue; const a = pv.toScreen([e.P[0] + o[0], e.P[1] + o[1]]), b = pv.toScreen([e.Q[0] + o[0], e.Q[1] + o[1]]);
         if (Math.max(a[0], b[0]) < 0 || Math.min(a[0], b[0]) > W || Math.max(a[1], b[1]) < 0 || Math.min(a[1], b[1]) > H) continue;
@@ -216,9 +225,22 @@
     pv.redraw();
   }
   let COMPR = null;
-  let GPATH = [], GL = null, GLP = [];
-  $('gl').onchange = async () => { if ($('gl').checked && !GL) { GL = await fetch(`models/Gn/GL${E.n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); if (GL) GLP = GL.labels.map(L => { const c = C.centers.find(q => +q.label === +L); return c ? c.p : null; }); } pv.redraw(); };
-  if (E.n < 3) { $('gl').style.display = 'none'; $('gll').style.display = 'none'; }
+  let GPATH = [], GL = null, GLP = [], VIA = null, BTP = null;
+  // edges through their shared bitransitive (2026-11-19): via{n}.json = names of every bitransitive + G_n pair -> witnesses; positions from models/bitrans_n{n}.json
+  const loadVia = async () => { if (!VIA) VIA = await fetch(`models/Gn/via${E.n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); if (!BTP) BTP = await fetch(`models/bitrans_n${E.n}.json`).then(r => r.ok ? r.json() : []).catch(() => []); };
+  const cpos = L => { const c = C.centers.find(q => +q.label === +L); return c ? c.p : null; };
+  const near = (q, ref) => torus ? [q[0] - T5.W1*Math.round((q[0] - ref[0])/T5.W1), q[1] - T5.W2*Math.round((q[1] - ref[1])/T5.W2)] : q;
+  const witness = (a, b) => { if (!VIA) return []; const k = `${Math.min(a, b)}|${Math.max(a, b)}`; if (VIA.gn[k] && VIA.gn[k].length) return VIA.gn[k]; return VIA.names.map((nm, i) => nm.includes(+a) && nm.includes(+b) ? i : -1).filter(i => i >= 0); };
+  const thru = () => $('gthru').checked && VIA && BTP;
+  function seg3(g, A, Bq, Cq, col, w, offs) {      // A -> B -> C (B, C moved to the translate nearest the previous point)
+    const B = near(Bq, A), C2 = near(Cq, B);
+    for (const o of offs) { const s = [A, B, C2].map(q => pv.toScreen([q[0] + o[0], q[1] + o[1]])); g.beginPath(); g.moveTo(...s[0]); g.lineTo(...s[1]); g.lineTo(...s[2]);
+      g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = w + 2; g.stroke(); g.strokeStyle = col; g.lineWidth = w; g.stroke(); } }
+  $('gthru').onchange = async () => { if ($('gthru').checked) await loadVia(); pv.redraw(); };
+  $('gl').onchange = async () => { if ($('gthru').checked) await loadVia(); if ($('gl').checked && !GL) { GL = await fetch(`models/Gn/GL${E.n}.json`).then(r => r.ok ? r.json() : null).catch(() => null); if (GL) GLP = GL.labels.map(L => { const c = C.centers.find(q => +q.label === +L); return c ? c.p : null; }); } pv.redraw(); };
+  if (E.n < 3) { ['gl', 'gll', 'gthru', 'gtl'].forEach(k => { $(k).style.display = 'none'; }); }
+  if (E.n >= 3) loadVia().then(() => pv.redraw());
+  window.E96TEST_thru = () => ({ via: !!VIA, bt: BTP ? BTP.length : 0, names: VIA ? VIA.names.length : 0, wit: VIA ? Object.keys(VIA.gn).length : 0 });
   window.E96TEST_gl = () => GL ? { pairs: GL.edges.length, placed: GLP.filter(Boolean).length, labels: GL.labels.length } : null;
   const WEBL = [];                                     // V_f / T'_f overlays (REGISTRATION addendum (u))
   let PERSEL = null;                                   // the selected period-n center (its labels and rays highlighted)

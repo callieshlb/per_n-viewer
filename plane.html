@@ -28,9 +28,9 @@
   details summary { cursor:pointer; color:var(--muted); }
   .nf { font-size:12px; background:#fff; border:1px solid var(--faint); padding:4px 6px; margin:4px 0; }
 </style>
-<script src="js/pern_math.js?v=20261119001729"></script>
-<script src="js/glsl.js?v=20261119001729"></script>
-<script src="js/planeview.js?v=20261119001729"></script>
+<script src="js/pern_math.js?v=20261119002929"></script>
+<script src="js/glsl.js?v=20261119002929"></script>
+<script src="js/planeview.js?v=20261119002929"></script>
 </head>
 <body>
 <div id="view"></div>
@@ -49,6 +49,7 @@
     <span title="with a bitransitive center selected (click a diamond): internal angle, optionally followed by the triangle 0, 1 or 2 (light, medium, dark shade); all three if omitted. Enter to run.">Internal ray → boundary point: angle [triangle] (a)</span><span><input id="bta" size="9" placeholder="1/4 2" style="width:70px"> <button id="btac" title="remove the drawn internal rays">clear</button></span>
     <span id="gnl" style="display:none">G<sub>n</sub> tip capture edges (g)</span><input type="checkbox" id="gn" style="display:none">
     <span id="gll" title="g -- g′ when some capture named by g and some capture named by g′ are the same map (any captor polynomials, any components); contains G_n">G<sup>larger</sup><sub>n</sub>: any shared capture (G)</span><input type="checkbox" id="gl">
+    <span id="gtl" title="draw each G_n / G^larger_n edge g – g′ as g → b → g′ through the bitransitive map b where captures named by g and g′ coincide (every such b)">… edges through their shared capture</span><input type="checkbox" id="gthru" checked>
     <span id="vil" style="display:none" title="from each center, an arrow to its G_n neighbor(s) whose label has the most factors of 2 (when more than its own)">violet arrows, to the more even (e)</span><input type="checkbox" id="vi" style="display:none">
     <span id="sml" style="display:none">Torus seams (s)</span><input type="checkbox" id="sm" checked style="display:none">
     <span>Coloring</span><select id="plain"><option value="0" selected>dynamics (per pixel)</option><option value="1">plain surface (no dynamics)</option></select>
@@ -84,7 +85,7 @@
     <div id="mlist"></div></details>
   <details><summary>What this is</summary><div id="about" class="sub"></div></details>
 </div>
-<script src="js/bitri.js?v=20261119001729"></script>
-<script src="js/plane.js?v=20261119001729"></script>
+<script src="js/bitri.js?v=20261119002929"></script>
+<script src="js/plane.js?v=20261119002929"></script>
 </body>
 </html>
