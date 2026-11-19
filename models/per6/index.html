@@ -23,8 +23,8 @@
   #mini { width:316px; height:316px; display:block; border:1px solid var(--faint); background:#fff; cursor:crosshair; }
   #load { position:absolute; left:20px; top:20px; color:var(--muted); }
 </style>
-<script src="conformal_data.js?v=20261119002929"></script>
-<script src="per6_core.js?v=20261119002929"></script>
+<script src="conformal_data.js?v=20261119012338"></script>
+<script src="per6_core.js?v=20261119012338"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div></div>
@@ -32,7 +32,7 @@
   <h1>Per<sub>6</sub>(0): conformal model, live dynamics</h1>
   <div class="sub">The compact genus-6 curve uniformized: the disk is its universal cover, every tile is the same Dirichlet polygon, and the picture is conformal. The colors are computed afresh at every screen pixel from (a<sub>3</sub>, a<sub>5</sub>) at that point, as in the 2-D explorer, so zooming in sharpens them. Drag to slide, click to center a point, scroll to magnify.</div>
   <div class="ctrl">
-    <span>Tile edges</span><input type="checkbox" id="ed" checked>
+    <span>Tile edges</span><input type="checkbox" id="ed">
     <span>Edge numbers</span><input type="checkbox" id="lt" checked>
     <span>Markers</span><input type="checkbox" id="mk" checked>
     <span>Marker labels</span><input type="checkbox" id="ml" checked>
@@ -377,7 +377,7 @@ idImg.onload = () => { const c = document.createElement('canvas'); c.width = c.h
 idImg.src = T.ids;
 // ---------- view ----------
 let V = I2, zoom = 1, tiles = [], dirty = true, anim = null;
-const opt = { ed: true, lt: true, mk: true, ml: true, ov2: false, gc: false, gm: false, gp: false, g2: false };
+const opt = { ed: false, lt: true, mk: true, ml: true, ov2: false, gc: false, gm: false, gp: false, g2: false };
 ['ed', 'lt', 'mk', 'ml', 'ov2', 'gc', 'gm', 'gp', 'g2'].forEach(k => { document.getElementById(k).onchange = e => { opt[k] = e.target.checked; dirty = true; }; });
 let W_ = 0, H_ = 0, Rpx = 1, dpr = 1;
 function resize() { dpr = window.devicePixelRatio || 1; W_ = view.clientWidth*dpr; H_ = view.clientHeight*dpr;
@@ -615,7 +615,7 @@ document.getElementById('e96mg').addEventListener('keydown',function(e){if(e.key
 window.addEventListener('keydown',function(e){if((e.key==='m'||e.key==='v'||e.key==='A')&&e.target.tagName!=='INPUT'&&e.target.tagName!=='SELECT')parent.postMessage({e96:'key',key:e.key},'*');});
 window.addEventListener('message',function(ev){var d=ev.data;if(!d||d.e96!=='goto')return;var m=T.markers.find(function(q){return q.kind==='centre'&&q.label===String(d.label);});
 if(!m)return;V=Mq(m.p);anim=null;reduceView();dirty=true;inspect(m.p,Infinity);});})();</script>
-<script src="../../js/pern_math.js?v=20261119002929"></script><script src="../../js/bitri.js?v=20261119002929"></script>
+<script src="../../js/pern_math.js?v=20261119012338"></script><script src="../../js/bitri.js?v=20261119012338"></script>
 <script>/* E96 (REGISTRATION addendum 2026-11-11 (n)): Per_7, Per_8: x re-solved on the closing equation f^(n-4)(y) = x; y kept */
 window.E96POL={n:0,small:0,tested:0,accepted:0,rerouted:0,amb:0,noroots:0,raw:0,maxdx:0,maxres:0};
 /* all roots of sum_k c[k] x^k (complex c, low to high) by Aberth; null if not converged */
