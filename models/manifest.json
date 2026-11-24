@@ -1,5 +1,5 @@
 {
- "built_from": "5fcc868",
+ "built_from": "68bb3b41",
  "models": [
   {
    "id": "per1",
@@ -261,6 +261,146 @@
     "circles": "at least 6",
     "sheets": 43,
     "tiling": "Tiling: the universal cover (Poincar\u00e9 disk) tiled by copies of one Dirichlet polygon for the Fuchsian group: 2250 sides in 1125 glued pairs, 750 vertex cycles (\u03c7 = 750 \u2212 1125 + 1 = -374), area 4\u03c0(g \u2212 1) = 748\u03c0."
+   }
+  },
+  {
+   "id": "pp21",
+   "n": 1,
+   "preper": {
+    "k": 2,
+    "n": 1
+   },
+   "short": "PrePer<sub>2,1</sub>",
+   "title": "PrePer<sub>2,1</sub>",
+   "titleText": "PrePer_{2,1}",
+   "kind": "plane",
+   "family": "pp21",
+   "famId": 6,
+   "param": "t",
+   "page": "plane.html?m=pp21",
+   "census": "models/census_pp21.json",
+   "view": {
+    "ctr": [
+     -1.5,
+     0
+    ],
+    "upp": 0.012
+   },
+   "real": true,
+   "normal": "f(z) = 1 + b/z + a/z<sup>2</sup>, a = t, b = \u2212t: marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>2</sub>, period 1; free critical point \u03c9\u2032 = \u22122a/b. Landing multiplier \u03c1 = -t.",
+   "about": "Each pixel is a parameter t of this curve, coloured by the fate of the free critical point \u03c9\u2032 (the marked one is in the Julia set). White: the polynomials z<sup>2</sup> + c (\u03c9\u2032 is a fixed critical point); their cards give c and its external angles. Phase colours: landing discs |\u03c1| < 1, where \u03c9\u2032 is attracted to the landing cycle; grey: another attracting cycle. Special points and punctures from preper_build.py (exact equations, puncture = fixed-point multipliers unbounded). ",
+   "info": {
+    "genus": 0,
+    "centers": 1,
+    "centres": 1,
+    "punctures": 2,
+    "circles": 1,
+    "tiling": "No tiling: the curve is a sphere and this chart covers it once."
+   }
+  },
+  {
+   "id": "pp22",
+   "n": 2,
+   "preper": {
+    "k": 2,
+    "n": 2
+   },
+   "short": "PrePer<sub>2,2</sub>",
+   "title": "PrePer<sub>2,2</sub>",
+   "titleText": "PrePer_{2,2}",
+   "kind": "plane",
+   "family": "pp22",
+   "famId": 7,
+   "param": "t",
+   "page": "plane.html?m=pp22",
+   "census": "models/census_pp22.json",
+   "view": {
+    "ctr": [
+     0.4,
+     0
+    ],
+    "upp": 0.004
+   },
+   "real": true,
+   "normal": "f(z) = 1 + b/z + a/z<sup>2</sup>, a = t, b = \u22121: marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>2</sub>, period 2; free critical point \u03c9\u2032 = \u22122a/b. Landing multiplier \u03c1 = (2*t - 1)/t^2.",
+   "about": "Each pixel is a parameter t of this curve, coloured by the fate of the free critical point \u03c9\u2032 (the marked one is in the Julia set). White: the polynomials z<sup>2</sup> + c (\u03c9\u2032 is a fixed critical point); their cards give c and its external angles. Phase colours: landing discs |\u03c1| < 1, where \u03c9\u2032 is attracted to the landing cycle; grey: another attracting cycle. Special points and punctures from preper_build.py (exact equations, puncture = fixed-point multipliers unbounded). t = \u221e is not a puncture: the chart degenerates but the fixed-point multipliers stay bounded (limit -2 + 6.179e-05i, -2 + 0.0001338i, -2 - 0.0001956i): a map of M_2 off this marked curve",
+   "info": {
+    "genus": 0,
+    "centers": 2,
+    "centres": 2,
+    "punctures": 1,
+    "circles": 1,
+    "tiling": "No tiling: the curve is a sphere and this chart covers it once."
+   }
+  },
+  {
+   "id": "pp32",
+   "n": 2,
+   "preper": {
+    "k": 3,
+    "n": 2
+   },
+   "short": "PrePer<sub>3,2</sub>",
+   "title": "PrePer<sub>3,2</sub>",
+   "titleText": "PrePer_{3,2}",
+   "kind": "plane",
+   "family": "pp32",
+   "famId": 8,
+   "param": "t",
+   "page": "plane.html?m=pp32",
+   "census": "models/census_pp32.json",
+   "view": {
+    "ctr": [
+     -0.6,
+     0
+    ],
+    "upp": 0.009
+   },
+   "real": true,
+   "normal": "f(z) = 1 + b/z + a/z<sup>2</sup>, a = 1/(2t + 4), b = \u22121/2 \u2212 a: marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>3</sub>, period 2; free critical point \u03c9\u2032 = \u22122a/b. Landing multiplier \u03c1 = -(t - 1)*(t + 1).",
+   "about": "Each pixel is a parameter t of this curve, coloured by the fate of the free critical point \u03c9\u2032 (the marked one is in the Julia set). White: the polynomials z<sup>2</sup> + c (\u03c9\u2032 is a fixed critical point); their cards give c and its external angles. Phase colours: landing discs |\u03c1| < 1, where \u03c9\u2032 is attracted to the landing cycle; grey: another attracting cycle. Special points and punctures from preper_build.py (exact equations, puncture = fixed-point multipliers unbounded). ",
+   "info": {
+    "genus": 0,
+    "centers": 3,
+    "centres": 3,
+    "punctures": 2,
+    "circles": 1,
+    "tiling": "No tiling: the curve is a sphere and this chart covers it once."
+   }
+  },
+  {
+   "id": "pp31",
+   "n": 1,
+   "preper": {
+    "k": 3,
+    "n": 1
+   },
+   "short": "PrePer<sub>3,1</sub>",
+   "title": "PrePer<sub>3,1</sub>",
+   "titleText": "PrePer_{3,1}",
+   "kind": "plane",
+   "family": "pp31",
+   "famId": 9,
+   "param": "t",
+   "page": "plane.html?m=pp31",
+   "census": "models/census_pp31.json",
+   "view": {
+    "ctr": [
+     -1.6,
+     0
+    ],
+    "upp": 0.01
+   },
+   "real": true,
+   "normal": "f(z) = 1 + b/z + a/z<sup>2</sup>, a = \u2212t(1 + t), b = t(2 + t): marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>3</sub>, period 1; free critical point \u03c9\u2032 = \u22122a/b. Landing multiplier \u03c1 = -t^2/(t + 1)^2.",
+   "about": "Each pixel is a parameter t of this curve, coloured by the fate of the free critical point \u03c9\u2032 (the marked one is in the Julia set). White: the polynomials z<sup>2</sup> + c (\u03c9\u2032 is a fixed critical point); their cards give c and its external angles. Phase colours: landing discs |\u03c1| < 1, where \u03c9\u2032 is attracted to the landing cycle; grey: another attracting cycle. Special points and punctures from preper_build.py (exact equations, puncture = fixed-point multipliers unbounded). ",
+   "info": {
+    "genus": 0,
+    "centers": 3,
+    "centres": 3,
+    "punctures": 3,
+    "circles": 1,
+    "tiling": "No tiling: the curve is a sphere and this chart covers it once."
    }
   }
  ]

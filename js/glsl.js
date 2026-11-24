@@ -108,6 +108,15 @@ void main(){
     else if (fam == 3) corMap(cd(p, vec2(2., 0.) - p), vec2(0.), 3, om);                 // x = c/(2 - c); om = c
     else if (fam == 4) { vec2 y4 = cd(vec2(.1, 0.), p) + vec2(.6180339887498949, 0.); corMap(y4, y4, 4, om); }
     else if (fam == 5) { vec2 x, y; ok = torusXY(p, x, y); if (ok) corMap(x, y, 5, om); }
+    else if (fam >= 6 && fam <= 9) {           // PrePer_{k,n} (addendum (z)): marked = landing cycle
+      vec2 one = vec2(1., 0.), a, b; int kk = fam <= 7 ? 2 : 3, nn = (fam == 6 || fam == 9) ? 1 : 2;
+      if (fam == 6) { a = p; b = -p; } else if (fam == 7) { a = p; b = -one; } else if (fam == 8) { a = cinv(2.*p + vec2(4., 0.)); b = vec2(-.5, 0.) - a; }
+      else { a = -cm(p, p + one); b = cm(p, p + 2.*one); }
+      A_ = one; B_ = b; C_ = a; D_ = one; E_ = vec2(0.); F_ = vec2(0.);
+      if (dot(b, b) < 1e-30) ok = false; else om = cd(-2.*a, b);
+      vec2 w = one; bool wi = false; if (kk == 3) fz(w, wi);
+      nm = nn; mk[0] = w; mi[0] = wi; if (nn == 2) { mk[1] = w; mi[1] = wi; fz(mk[1], mi[1]); }
+    }
     z0 = om;
     if (!ok || dot(om, om) > 1e30 || dot(B_, B_) > 1e30 || dot(C_, C_) > 1e30 || !(dot(om, om) >= 0.)) { o = vec4(85., 20., 20., 255.)/255.; return; }
   }

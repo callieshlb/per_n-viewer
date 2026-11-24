@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261119012338').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261124235724').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -26,9 +26,9 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261119012338'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261124235724'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
-    FACTS = `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
+    FACTS = (cur.preper ? `Marked orbit ω = 0 → ∞ → 1 → … lands on a ${cur.preper.n}-cycle at w${cur.preper.k}; polynomials z² + c here are Misiurewicz (0 has preperiod ${cur.preper.k}, period ${cur.preper.n}).\n` : `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n`) + `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
   }
   // ---- dynamical plane
@@ -39,7 +39,7 @@
   function polyView() {
     TV = null; if (!M) return;
     if (SVIEW) { TV = makeTV(SVIEW.T, SVIEW.Ti, [1, 0]); return; }
-    if (!opt.inv) return;
+    if (!opt.inv || cur.preper) return;
     const T0 = PM.moebius3([M.marked[0], M.marked[1], M.omega], [[0, 0], [1, 0], null]), T0i = PM.moebius3([[0, 0], [1, 0], null], [M.marked[0], M.marked[1], M.omega]);
     const g0 = w => T0(PM.fz(M, T0i(w))), b0 = g0([0, 0]), aI = g0(null), g1 = g0([1, 0]);
     let A; if (aI === null) A = PM.csub(g1, b0); else { const C = PM.cdiv(PM.csub(g1, b0), PM.csub(aI, g1)); A = PM.cmul(aI, C); }
@@ -100,13 +100,14 @@
       const dot = (z, fill, lab) => { const s = SC(z); if (!s) return; if (s[0] < -20 || s[1] < -20 || s[0] > W + 20 || s[1] > H + 20) return;
         g.beginPath(); g.arc(s[0], s[1], 5, 0, 2*Math.PI); g.fillStyle = fill; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
         if (opt.ml && lab) { g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(lab, s[0] + 8, s[1]); g.fillStyle = fill; g.fillText(lab, s[0] + 8, s[1]); } };
-      if (opt.mk) M.marked.forEach((a, j) => { if (a || opt.inv) dot(a, '#ffffff', 'a' + j); });
-      dot(M.omega, '#ffe650', 'ω');
+      if (opt.mk) M.marked.forEach((a, j) => { if (a || opt.inv) dot(a, '#ffffff', cur.preper ? 'w' + (cur.preper.k + j) : 'a' + j); });
+      if (opt.mk && M.tail) M.tail.forEach((a, j) => { if (a) dot(a, '#b0b0b0', 'w' + j); });
+      dot(M.omega, '#ffe650', cur.preper ? 'ω′' : 'ω');
     },
     onPick: p => {
       if (!M) return; p = TV ? (TV.Ti(p) || [1e300, 0]) : p; if (opt.omode) { ORB0 = p; dv.redraw(); }
       const f = PM.fate(M, p, dv.maxIt, dv.delta, 1e-7);
-      $('status').textContent = statusText() + `\nclicked z = ${PM.fmt(p)}: ${PM.fateText(f)}`;
+      $('status').textContent = statusText() + `\nclicked z = ${PM.fmt(p)}: ${cur.preper ? PM.fateText(f).replace('captured by the marked cycle', 'attracted to the landing cycle') : PM.fateText(f)}`;
     } });
   function fit() {
     if (!M) return; if (SVIEW) { const [W0, H0] = dv.size(); dv.ctr = [0, 0]; dv.upp = 7/Math.max(50, Math.min(W0, H0)); dv.redraw(); return; }
@@ -116,27 +117,31 @@
     const [W, H] = dv.size(), span = Math.max(x1 - x0, y1 - y0, 1.5)*1.8;
     dv.ctr = [(x0 + x1)/2, (y0 + y1)/2]; dv.upp = span/Math.max(50, Math.min(W, H)); dv.redraw();
   }
+  function ppRho(M) { let r = [1, 0]; for (const z of M.marked) { if (!z) return [NaN, NaN]; const z2 = PM.cmul(z, z), d = PM.csub(PM.cdiv([-M.b[0], -M.b[1]], z2), PM.cdiv([2*M.a[0], 2*M.a[1]], PM.cmul(z2, z))); r = PM.cmul(r, d); } return r; }   // landing multiplier, f'(z) = -b/z^2 - 2a/z^3
   function statusText() {
     if (!M) return '';
     const par = (cur.kind !== 'plane') && sel.x && sel.y ? `x = a${M.n - 1} = ${PM.fmt(sel.x)}   y = a3 = ${PM.fmt(sel.y)}${sel.p ? '   (' + cur.param + ' = ' + PM.fmt(sel.p) + ')' : ''}` : `${cur.param} = ${PM.fmt(sel.p)}`;
     const f = PM.fate(M, M.omega, dv.maxIt, dv.delta, 1e-7);
     let comp = '';
-    if (f.kind === 'capture' && cur.kind !== 'hyperbolic' && sel.p) { const C = PM.captureCentre(cur.family, cur.n, sel.p, f);
+    if (f.kind === 'capture' && cur.preper) comp = `in a landing disc: the free critical point ω′ is attracted to the landing cycle w${cur.preper.k} … (phase ${f.phase})`;
+    else if (f.kind === 'capture' && cur.kind !== 'hyperbolic' && sel.p) { const C = PM.captureCentre(cur.family, cur.n, sel.p, f);
       comp = C ? `capture component: at its center (${cur.param} = ${PM.fmt(C.center, 6)}) ${C.preperiod === 0 ? 'the free critical point IS a' + C.j : 'the free critical point lands on a' + C.j + ' after ' + C.preperiod + ' step' + (C.preperiod === 1 ? '' : 's')}: preperiod ${C.preperiod}, period ${cur.n} (phase ${C.phase})`
                : `captured (phase ${f.phase}); center not found by Newton from here`; }
     else if (f.kind === 'capture') comp = `captured by the marked cycle (phase ${f.phase})`;
     if (f.kind === 'capture' && cur.family === 'quad') comp = 'escapes to ∞ (outside the Mandelbrot set)';
     else if (f.kind === 'cycle') comp = f.period === 1 ? 'hyperbolic component with an attracting fixed point (polynomial-like: the free critical point is attracted to a fixed point)' : `hyperbolic component of period ${f.period} (the free critical point is attracted to a ${f.period}-cycle)`;
     else comp = 'undecided: bifurcation locus (or beyond the iteration count)';
-    VIEWM = f.kind === 'cycle' && f.period <= 9 ? f.period : 0;   // 9: Per_9 wired in 2026-11-12
+    VIEWM = !cur.preper && f.kind === 'cycle' && f.period <= 9 ? f.period : 0;   // 9: Per_9 wired in 2026-11-12
     $('vin').style.display = VIEWM ? '' : 'none';
     if (VIEWM) $('vin').textContent = VIEWM === cur.n ? `View the involution image in Per_${VIEWM}  (v)` : `View this component's center in Per_${VIEWM}  (v)`;
     return `${cur.titleText}${sel.label ? '  ·  ' + sel.label : ''}   ${par}\n` +
       `f(z) = ((${PM.fmt(M.A, 5)}) z² + (${PM.fmt(M.B, 5)}) z + (${PM.fmt(M.C, 5)})) / ((${PM.fmt(M.D, 5)}) z² + (${PM.fmt(M.E, 5)}) z + (${PM.fmt(M.F, 5)}))\n` +
-      `marked cycle: ${M.marked.map((a, j) => 'a' + j + ' = ' + PM.fmt(a, 5)).join(',  ')}   (closes to ${PM.closure(M).toExponential(1)})\n` +
+      (cur.preper ? `landing cycle: ${M.marked.map((a, j) => 'w' + (cur.preper.k + j) + ' = ' + PM.fmt(a, 5)).join(',  ')}   (closes to ${PM.closure(M).toExponential(1)});  ρ = ${PM.fmt(ppRho(M), 5)}`
+        + `\ntail: ${M.tail.map((a, j) => 'w' + j + ' = ' + PM.fmt(a, 5)).join(',  ')}\n`
+      : `marked cycle: ${M.marked.map((a, j) => 'a' + j + ' = ' + PM.fmt(a, 5)).join(',  ')}   (closes to ${PM.closure(M).toExponential(1)})\n`) +
       (sel.amb ? `NOTE: two sheets of the curve are close here (nearest / second-nearest root distance from the chart value = ${sel.amb.toFixed(2)}); the sheet shown is the nearest one and may not be the one of the picture.\n` : '') +
       (sel.raw ? `NOTE: x here is the disk viewer's own chart value, not re-solved on the curve (the re-solve did not converge, or moved x by more than the guard allows); the map may not be on the curve at all: check "closes to" above.\n` : '') +
-      `free critical point ω = ${PM.fmt(M.omega, 6)}: ${comp}   |   iterates ${dv.maxIt}, δ ${dv.delta.toExponential(0)}`;
+      `free critical point ${cur.preper ? 'ω′' : 'ω'} = ${PM.fmt(M.omega, 6)}: ${comp}   |   iterates ${dv.maxIt}, δ ${dv.delta.toExponential(0)}`;
   }
   // ---- Per_1: the clicked hyperbolic component (REGISTRATION addendum 2026-11-12 (s)): its center, the two parameter rays landing at its root, and a
   // button to its center with Hubbard tree and polynomial card. Angles: poly_info (period <= 9) or the tables poly/centres_p{10..14}.json.
@@ -461,7 +466,7 @@
   // ---- Hubbard tree off-center (REGISTRATION addendum 2026-11-10 (e)): the tree of the last polynomial, continued to the selected map
   let TREEP = null, TREEJOB = 0;
   async function followTree() {
-    if (!M || !cur || cur.n < 2 || cur.family === 'quad' || !opt.tree) return; const Mc = M, job = ++TREEJOB, n = cur.n, hyp = cur.kind === 'hyperbolic';
+    if (!M || !cur || cur.n < 2 || cur.family === 'quad' || cur.preper || !opt.tree) return; const Mc = M, job = ++TREEJOB, n = cur.n, hyp = cur.kind === 'hyperbolic';
     const f = PM.fate(Mc, Mc.omega, 2000, 1e-6, 1e-9); let note = '';
     if (f.kind === 'cycle' && f.period === 1) {                     // inside a polynomial component: whose?
       const C = PM.cycleCentre(hyp ? 'cor' : cur.family, n, hyp ? { x: sel.x, y: sel.y } : { p: sel.p }, 1), T = C && PM.transfer(C.M, 1), D = await loadPoly(n);
@@ -634,6 +639,7 @@
     if (GOTO && mk.label === GOTO.lab) { clearInterval(GOTO.t); GOTO = null; }
     const n = mk.n || cur.n, D = 2**n - 1, esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(mk.lines.join('\n'));
+    if (cur.preper) { $('dcb').innerHTML = ''; $('dcard').style.display = 'block'; return; }   // PrePer pages: census card only (Per_n tools do not apply)
     if (mk.kind === 'puncture') { const extra = punctLines(mk); if (extra.length) $('dct').innerHTML += '\n' + esc(extra.join('\n')); }
     if (mk.kind === 'puncture') rescaleLines(mk, n);
     if (mk.kind === 'bitrans') { btCard(mk); $('dcard').style.display = 'block'; return; }

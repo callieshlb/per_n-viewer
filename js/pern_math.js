@@ -238,6 +238,24 @@ var PM = (function () {
     if (n >= 5) M.marked.push(x);
     return M;
   }
+  // PrePer_{k,n} (REGISTRATION addendum (z)): site chart f(z) = 1 + b/z + a/z^2, omega = 0 -> inf -> 1, free critical point -2a/b;
+  // family 'pp' + k + n, parameter t: (2,1) a = t, b = -t; (2,2) a = t, b = -1; (3,2) a = 1/(2t + 4), b = -1/2 - a; (3,1) a = -t(1 + t), b = t(2 + t).
+  // marked = the landing cycle w_k .. w_(k+n-1) (so 'capture' = the free critical point is attracted to it); tail = w_0 .. w_(k-1).
+  function ppAB(family, t) {
+    if (family === 'pp21') return [t, [-t[0], -t[1]]];
+    if (family === 'pp22') return [t, [-1, 0]];
+    if (family === 'pp32') { var a = cdiv([1, 0], cadd(cscale(t, 2), [4, 0])); return [a, [-0.5 - a[0], -a[1]]]; }
+    if (family === 'pp31') return [cscale(cmul(t, cadd(t, [1, 0])), -1), cmul(t, cadd(t, [2, 0]))];
+    throw new Error('unknown family ' + family);
+  }
+  function ppMap(family, t) {
+    var k = +family[2], n = +family[3], ab = ppAB(family, t), a = ab[0], b = ab[1];
+    var M = { n: n, k: k, A: [1, 0], B: b, C: a, D: [1, 0], E: [0, 0], F: [0, 0], a: a, b: b };
+    M.omega = cabs(b) === 0 ? null : cdiv(cscale(a, -2), b);
+    var w = [[0, 0], null, [1, 0]]; for (var j = 3; j < k + n; j++) w.push(fz(M, w[j - 1]));
+    M.tail = w.slice(0, k); M.marked = w.slice(k, k + n);
+    return M;
+  }
   // from a parameter message: family, n, and p (plane / torus coordinate) or x, y (curve point)
   function mapFrom(family, n, q) {
     var M;
@@ -250,6 +268,7 @@ var PM = (function () {
     else if (family === 'cor4') M = corMap(q.p, q.p, 4);
     else if (family === 'torus5') { var P = torusXY(q.p); if (!P.x || !P.y) return null; M = corMap(P.x, P.y, 5); }
     else if (family === 'cor') M = corMap(q.x, q.y, n);
+    else if (/^pp\d\d$/.test(family)) M = ppMap(family, q.p);
     else throw new Error('unknown family ' + family);
     M.scale = M.marked.map(function (a, j) {
       var m = 1; for (var i = 0; i < M.marked.length; i++) if (i !== j) m = Math.min(m, chord(a, M.marked[i])); return m; });

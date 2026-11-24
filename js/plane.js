@@ -2,14 +2,14 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261119012338').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261124235724').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261119012338').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261124235724').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
   document.title = E.titleText || id;
-  $('legend').innerHTML = GLSL.LEGEND(E.n, E.palette).map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
+  $('legend').innerHTML = GLSL.LEGEND(E.n, E.palette).map(([c, t]) => [c, E.preper ? t.replace('captured, phase', 'attracted to the landing cycle, phase') : t]).map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
   if (torus) ['gnl', 'gn', 'vil', 'vi', 'sml', 'sm'].forEach(k => { $(k).style.display = ''; });
   const opt = { mk: true, ml: true, gn: false, vi: false, sm: true, rc: false };      // real circles opt-in (Caroline 2026-11-10)
   if (E.real) ['rcl', 'rc'].forEach(k => { $(k).style.display = ''; });
@@ -19,6 +19,7 @@
   // hotkeys (Caroline 2026-11-10): r real circles, g G_n edges, e violet arrows, p period colors, l labels, k markers, b bands, s seams, +/- iterates; t, i go to the dynamical pane
   const PKEY = { G: 'gl', r: 'rc', g: 'gn', e: 'vi', p: 'pc', l: 'ml', k: 'mk', w: 'bands', s: 'sm', b: 'bt', j: 'bt' };   // b = bitransitive centers (Caroline 2026-11-12; j kept), w = escape-time bands (was o, before that b); o goes to the dynamical pane (critical orbit)
   function paneKey(key) {
+    if (E.preper && 'bjgGea'.includes(key)) return true;           // Per_n-only tools are off on PrePer pages
     if (PKEY[key]) { const el = $(PKEY[key]); if (!el || el.style.display === 'none') return true; el.checked = !el.checked; el.dispatchEvent(new Event('change')); return true; }
     if (key === '+' || key === '=' || key === '-') { const el = $('pit'); el.value = Math.max(+el.min, Math.min(+el.max, +el.value + (key === '-' ? -1 : 1)*100)); el.dispatchEvent(new Event('input')); return true; }
     if (key === 'a') { $('side').classList.remove('min'); $('minb').textContent = '–'; window.focus(); $('bta').focus(); $('bta').select(); return true; }
@@ -95,7 +96,13 @@
     for (let m = m0; m <= m1; m++) for (let l = l0; l <= l1; l++) out.push([m*T5.W1, l*T5.W2]);
     return out;
   }
-  const markers = C.centers.map(c => ({ ...c, kind: 'centre' })).concat(C.punctures.filter(p => p.p).map(p => ({ ...p, kind: 'puncture' })));
+  const markers = C.centers.map(c => ({ ...c, kind: 'centre' })).concat(C.punctures.filter(p => p.p).map(p => ({ ...p, kind: 'puncture' }))).concat((C.special || []).map(s => ({ ...s, kind: 'special' })));
+  const SHAPE = { sq: '#ff9d2e', di: '#00e5ff', tri: '#c78bff', x: '#9e9e9e' };      // PrePer special points (addendum (z))
+  function shapeMark(g, s, m) { const c = SHAPE[m.shape] || '#ccc', r = 5.5; g.beginPath();
+    if (m.shape === 'sq') g.rect(s[0] - r + 1, s[1] - r + 1, 2*r - 2, 2*r - 2); else if (m.shape === 'di') { g.moveTo(s[0], s[1] - r - 1); g.lineTo(s[0] + r + 1, s[1]); g.lineTo(s[0], s[1] + r + 1); g.lineTo(s[0] - r - 1, s[1]); g.closePath(); }
+    else if (m.shape === 'tri') { g.moveTo(s[0], s[1] - r - 1); g.lineTo(s[0] + r + 1, s[1] + r); g.lineTo(s[0] - r - 1, s[1] + r); g.closePath(); } else g.arc(s[0], s[1], r - 1, 0, 2*Math.PI);
+    g.fillStyle = c; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
+    if (opt.ml) { g.font = '500 11px system-ui'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(m.label, s[0] + 8, s[1]); g.fillStyle = c; g.fillText(m.label, s[0] + 8, s[1]); } }
   function drawOverlay(g, W, H) {
     const offs = torus ? lattice(W, H) : [[0, 0]];
     if (torus && opt.sm) {                    // seams: the fundamental rectangle's edges
@@ -169,6 +176,7 @@
       g.font = '600 12px system-ui'; g.textBaseline = 'middle';
       for (const o of offs) for (const m of markers) {
         const s = pv.toScreen([m.p[0] + o[0], m.p[1] + o[1]]); if (s[0] < -10 || s[1] < -10 || s[0] > W + 10 || s[1] > H + 10) continue;
+        if (m.kind === 'special') { shapeMark(g, s, m); continue; }
         g.beginPath(); g.arc(s[0], s[1], 5, 0, 2*Math.PI); g.fillStyle = m.kind === 'centre' ? (E.n >= 5 && m.label === String(2**(E.n - 1)) ? '#b388ff' : '#fff') : '#e8173a'; g.fill();
         g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
         if (opt.ml && m.kind !== 'puncture') { g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(m.label, s[0] + 8, s[1]);   // punctures: no number in the picture (Caroline 2026-11-12); the card has the data
@@ -300,7 +308,7 @@
     // a marker shows its census data only
     if (marker) showCard(marker.title, marker.lines); else $('card').style.display = 'none';
     parent.postMessage({ e96: 'param', model: id, p, x, y, label: marker ? marker.title : null,
-      marker: marker ? { kind: marker.kind, label: marker.label, n: marker.n, title: marker.title, lines: marker.lines,
+      marker: marker ? { kind: E.preper && marker.kind === 'centre' ? 'poly' : marker.kind, label: marker.label, n: marker.n, title: marker.title, lines: marker.lines,
                          ks: marker.ks || null, thetas: marker.thetas || null, pc: marker.pc || null } : null }, '*');
   }
   const pv = new PlaneView($('view'), {
@@ -329,9 +337,9 @@
   $('home').onclick = () => { pv.ctr = E.view.ctr.slice(); pv.upp = E.view.upp; pv.redraw(); };
   function buildList() {
     const q = $('mfilter').value.trim().toLowerCase(), box = $('mlist'); box.innerHTML = '';
-    const all = C.centers.map(c => ({ ...c, kind: 'centre' })).concat(C.punctures.map(p => ({ ...p, kind: 'puncture' })));
+    const all = C.centers.map(c => ({ ...c, kind: 'centre' })).concat(C.punctures.map(p => ({ ...p, kind: 'puncture' }))).concat((C.special || []).map(s => ({ ...s, kind: 'special' })));
     for (const it of all) {
-      const text = `${it.kind === 'centre' ? 'center' : it.kind} ${it.label}: ${it.summary || ''}`; if (q && !text.toLowerCase().includes(q)) continue;
+      const text = E.preper ? `${it.kind === 'centre' ? 'polynomial' : it.kind === 'special' ? it.label : 'puncture'}: ${it.summary || ''}` : `${it.kind === 'centre' ? 'center' : it.kind} ${it.label}: ${it.summary || ''}`; if (q && !text.toLowerCase().includes(q)) continue;
       const d = document.createElement('div'); d.textContent = text; d.title = it.lines.join('\n');
       d.onclick = () => { if (it.p) { pv.ctr = it.p.slice(); pv.redraw(); pick(it.p, it); } else showCard(it.title, it.lines); };
       box.appendChild(d);
@@ -365,6 +373,12 @@
     $('raybox').style.display = ''; $('raygo').onclick = () => setRays($('rayin').value);
     $('rayin').addEventListener('keydown', e => { if (e.key === 'Enter') setRays(e.target.value); });
     $('rayclr').onclick = () => { RAYS = []; $('rayout').textContent = ''; parent.postMessage({ e96: 'rays', angles: [] }, '*'); pv.redraw(); }; }
+  if (E.preper) {                           // PrePer_{k,n} pages (addendum (z)): hide the Per_n-only tools
+    for (const k of ['bt', 'bta', 'gl', 'gthru']) { const el = $(k), box = el.parentElement.classList.contains('ctrl') ? el : el.parentElement; box.style.display = 'none'; if (box.previousElementSibling) box.previousElementSibling.style.display = 'none'; }
+    for (const k of ['matebox', 'webbox', 'btao', 'globe']) $(k).style.display = 'none';
+    const ph = [...document.querySelectorAll('.sub')].find(d => /^Phase k/.test(d.textContent)); if (ph) ph.textContent = 'Coloured: the free critical point ω′ is attracted to the landing cycle w_k … w_(k+n−1) (a landing disc, |ρ| < 1), phase j = which point of the cycle it reaches at times ≡ −j (mod n).';
+    $('legend').innerHTML += [['#fff', 'polynomial z² + c (Misiurewicz; ω′ fixed)'], ['#00e5ff', '◆ ρ = 0: center of a landing disc'], ['#ff9d2e', '■ ω′ in the tail of the marked orbit'], ['#c78bff', '▲ the landing cycle collapses (ρ = 1)'], ['#9e9e9e', '● chart degenerates, a map off this curve'], ['#e8173a', 'puncture']].map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
+  }
   $('minb').onclick();                      // panel starts collapsed (Caroline 2026-11-10); + expands
   if (E.n < 2) $('matebox').style.display = 'none';
   $('mvl').onchange = () => pv.redraw(); $('mvlab').onchange = () => pv.redraw();
