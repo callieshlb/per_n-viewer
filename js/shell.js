@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261125031950').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125033034').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '', PREP = null;
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -44,7 +44,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125031950'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125033034'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = (cur.preper ? `Marked orbit ω = 0 → ∞ → 1 → … lands on a ${cur.preper.n}-cycle at w${cur.preper.k}; polynomials z² + c here are Misiurewicz (0 has preperiod ${cur.preper.k}, period ${cur.preper.n}).\n` : `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n`) + `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -212,7 +212,7 @@
     const label = `≅ ${from.replace('(0)', '')} capture center`; choose(id);
     handleParam({ e96: 'param', label, keepCard: true, p }); $('status').textContent += `\nThe same rational map: the capture center clicked in ${from} (there: ${PM.fmt(P.center, 8)}), now with the free critical point marked (a = ${PM.fmt(R.a, 8)}, b = ${PM.fmt(R.b, 8)}).`;
     clearInterval(VSEND && VSEND.t); let tries = 0;
-    const post = () => { tries++; if (tries > 150) { clearInterval(VSEND.t); VSEND = null; return; } try { $('frame').contentWindow.postMessage({ e96: 'mark', label, go: true, p }, '*'); } catch (e) {} };
+    const post = () => { tries++; if (tries > 150) { clearInterval(VSEND.t); VSEND = null; return; } try { $('frame').contentWindow.postMessage({ e96: 'mark', label, go: true, p, model: id }, '*'); } catch (e) {} };
     VSEND = { label, t: setInterval(post, 1200) }; post();
   }
   // PrePer pages: transfer's a0 must be the old marked critical point omega = w_0 (the tail's first point), not the landing-cycle point
@@ -233,7 +233,7 @@
     handleParam(Object.assign({ e96: 'param', label, keepCard: true }, msg)); $('status').textContent += '\n' + note;
     clearInterval(VSEND && VSEND.t); let tries = 0;
     const post = () => { tries++; if (tries > 150) { clearInterval(VSEND.t); VSEND = null; return; }
-      try { $('frame').contentWindow.postMessage(Object.assign({ e96: 'mark', label, go: true }, msg), '*'); } catch (e) {} };
+      try { $('frame').contentWindow.postMessage(Object.assign({ e96: 'mark', label, go: true, model: cur.id }, msg), '*'); } catch (e) {} };
     VSEND = { label, t: setInterval(post, 1200) }; post();
   }
   window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'markDone' && VSEND && d.label === VSEND.label) { clearInterval(VSEND.t); VSEND = null;

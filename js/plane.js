@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261125031950').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125033034').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261125031950').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261125033034').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -32,6 +32,7 @@
   window.E96TEST_bt = pk => { if (!BT || !BT.length) return null; let b = BT[0]; if (pk) b = BT.reduce((u, v) => Math.hypot(v.p[0] - pk[0], v.p[1] - pk[1]) < Math.hypot(u.p[0] - pk[0], u.p[1] - pk[1]) ? v : u); pv.ctr = b.p.slice(); pv.redraw(); return pv.toScreen(b.p); };
   window.E96TEST_view = () => ({ ctr: pv.ctr, upp: pv.upp });
   window.E96TEST_marks = () => MARKS.filter(m => m.vein).length;
+  window.E96TEST_star = () => MARKS.filter(m => !m.vein).map(m => ({ label: m.label, p: m.p }));
   window.E96TEST_chain = () => MARKS.filter(m => m.vg).map(m => [m.vg, m.vi, m.label, m.p]);
   window.E96TEST_setView = (c, u) => { pv.ctr = c.slice(); pv.upp = u; pv.redraw(); };
   window.E96TEST_webs = () => WEBL.map(w => ({ id: w.id, paths: w.paths.length, dots: w.dots.length }));
@@ -225,6 +226,9 @@
       g.fillStyle = '#ffe600'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
       if (opt.ml) { g.font = '600 12px system-ui'; g.textBaseline = 'middle'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(mk.label, s[0] + 9, s[1]); g.fillStyle = '#ffe600'; g.fillText(mk.label, s[0] + 9, s[1]); }
     }
+    if (HL && HL.cells.length) { const st = HL.step; g.fillStyle = 'rgba(255,255,255,.28)';                 // addendum (ah): the highlighted component
+      for (const o of offs) for (const c of HL.cells) { const s = pv.toScreen([c[0] + o[0], c[1] + o[1]]); g.fillRect(s[0] - st/2, s[1] - st/2, st, st); }
+      g.strokeStyle = '#fff'; g.lineWidth = 1.5; for (const o of offs) for (const e of HL.edge) { const s = pv.toScreen([e[0] + o[0], e[1] + o[1]]); g.strokeRect(s[0] - st/2, s[1] - st/2, st, st); } }
     if (picked) { const s = pv.toScreen(picked); g.strokeStyle = '#fff'; g.lineWidth = 2;
       g.beginPath(); g.moveTo(s[0] - 9, s[1]); g.lineTo(s[0] + 9, s[1]); g.moveTo(s[0], s[1] - 9); g.lineTo(s[0], s[1] + 9); g.stroke(); }
   }
@@ -318,7 +322,38 @@
     $('cardt').innerHTML = '<b>' + esc(title) + '</b>\n' + esc(lines.join('\n')); $('card').style.display = 'block';
   }
   $('cardx').onclick = () => { $('card').style.display = 'none'; };
+  // addendum (ah): the component of p (same fate type: capture phase, or attracting-cycle period), flood-filled on a screen grid in double precision
+  let HL = null;
+  function compHighlight(p0, again) {
+    const mk = q => { try { return torus || E.kind !== 'plane' ? PM.mapFrom(E.family, E.n, { p: q }) : PM.mapFrom(E.family, E.n, { p: q }); } catch (e) { return null; } };
+    const key = q => { const M = mk(q); if (!M || !M.omega) return null; const f = PM.fate(M, M.omega, 600, 1e-3, 1e-9); return f.kind === 'capture' ? 'c' + f.phase : f.kind === 'cycle' ? 'p' + f.period : null; };
+    const k0 = key(p0); if (!k0) { HL = null; pv.redraw(); return; }
+    const [W, H] = pv.size(), step = 3, up = pv.upp*step, s0 = pv.toScreen(p0), nx = Math.ceil(W/step), ny = Math.ceil(H/step);
+    const i0 = Math.round(s0[0]/step), j0 = Math.round(s0[1]/step), seen = new Map(), cells = [], edge = [], stack = [[i0, j0]];
+    const at = (i, j) => pv.toPlane(i*step, j*step);
+    while (stack.length && cells.length < 60000) { const [i, j] = stack.pop(), id = i*100003 + j; if (seen.has(id) || i < 0 || j < 0 || i > nx || j > ny) continue;
+      const q = at(i, j), inside = key(q) === k0; seen.set(id, inside); if (!inside) continue; cells.push(q);
+      stack.push([i + 1, j], [i - 1, j], [i, j + 1], [i, j - 1]); }
+    // morphological opening (erode by one cell, flood again from the jump point, grow back by one): cuts the thin bridges along the fractal
+    // boundary through which the same-phase flood leaks into neighbouring components; unknown neighbors (never visited) count as outside
+    const IN = (i, j) => seen.get(i*100003 + j) === true, N8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+    const core = new Set(); for (const [id, v] of seen) if (v) { const i = Math.floor(id/100003 + 1e-9), j = id - i*100003; if (N8.every(([u, w]) => IN(i + u, j + w))) core.add(id); }
+    const keep = new Set(), st2 = core.has(i0*100003 + j0) ? [[i0, j0]] : [];
+    while (st2.length) { const [i, j] = st2.pop(), id2 = i*100003 + j; if (keep.has(id2) || !core.has(id2)) continue; keep.add(id2); st2.push([i + 1, j], [i - 1, j], [i, j + 1], [i, j - 1]); }
+    if (keep.size) { const fin = new Set(keep); for (const id2 of keep) { const i = Math.floor(id2/100003 + 1e-9), j = id2 - i*100003; for (const [u, w] of N8) if (IN(i + u, j + w)) fin.add((i + u)*100003 + j + w); }
+      cells.length = 0; for (const id2 of fin) { const i = Math.floor(id2/100003 + 1e-9); cells.push(at(i, id2 - i*100003)); }
+      for (const id2 of fin) { const i = Math.floor(id2/100003 + 1e-9), j = id2 - i*100003; if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([u, w]) => !fin.has((i + u)*100003 + j + w))) edge.push(at(i, j)); } }
+    else for (const [id, v] of seen) if (v) { const i = Math.floor(id/100003 + 1e-9), j = id - i*100003; if ([[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => seen.get((i + a)*100003 + j + b) === false)) edge.push(at(i, j)); }
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity; for (const c of cells) { x0 = Math.min(x0, c[0]); x1 = Math.max(x1, c[0]); y0 = Math.min(y0, c[1]); y1 = Math.max(y1, c[1]); }
+    const span = Math.max(x1 - x0, y1 - y0)/pv.upp;
+    if (!again && cells.length && span < 60) { pv.ctr = [(x0 + x1)/2, (y0 + y1)/2]; pv.upp = Math.max(x1 - x0, y1 - y0, 4*up)/(0.4*Math.min(W, H)); return compHighlight(p0, true); }   // small: zoom in and redo once
+    HL = { cells, edge, step, key: k0 }; pv.redraw();
+    parent.postMessage({ e96: 'hlDone', key: k0, cells: cells.length }, '*');
+  }
+  window.E96TEST_hl = () => HL ? { key: HL.key, cells: HL.cells.length, edge: HL.edge.length } : null;
+  window.E96TEST_hlRun = p => { compHighlight(p); return window.E96TEST_hl(); };
   function pick(p, marker) {
+    if (HL && !(marker && marker.keepHL)) HL = null;
     picked = p; pv.redraw();
     let x = null, y = null;
     if (torus && !E.preper) { const P = PM.torusXY(p); x = P.x; y = P.y; }
@@ -382,6 +417,7 @@
     if (d && d.e96 === 'compRays') {                     // (s) the clicked component of Per_1: its center and the two rays landing at its root
       COMPR = { c: d.c, n: d.n, ks: d.ks, rays: [] }; if (d.ks && d.n >= 2) { const Q = BigInt(2**d.n - 1); COMPR.rays = d.ks.map(k => PM.traceRay('param', { p: BigInt(k), q: Q, text: `${k}/${2**d.n - 1}` }, null, 8, 30*8).pts); }
       if (d.go) { picked = d.c; } pv.redraw(); return; }
+    if (d && d.e96 === 'mark' && d.model && d.model !== id) return;                                       // addressed to the page that replaces this one
     if (d && d.e96 === 'mark' && d.p) { const k = MARKS.findIndex(q => q.label === d.label && !q.vein && !d.vein); if (k >= 0) MARKS.splice(k, 1);
       if (d.vg) { const k2 = MARKS.findIndex(q => q.vg === d.vg && q.vi === d.vi); if (k2 >= 0) MARKS.splice(k2, 1); }
       MARKS.push({ p: d.p, label: d.label, vein: !!d.vein, vg: d.vg, vi: d.vi }); if (d.go) pv.ctr = d.p.slice(); pv.redraw();
