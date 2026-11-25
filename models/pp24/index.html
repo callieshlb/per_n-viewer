@@ -31,10 +31,10 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261125045116"></script>
-<script src="pern_math.js?v=20261125045116"></script>
-<script src="pp24_core.js?v=20261125045116"></script>
-<script src="pp24_viewer_core.js?v=20261125045116"></script>
+<script src="conformal_data.js?v=20261125051018"></script>
+<script src="pern_math.js?v=20261125051018"></script>
+<script src="pp24_core.js?v=20261125051018"></script>
+<script src="pp24_viewer_core.js?v=20261125051018"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -604,5 +604,7 @@ mini.addEventListener('click', e => {
   if (cabs2(z) >= 1) return; const f = fold(z); V = Mq(f); anim = null; reduceView(); inspect(f); dirty = true;
 });
 </script>
-</body>
+<script>/* E96: keep the view matrix V in SU(1,1) (orchestrator's fix for the drift Caroline saw after long panning; E98 viewer_drift). On by default (Caroline 2026-11-12: go); E96_SU11=0 builds without it. */
+(function(){var su11=function(m){var a=[(m.a[0]+m.d[0])/2,(m.a[1]-m.d[1])/2],b=[(m.b[0]+m.c[0])/2,(m.b[1]-m.c[1])/2],s=Math.sqrt(cabs2(a)-cabs2(b));if(!(s>0)||!isFinite(s))return m;return M([a[0]/s,a[1]/s],[b[0]/s,b[1]/s],[b[0]/s,-b[1]/s],[a[0]/s,-a[1]/s]);};
+var _rv=reduceView;reduceView=function(){_rv.apply(this,arguments);V=su11(V);};window.E96SU11=su11;})();</script></body>
 </html>
