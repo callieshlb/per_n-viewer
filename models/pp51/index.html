@@ -31,10 +31,10 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261125205133"></script>
-<script src="pern_math.js?v=20261125205133"></script>
-<script src="pp51_core.js?v=20261125205133"></script>
-<script src="pp51_viewer_core.js?v=20261125205133"></script>
+<script src="conformal_data.js?v=20261125211442"></script>
+<script src="pern_math.js?v=20261125211442"></script>
+<script src="pp51_core.js?v=20261125211442"></script>
+<script src="pp51_viewer_core.js?v=20261125211442"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -632,23 +632,32 @@ var _rv=reduceView;reduceView=function(){_rv.apply(this,arguments);V=su11(V);};w
   function escapeMarker() {
     if (!MI) return null; const it = MI.items.find(q => q.kind === 'puncture' && (q.lines.some(l => /ρ/.test(l) && /\(this group\): 0$/.test(l.trim())) || /^place: a ?= ?0, b ?= ?0\b/.test(q.lines[0] || '')));   /* rho -> 0 at (a, b) = (0, 0); PP61 lines carry no rho */
     return it ? T.markers.find(m => m.kind === 'puncture' && m.label === it.label) : null; }
-  function cellFrom(p0, R, N) {   // orbit of p0 through the tiles h(D) with center h(0) within R + R_D of p0 (tile centers are well separated: robust dedupe)
-    const pts = [], seen = new Set(), q = [I2], hyp = z => { const d = 1 - (z[0]*z[0] + z[1]*z[1]); return Math.round(2*z[0]/d*1e3) + ',' + Math.round(2*z[1]/d*1e3); };
-    seen.add(hyp([0, 0]));
-    while (q.length && pts.length < 200000) { const g = q.shift();
-      for (let a = 0; a < NF; a++) { const h = comp(g, FGf[a]), c = ap(h, [0, 0]); if (!(hdist(c, p0) <= R + RD)) continue; const key = hyp(c); if (seen.has(key)) continue; seen.add(key); q.push(h);
-        const z = ap(h, p0); if (hdist(z, p0) <= R) pts.push(z); } }
+  function cellOf(p0, pts, N) {    // radial cell boundary from a list of orbit points (radii from p0 are geodesics)
     const W = pts.map(z => mob(z, p0, 1)).filter(w => Math.hypot(w[0], w[1]) > 1e-9), bd = []; let area = 0, maxr = 0;
     for (let i = 0; i < N; i++) { const ph = 2*Math.PI*i/N, u = [Math.cos(ph), Math.sin(ph)]; let r = 1;
       for (const w of W) { const q2 = w[0]*w[0] + w[1]*w[1], c = w[0]*u[0] + w[1]*u[1]; if (c < q2) continue; const disc = c*c - q2*q2; if (disc < 0) continue; const rr = (c - Math.sqrt(disc))/q2; if (rr < r) r = rr; }
       area += 2*r*r/(1 - r*r)*(2*Math.PI/N); maxr = Math.max(maxr, r); bd.push(mob([r*u[0], r*u[1]], p0, -1)); }
-    return { p0, bd, area, orbit: pts.length, maxr, Rlim: R }; }
-  function build() {   // adaptive radius: complete once R >= 2 * (hyperbolic circumradius of the cell) + margin
-    const mk = escapeMarker(); if (!mk) return null; let R = 3, C = null;
-    for (let it = 0; it < 14; it++) { C = cellFrom(mk.p, R, 2048); const H = C.maxr < 1 ? 2*Math.atanh(C.maxr) : Infinity; if (R >= 2*H + 0.2) break; R = isFinite(H) ? Math.max(R*1.25, 2*H + 0.5) : R*1.4; }
-    if (C.maxr > 0.95) C = cellFrom(mk.p, C.Rlim, 16384);   /* long thin arms near the rim: finer angular sampling */
-    C.label = mk.label; return C; }
-  window.E96VOR = () => { if (!VC) VC = build(); return VC && { area: VC.area, areaTarget: 4*Math.PI*((2 - (T.nCycles - T.nPairs + 1))/2 - 1), orbit: VC.orbit, maxRadius: VC.maxr, Rlim: VC.Rlim, label: VC.label }; };
+    return { bd, area, maxr }; }
+  function fromPoly(P) {   // precomputed escape-centered Dirichlet polygon (offline, e.g. PP61 escape_polygon.json): sample each geodesic side
+    const V = P.vertices, bd = [];
+    for (let i = 0; i < V.length; i++) { const u = V[i], v = V[(i + 1) % V.length], w = mob(v, u, 1); for (let s = 0; s < 24; s++) { const t = s/24; bd.push(mob([t*w[0], t*w[1]], u, -1)); } }
+    return { p0: P.p0, bd, area: P.area, orbit: 0, maxr: Math.tanh(P.max_dist_from_p0/2), Rlim: null, tiles: null, label: 'offline polygon (' + V.length + ' sides)' }; }
+  function build() {   // tiles h(D) in order of the distance of h(0) to p0 (shells of width 0.75); orbit points h(p0); stop when the cell's area = 4 pi (g - 1)
+    if (window.E96ESCPOLY) return fromPoly(window.E96ESCPOLY);
+    const mk = escapeMarker(); if (!mk) return null; const p0 = mk.p, target = 4*Math.PI*((2 - (T.nCycles - T.nPairs + 1))/2 - 1);
+    const hyp = z => { const d = 1 - (z[0]*z[0] + z[1]*z[1]); return Math.round(2*z[0]/d*1e3) + ',' + Math.round(2*z[1]/d*1e3); };
+    const seen = new Set([hyp([0, 0])]), pts = [], front = [{ h: I2, d: hdist([0, 0], p0) }]; if (hdist(p0, p0) === 0) {}
+    let R = 1.5, C = null, it = 0;
+    while (it++ < 40) {
+      const keep = []; for (let qi = 0; qi < front.length; qi++) { const t = front[qi]; if (t.d > R + RD) { keep.push(t); continue; }
+        const z = ap(t.h, p0); if (hdist(z, p0) > 1e-9) pts.push(z);
+        for (let a = 0; a < NF; a++) { const h = comp(t.h, FGf[a]), c = ap(h, [0, 0]), key = hyp(c); if (seen.has(key)) continue; seen.add(key); front.push({ h, d: hdist(c, p0) }); } }
+      front.length = 0; for (const t of keep) front.push(t);
+      C = cellOf(p0, pts, 2048); const rel = (C.area - target)/target;
+      if (C.maxr < 1 && Math.abs(rel) < 2e-3) { const F = cellOf(p0, pts, 16384); if (Math.abs((F.area - target)/target) < 1e-4 || it > 30) { C = F; break; } }
+      if (seen.size > 400000) break; R += 0.75; }
+    return Object.assign(C, { p0, orbit: pts.length, Rlim: R, tiles: seen.size, label: mk.label }); }
+  window.E96VOR = () => { if (!VC) VC = build(); return VC && { area: VC.area, areaTarget: 4*Math.PI*((2 - (T.nCycles - T.nPairs + 1))/2 - 1), orbit: VC.orbit, maxRadius: VC.maxr, Rlim: VC.Rlim, tiles: VC.tiles, label: VC.label }; };
   const _dO = drawOverlay;
   drawOverlay = function () { _dO.apply(this, arguments); if (!ON) return; if (!VC) VC = build(); if (!VC) return;
     let best = null, bdist = Infinity;

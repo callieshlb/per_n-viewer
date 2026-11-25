@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261125205133').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125211442').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '', PREP = null;
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -41,12 +41,12 @@
     if ($('b_ppgrid')) { $('b_ppgrid').classList.toggle('on', !!cur.preper); $('b_ppgrid').innerHTML = cur.preper ? `PrePer<sub>${cur.preper.k},${cur.preper.n}</sub> ▾` : 'PrePer<sub>k,n</sub> ▾';
       document.querySelectorAll('#ppgrid td.on').forEach(td => td.classList.toggle('cur', td.dataset.id === id)); }
     document.body.classList.toggle('about', cur.kind === 'about');
-    if (cur.kind === 'about') { $('kind').textContent = ''; $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125205133'; history.replaceState(null, '', location.pathname); $('status').textContent = 'Choose a curve above.'; return; }
+    if (cur.kind === 'about') { $('kind').textContent = ''; $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125211442'; history.replaceState(null, '', location.pathname); $('status').textContent = 'Choose a curve above.'; return; }
     const I = cur.info || {};
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125205133'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125211442'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = (cur.preper ? `Marked orbit ω = 0 → ∞ → 1 → … lands on a ${cur.preper.n}-cycle at w${cur.preper.k}; polynomials z² + c here are Misiurewicz (0 has preperiod ${cur.preper.k}, period ${cur.preper.n}).\n` : `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n`) + `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -145,14 +145,15 @@
     let comp = '';
     if (f.kind === 'capture' && cur.preper) comp = `in a landing disc: the free critical point ω′ is attracted to the landing cycle w${cur.preper.k} … (phase ${f.phase})`;
     PREP = null;
-    if (f.kind === 'capture' && !cur.preper && cur.kind !== 'hyperbolic' && sel.p) { const C = PM.captureCentre(cur.family, cur.n, sel.p, f);
+    if (cur.family === 'sym') comp = f.kind === 'capture' ? `the critical points ±1 are attracted to the fixed point ∞ (time ${f.t}); as in PrePer_{2,1} at t = k², the landing region` : f.kind === 'cycle' ? `the critical points ±1 are attracted to a cycle of period ${f.period} (by the symmetry z ↦ −z, −1 follows the orbit of 1 up to sign)` : 'undecided: bifurcation locus (or beyond the iteration count)';
+    else if (f.kind === 'capture' && !cur.preper && cur.kind !== 'hyperbolic' && sel.p) { const C = PM.captureCentre(cur.family, cur.n, sel.p, f);
       if (C && C.preperiod >= 2 && man.models.some(q => q.id === `pp${C.preperiod}${cur.n}`)) PREP = { k: C.preperiod, n: cur.n, center: C.center };   // addendum (ab) (3)
       comp = C ? `capture component: at its center (${cur.param} = ${PM.fmt(C.center, 6)}) ${C.preperiod === 0 ? 'the free critical point IS a' + C.j : 'the free critical point lands on a' + C.j + ' after ' + C.preperiod + ' step' + (C.preperiod === 1 ? '' : 's')}: preperiod ${C.preperiod}, period ${cur.n} (phase ${C.phase})`
                : `captured (phase ${f.phase}); center not found by Newton from here`; }
-    else if (f.kind === 'capture') comp = `captured by the marked cycle (phase ${f.phase})`;
+    else if (f.kind === 'capture' && !cur.preper) comp = `captured by the marked cycle (phase ${f.phase})`;
     if (f.kind === 'capture' && cur.family === 'quad') comp = 'escapes to ∞ (outside the Mandelbrot set)';
     else if (f.kind === 'cycle') comp = f.period === 1 ? 'hyperbolic component with an attracting fixed point (polynomial-like: the free critical point is attracted to a fixed point)' : `hyperbolic component of period ${f.period} (the free critical point is attracted to a ${f.period}-cycle)`;
-    else comp = 'undecided: bifurcation locus (or beyond the iteration count)';
+    else if (f.kind !== 'capture') comp = 'undecided: bifurcation locus (or beyond the iteration count)';   // (captures keep their text above: this else used to overwrite them)
     VIEWM = (cur.family === 'sym' || cur.family === 'slice') ? 0 : cur.preper ? (f.kind === 'cycle' && f.period <= 9 ? f.period : f.kind === 'capture' && cur.n <= 9 ? cur.n : 0) : (f.kind === 'cycle' && f.period <= 9 ? f.period : 0);   // addendum (ab) (2)   // 9: Per_9 wired in 2026-11-12
     $('vin').style.display = VIEWM || PREP ? '' : 'none';
     if (PREP) $('vin').textContent = `View this center in PrePer_{${PREP.k},${PREP.n}} (the other critical point marked)  (v)`;
@@ -202,6 +203,7 @@
     try { $('frame').contentWindow.postMessage({ e96: 'compRays', n: m, ks: ent && m >= 2 ? ent.ks : null, c, go: true }, '*'); } catch (e) {}
   }
   $('cen').onclick = goCenter;
+  window.E96TEST_M = () => M && { marked: M.marked, omega: M.omega, scale: M.scale, A: M.A, D: M.D, E: M.E, maxIt: dv.maxIt, delta: dv.delta, fate: PM.fate(M, M.omega, dv.maxIt, dv.delta, 1e-7) };
   window.E96TEST_tree = () => TREE ? (TREE.arcs ? TREE.arcs.length : (TREE.length !== undefined ? TREE.length : 'set')) : 0;
   window.addEventListener('keydown', e => { if (e.key === 'h' && COMP && e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT' && !e.metaKey && !e.ctrlKey) { e.preventDefault(); goCenter(); } });
   window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'h') goCenter(); });
