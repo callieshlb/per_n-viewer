@@ -31,10 +31,10 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261125044738"></script>
-<script src="pern_math.js?v=20261125044738"></script>
-<script src="pp34_core.js?v=20261125044738"></script>
-<script src="pp34_viewer_core.js?v=20261125044738"></script>
+<script src="conformal_data.js?v=20261125045116"></script>
+<script src="pern_math.js?v=20261125045116"></script>
+<script src="pp34_core.js?v=20261125045116"></script>
+<script src="pp34_viewer_core.js?v=20261125045116"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -43,11 +43,11 @@
   <div style="background:#fff3cd;border:1px solid #e0b84d;border-radius:4px;padding:5px 7px;margin:4px 0 8px;font-size:12px"><b>PP34</b>: all registered checks passed (A1-A3, U1-U6, Euler, C; charts sized by the 2026-11-25 ruling (b), y only). Site chart f(z) = 1 + b/z + a/z<sup>2</sup>, marked critical point 0 &rarr; &infin; &rarr; 1 &rarr; w<sub>3</sub>, landing 4-cycle w<sub>3</sub>..w<sub>6</sub>; genus 5, shown as a branched 4-sheeted cover of the s = a + b line. Numerical model, not a theorem.</div>
   <div class="sub">The compact genus-5 curve uniformized: the disk is its universal cover, every tile is the same Dirichlet polygon, and the picture is conformal. The colors are computed afresh at every screen pixel from (a, b) at that point, as in the 2-D explorer, so zooming in sharpens them. Drag to slide, click to center a point, scroll to magnify.</div>
   <div class="ctrl">
-    <span>Tile edges</span><input type="checkbox" id="ed" checked>
+    <span>Tile edges</span><input type="checkbox" id="ed">
     <span>Edge numbers</span><input type="checkbox" id="lt" checked>
     <span>Markers</span><input type="checkbox" id="mk" checked>
     <span>Marker labels</span><input type="checkbox" id="ml" checked>
-    <span>Real circles</span><input type="checkbox" id="ov2" checked>
+    <span>Real circles</span><input type="checkbox" id="ov2">
     <span style="display:none"></span><input type="checkbox" id="gc" style="display:none">
     <span style="display:none"></span><input type="checkbox" id="g2" style="display:none">
     <span style="display:none"></span><input type="checkbox" id="gm" style="display:none">
@@ -358,7 +358,7 @@ idImg.onload = () => { const c = document.createElement('canvas'); c.width = c.h
 idImg.src = T.ids;
 // ---------- view ----------
 let V = I2, zoom = 1, tiles = [], dirty = true, anim = null;
-const opt = { ed: true, lt: true, mk: true, ml: true, ov2: true, gc: true, gm: false, gp: false, g2: true };
+const opt = { ed: false, lt: true, mk: true, ml: true, ov2: false, gc: true, gm: false, gp: false, g2: true };
 ['ed', 'lt', 'mk', 'ml', 'ov2', 'gc', 'gm', 'gp', 'g2'].forEach(k => { document.getElementById(k).onchange = e => { opt[k] = e.target.checked; dirty = true; }; });
 let W_ = 0, H_ = 0, Rpx = 1, dpr = 1;
 function resize() { dpr = window.devicePixelRatio || 1; W_ = view.clientWidth*dpr; H_ = view.clientHeight*dpr;
