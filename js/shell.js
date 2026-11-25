@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261125054342').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125063443').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '', PREP = null;
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -44,7 +44,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125054342'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125063443'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = (cur.preper ? `Marked orbit ω = 0 → ∞ → 1 → … lands on a ${cur.preper.n}-cycle at w${cur.preper.k}; polynomials z² + c here are Misiurewicz (0 has preperiod ${cur.preper.k}, period ${cur.preper.n}).\n` : `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n`) + `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -138,7 +138,7 @@
   function ppRho(M) { let r = [1, 0]; for (const z of M.marked) { if (!z) return [NaN, NaN]; const z2 = PM.cmul(z, z), d = PM.csub(PM.cdiv([-M.b[0], -M.b[1]], z2), PM.cdiv([2*M.a[0], 2*M.a[1]], PM.cmul(z2, z))); r = PM.cmul(r, d); } return r; }   // landing multiplier, f'(z) = -b/z^2 - 2a/z^3
   function statusText() {
     if (!M) return '';
-    const par = cur.preper && cur.kind === 'hyperbolic' && sel.x && sel.y ? `chart y = ${PM.fmt(sel.y)}   x = ${PM.fmt(sel.x)}   a = ${PM.fmt(M.a)}   b = ${PM.fmt(M.b)}` : (cur.kind !== 'plane') && sel.x && sel.y ? `x = a${M.n - 1} = ${PM.fmt(sel.x)}   y = a3 = ${PM.fmt(sel.y)}${sel.p ? '   (' + cur.param + ' = ' + PM.fmt(sel.p) + ')' : ''}` : `${cur.param} = ${PM.fmt(sel.p)}`;
+    const par = cur.kind === 'slice' ? `a = ${PM.fmt(M.a, 12)}   b = ${PM.fmt(M.b, 12)}` + (sel.slice ? `   (on ${sel.slice.per ? 'Per_' + sel.slice.n + '(0)' : 'PrePer_{' + sel.slice.k + ',' + sel.slice.n + '}'})` : '') : cur.preper && cur.kind === 'hyperbolic' && sel.x && sel.y ? `chart y = ${PM.fmt(sel.y)}   x = ${PM.fmt(sel.x)}   a = ${PM.fmt(M.a)}   b = ${PM.fmt(M.b)}` : (cur.kind !== 'plane') && sel.x && sel.y ? `x = a${M.n - 1} = ${PM.fmt(sel.x)}   y = a3 = ${PM.fmt(sel.y)}${sel.p ? '   (' + cur.param + ' = ' + PM.fmt(sel.p) + ')' : ''}` : `${cur.param} = ${PM.fmt(sel.p)}`;
     const f = PM.fate(M, M.omega, dv.maxIt, dv.delta, 1e-7);
     let comp = '';
     if (f.kind === 'capture' && cur.preper) comp = `in a landing disc: the free critical point ω′ is attracted to the landing cycle w${cur.preper.k} … (phase ${f.phase})`;
@@ -215,6 +215,26 @@
     const post = () => { tries++; if (tries > 150) { clearInterval(VSEND.t); VSEND = null; return; } try { $('frame').contentWindow.postMessage({ e96: 'mark', label, go: true, p, model: id }, '*'); } catch (e) {} };
     VSEND = { label, t: setInterval(post, 1200) }; post();
   }
+  // ---- addendum (ak): "Open in …" from the real slice: the clicked real map (a, b) on the curve's own page
+  window.addEventListener('message', ev => { const d = ev.data; if (!d || d.e96 !== 'slicego') return; const a = [d.a, 0], b = [d.b, 0], tgt = man.models.find(m => m.id === d.id); if (!tgt) return;
+    const label = `≅ ℝ² slice point a = ${d.a.toPrecision(8)}, b = ${d.b.toPrecision(8)}`; let msg = null, note = '';
+    if (!d.per) {
+      if (tgt.kind === 'plane') { const p = PM.ppParam(d.id, a, b); if (p && isFinite(p[0] + p[1])) msg = { p }; }
+      else if (d.id === 'pp33') { const s = PM.cadd(a, b), v = PM.csub(PM.cscale(PM.cmul(s, a), 2), PM.cadd(PM.cadd(PM.cscale(PM.cmul(s, s), 2), PM.cscale(s, 5)), [2, 0])), L = PM.pp33Locate(s, v); if (L) msg = { p: L.u }; }
+      else if (d.id === 'pp52') { const s = PM.cdiv(PM.cadd(b, [1, 0]), a), s1 = PM.cadd(s, [1, 0]), q = PM.cmul(PM.cmul(s1, PM.cadd(PM.cscale(s, 3), [2, 0])), PM.cadd(PM.cadd(PM.cscale(PM.cmul(s, s), 2), PM.cscale(s, 2)), [1, 0])),
+          num = PM.cadd(PM.cadd(PM.cadd(PM.cscale(PM.cmul(PM.cmul(s, s), s), 7), PM.cscale(PM.cmul(s, s), 9)), PM.cscale(s, 5)), [1, 0]), v = PM.cdiv(PM.csub(PM.cscale(PM.cmul(a, q), 2), num), s1), L = PM.pp52Locate(s, v); if (L) msg = { p: L.u }; }
+      else if (tgt.kind === 'hyperbolic') { const s = PM.cadd(a, b), s1 = PM.cadd(s, [1, 0]); let y = s, x = null;
+        if (d.id === 'pp24') x = PM.cmul(PM.cmul(s1, s1), a); else if (d.id === 'pp34') x = PM.cmul(PM.cmul(s, PM.cadd(PM.cadd(PM.cscale(PM.cmul(s, s), 2), PM.cscale(s, 4)), [1, 0])), a);
+        else if (d.id === 'pp43') x = PM.cmul(PM.cmul(s, s1), a); else if (d.id === 'pp51') { y = PM.cdiv([1, 0], PM.csub(s, [1, 0])); const y2 = PM.cmul(y, y); x = PM.cmul(PM.cmul(PM.cmul(PM.cmul(s, s1), s1), a), PM.cmul(y2, y2)); }
+        if (x) { msg = { x, y, ab: [a, b] }; note = ' (the disk page shows the map; locating it in the disk is not available on these pages yet)'; } } }
+    else {   // Per_n: the periodic critical point omega = 0 becomes the marked one (PM.transfer, as "View in Per_m")
+      const Mt = { n: d.n, A: [1, 0], B: b, C: a, D: [1, 0], E: [0, 0], F: [0, 0], a, b, omega: [0, 0], marked: [PM.cdiv(PM.cscale(a, -2), b)] }, T = PM.transfer(Mt, d.n);
+      if (T) msg = tgt.kind === 'plane' ? { p: T.p } : tgt.kind === 'torus' ? (L => L ? { p: L.u } : null)(PM.torusLocate(T.x, T.y)) : { x: T.x, y: T.y }; }
+    if (!msg) { $('status').textContent += `\nOpen in ${tgt.titleText}: this point could not be placed in that page's chart`; return; }
+    choose(d.id); handleParam(Object.assign({ e96: 'param', label, keepCard: true }, msg)); $('status').textContent += `\nThe real map clicked on the ℝ² slice (a = ${d.a}, b = ${d.b}).` + note;
+    clearInterval(VSEND && VSEND.t); let tries = 0;
+    const post = () => { tries++; if (tries > 150) { clearInterval(VSEND.t); VSEND = null; return; } try { $('frame').contentWindow.postMessage(Object.assign({ e96: 'mark', label, go: true, model: d.id }, msg), '*'); } catch (e) {} };
+    VSEND = { label, t: setInterval(post, 1200) }; post(); });
   // PrePer pages: transfer's a0 must be the old marked critical point omega = w_0 (the tail's first point), not the landing-cycle point
   function viewM() {
     if (PREP && cur && !cur.preper) { viewPrePer(); return; }
@@ -261,14 +281,14 @@
     if (d0 && d0.e96 === 'param' && cur) handleParam(d0);
   });
   function handleParam(d) {
-    const q = { p: d.p, x: d.x, y: d.y, ab: d.ab };
+    const q = { p: d.p, x: d.x, y: d.y, ab: d.ab, slice: d.slice };
     const fam = cur.kind === 'hyperbolic' && !cur.preper ? 'cor' : cur.family;
     const m = PM.mapFrom(fam, cur.n, q);
     const finite = m && [m.A, m.B, m.C, m.D, m.E, m.F, m.omega].every(z => isFinite(z[0]) && isFinite(z[1]));
     if (!finite) { $('status').textContent = `${cur.titleText}: the map degenerates at this point (puncture); the dynamical plane keeps the previous map`;
       const mk0 = parseMarker(d); if (mk0) showMarker(mk0); TREE = null; dv.redraw(); return; }
     SVIEW = null; if (SPHR) { SPHR = null; $('sphl').textContent = 'new map: press find (u) again'; }
-    M = m; sel = { p: d.p || null, x: d.x || (m.x || null), y: d.y || (m.y || null), label: d.label, raw: !!d.raw, amb: d.amb || 0 };
+    M = m; sel = { slice: d.slice || null, p: d.p || null, x: d.x || (m.x || null), y: d.y || (m.y || null), label: d.label, raw: !!d.raw, amb: d.amb || 0 };
     if (cur.family === 'quad' || cur.family === 'per2') { sel.x = null; sel.y = null; }
     $('dhint').style.display = 'none'; dynRays(); polyView(); fit(); $('status').textContent = statusText(); ORB0 = null;
     TREE = null; const mk = parseMarker(d); if (mk) { showMarker(mk); if (mk.kind === 'centre') showTree(mk); } else if (!d.keepCard) hideCard();

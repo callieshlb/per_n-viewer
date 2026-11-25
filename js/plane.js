@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261125054342').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125063443').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261125054342').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261125063443').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -102,7 +102,10 @@
   }
   const markers = C.centers.map(c => ({ ...c, kind: 'centre' })).concat(C.punctures.filter(p => p.p).map(p => ({ ...p, kind: 'puncture' }))).concat((C.special || []).map(s => ({ ...s, kind: 'special' })));
   const SHAPE = { sq: '#ff9d2e', di: '#00e5ff', tri: '#c78bff', x: '#9e9e9e' };      // PrePer special points (addendum (z))
-  function shapeMark(g, s, m) { const c = SHAPE[m.shape] || '#ccc', r = 5.5; g.beginPath();
+  function shapeMark(g, s, m) { const c = SHAPE[m.shape] || '#ccc', r = 5.5;
+    if (m.shape === 'gr') { g.beginPath(); g.arc(s[0], s[1], r + 1.5, 0, 2*Math.PI); g.lineWidth = 4.5; g.strokeStyle = 'rgba(0,0,0,.8)'; g.stroke(); g.lineWidth = 2.5; g.strokeStyle = '#39e75f'; g.stroke();   // addendum (an): good reduction
+      if (opt.ml) { g.font = '600 11.5px system-ui'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(m.label, s[0] + 10, s[1] + 1); g.fillStyle = '#7dffa0'; g.fillText(m.label, s[0] + 10, s[1] + 1); } return; }
+    g.beginPath();
     if (m.shape === 'sq') g.rect(s[0] - r + 1, s[1] - r + 1, 2*r - 2, 2*r - 2); else if (m.shape === 'di') { g.moveTo(s[0], s[1] - r - 1); g.lineTo(s[0] + r + 1, s[1]); g.lineTo(s[0], s[1] + r + 1); g.lineTo(s[0] - r - 1, s[1]); g.closePath(); }
     else if (m.shape === 'tri') { g.moveTo(s[0], s[1] - r - 1); g.lineTo(s[0] + r + 1, s[1] + r); g.lineTo(s[0] - r - 1, s[1] + r); g.closePath(); } else g.arc(s[0], s[1], r - 1, 0, 2*Math.PI);
     g.fillStyle = c; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();

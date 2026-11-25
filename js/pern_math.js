@@ -368,6 +368,12 @@ var PM = (function () {
     else if (family === 'torus5') { var P = torusXY(q.p); if (!P.x || !P.y) return null; M = corMap(P.x, P.y, 5); }
     else if (family === 'cor') M = corMap(q.x, q.y, n);
     else if (/^pp\d\d$/.test(family)) M = ppMap(family, q.p, q.ab);
+    else if (family === 'slice') {   // addendum (ak): a real point (a, b) of the slice; marking from the curve that was clicked
+      var sa = q.ab[0], sb = q.ab[1], sl = q.slice;
+      if (sl && !sl.per) M = ppMap('pp' + sl.k + sl.n, null, q.ab);
+      else { M = { n: sl ? sl.n : 1, k: 0, A: [1, 0], B: sb, C: sa, D: [1, 0], E: [0, 0], F: [0, 0], a: sa, b: sb };
+        M.omega = cabs(sb) === 0 ? null : cdiv(cscale(sa, -2), sb); var ws = [[0, 0], null]; for (var js = 2; js < (sl ? sl.n : 1); js++) ws.push(js === 2 ? [1, 0] : fz(M, ws[js - 1]));
+        M.tail = []; M.marked = sl ? ws.slice(0, sl.n) : [[0, 0]]; } }
     else throw new Error('unknown family ' + family);
     M.scale = M.marked.map(function (a, j) {
       var m = 1; for (var i = 0; i < M.marked.length; i++) if (i !== j) m = Math.min(m, chord(a, M.marked[i])); return m; });

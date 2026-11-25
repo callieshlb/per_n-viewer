@@ -31,10 +31,10 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261125054342"></script>
-<script src="pern_math.js?v=20261125054342"></script>
-<script src="pp51_core.js?v=20261125054342"></script>
-<script src="pp51_viewer_core.js?v=20261125054342"></script>
+<script src="conformal_data.js?v=20261125063443"></script>
+<script src="pern_math.js?v=20261125063443"></script>
+<script src="pp51_core.js?v=20261125063443"></script>
+<script src="pp51_viewer_core.js?v=20261125063443"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -200,6 +200,7 @@ vec3 liveColourU(int k, vec2 u){
   int bi = 0; float bd = 1e30; for (int j = 0; j < 4; j++) { float dd = length(z[j] - xt); if (dd < bd) { bd = dd; bi = j; } }
   vec2 xr = z[0]; for (int j = 0; j < 4; j++) if (j == bi) xr = z[j];
   for (int it = 0; it < 4; it++) { vec2 dq = qder(c, xr); if (dot(dq, dq) > 0.) xr -= cd(qval(c, xr), dq); }
+  if (length(xr - xt) > 1e-5*(1. + length(xt))) xr = xt;   /* E96 guard: chart x (check C: ~1e-6) when the float32 root strays */
   vec2 x = wh == 1 ? cm(xr, y4) : xr;
   vec2 s1 = s + one, den = cm(y4, cm(s, cm(s1, s1)));
   if (dot(den, den) < 1e-30) return vec3(85., 20., 20.)/255.;
