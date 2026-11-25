@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261125005725').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125011517').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261125005725').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261125011517').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -200,6 +200,10 @@
         g.beginPath(); g.arc(s[0], s[1], d.r || 3, 0, 2*Math.PI); if (d.hollow) { g.fillStyle = 'rgba(0,0,0,.55)'; g.fill(); g.strokeStyle = d.color; g.lineWidth = 1.6; g.stroke(); } else { g.fillStyle = d.color; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 0.8; g.stroke(); } } }
     if (RAYS.length) drawRays(g, W, H);
     if (E.rays) drawPerN(g, W, H);
+    if (E.rays && MISV.length) { g.font = '500 10px system-ui'; g.textBaseline = 'middle'; const lab = opt.ml && MISV.length <= 300;
+      for (const m of MISV) { const s = pv.toScreen(m.p); if (s[0] < -6 || s[1] < -6 || s[0] > W + 6 || s[1] > H + 6) continue;
+        g.beginPath(); g.arc(s[0], s[1], 3.2, 0, 2*Math.PI); g.fillStyle = '#ff9d2e'; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1; g.stroke();
+        if (lab) { g.lineWidth = 2.5; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(m.label, s[0] + 6, s[1]); g.fillStyle = '#ffd39e'; g.fillText(m.label, s[0] + 6, s[1]); } } }
     if ($('mvl') && $('mvl').checked) {                    // vein chains (2026-11-18): f ⊔ g_i -> f ⊔ g_(i+1) in arc order, last -> f ⊔ g; torus: nearest lattice translate
       const G = {}; for (const m of MARKS) if (m.vg) (G[m.vg] = G[m.vg] || []).push(m);
       for (const k in G) { const L = G[k].sort((a, b) => a.vi - b.vi), pts = []; for (const m of L) { let q = m.p.slice(); if (torus && pts.length) { const pr = pts[pts.length - 1]; q[0] -= T5.W1*Math.round((q[0] - pr[0])/T5.W1); q[1] -= T5.W2*Math.round((q[1] - pr[1])/T5.W2); } pts.push(q); }
@@ -219,6 +223,14 @@
       g.beginPath(); g.moveTo(s[0] - 9, s[1]); g.lineTo(s[0] + 9, s[1]); g.moveTo(s[0], s[1] - 9); g.lineTo(s[0], s[1] + 9); g.stroke(); }
   }
   // ---- Per_1: the centers of period n (poly_info_n{n}.json from poly_info_n.py; n = 1 is c = 0)
+  // Misiurewicz (k, n) (REGISTRATION addendum (ad)): data/misiurewicz_kn.json
+  let MIS = null, MISV = [];
+  async function setMis() { const k = +$('misk').value, n = +$('misn').value; if (!k) { MISV = []; $('miscnt').textContent = ''; pv.redraw(); return; }
+    if (!MIS) MIS = await fetch('models/misiurewicz_kn.json').then(r => r.ok ? r.json() : []).catch(() => []);
+    MISV = MIS.filter(q => (k < 0 || q.k === k) && (n < 0 || q.n === n)).map(q => ({ kind: 'mis', k: q.k, n: q.n, p: q.c, label: q.angles.length ? q.angles[0] : `c=${PM.fmt(q.c, 4)}`,
+      title: `Misiurewicz ${q.angles.length ? q.angles[0] : ''} (k, n) = (${q.k}, ${q.n}): z^2 + c, c = ${q.cs[0]} ${q.cs[1].startsWith('-') ? '-' : '+'} ${q.cs[1].replace('-', '')}i`,
+      lines: [`0 has preperiod ${q.k} and period ${q.n} under z^2 + c`, `external angles: ${q.angles.length ? q.angles.join(', ') : 'not in the table (ray period too long)'}`] }));
+    $('miscnt').textContent = `${MISV.length} shown`; pv.redraw(); }
   let PERN = [], PERNn = 0;
   async function setPerN(n) {
     PERNn = n; PERN = [];
@@ -308,7 +320,7 @@
     // a marker shows its census data only
     if (marker) showCard(marker.title, marker.lines); else $('card').style.display = 'none';
     parent.postMessage({ e96: 'param', model: id, p, x, y, label: marker ? marker.title : null,
-      marker: marker ? { kind: E.preper && marker.kind === 'centre' ? 'poly' : marker.kind, label: marker.label, n: marker.n, title: marker.title, lines: marker.lines,
+      marker: marker ? { kind: E.preper && marker.kind === 'centre' ? 'poly' : marker.kind, k: marker.k, mn: marker.kind === 'mis' ? marker.n : undefined, label: marker.label, n: marker.n, title: marker.title, lines: marker.lines,
                          ks: marker.ks || null, thetas: marker.thetas || null, pc: marker.pc || null } : null }, '*');
   }
   const pv = new PlaneView($('view'), {
@@ -323,6 +335,7 @@
       let best = null, bd = 12;
       if (opt.mk) { const [W, H] = pv.size(); for (const o of torus ? lattice(W, H) : [[0, 0]]) for (const m of markers) {
         const q = pv.toScreen([m.p[0] + o[0], m.p[1] + o[1]]), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o }; } } }
+      if (E.rays) for (const m of MISV) { const q = pv.toScreen(m.p), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o: [0, 0] }; } }
       if (E.rays) for (const m of PERN) { if ($('pertun').checked && !m.tuned) continue; const q = pv.toScreen(m.p), d = Math.hypot(q[0] - s[0], q[1] - s[1]); if (d < bd) { bd = d; best = { m, o: [0, 0] }; } }
       if (E.rays && !best) { const r = hitPerRay(s); if (r) best = { m: r, o: [0, 0] }; }
       PERSEL = best && PERN.includes(best.m) ? best.m : null;
@@ -369,7 +382,7 @@
       if (d.go) parent.postMessage({ e96: 'markDone', label: d.label, ok: true, res: 0, tag: d.tag }, '*'); return; }
     if (d && d.e96 === 'goto' && d.label !== undefined) { const m = markers.find(q => q.kind === 'centre' && q.label === String(d.label)); if (m) { pv.ctr = m.p.slice(); pv.redraw(); pick(m.p, m); } return; }
     if (d && d.e96 === 'goto' && d.p) { pv.ctr = d.p.slice(); pv.redraw(); pick(d.p, null); } });
-  if (E.rays) { $('perbox').style.display = ''; $('pern').onchange = e => setPerN(+e.target.value); $('perang').onchange = () => pv.redraw(); $('perrays').onchange = () => pv.redraw(); $('pertun').onchange = () => pv.redraw();
+  if (E.rays) { $('misk').onchange = setMis; $('misn').onchange = setMis; $('perbox').style.display = ''; $('pern').onchange = e => setPerN(+e.target.value); $('perang').onchange = () => pv.redraw(); $('perrays').onchange = () => pv.redraw(); $('pertun').onchange = () => pv.redraw();
     $('raybox').style.display = ''; $('raygo').onclick = () => setRays($('rayin').value);
     $('rayin').addEventListener('keydown', e => { if (e.key === 'Enter') setRays(e.target.value); });
     $('rayclr').onclick = () => { RAYS = []; $('rayout').textContent = ''; parent.postMessage({ e96: 'rays', angles: [] }, '*'); pv.redraw(); }; }

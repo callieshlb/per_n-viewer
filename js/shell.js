@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261125005725').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125011517').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '', PREP = null;
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -44,7 +44,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125005725'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125011517'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = (cur.preper ? `Marked orbit ω = 0 → ∞ → 1 → … lands on a ${cur.preper.n}-cycle at w${cur.preper.k}; polynomials z² + c here are Misiurewicz (0 has preperiod ${cur.preper.k}, period ${cur.preper.n}).\n` : `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n`) + `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -673,7 +673,14 @@
     if (GOTO && mk.label === GOTO.lab) { clearInterval(GOTO.t); GOTO = null; }
     const n = mk.n || cur.n, D = 2**n - 1, esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(mk.lines.join('\n'));
-    if (cur.preper) { $('dcb').innerHTML = ''; $('dcard').style.display = 'block'; return; }   // PrePer pages: census card only (Per_n tools do not apply)
+    if (cur.preper) { $('dcb').innerHTML = ''; $('dcard').style.display = 'block'; return; }
+    if (mk.kind === 'mis') { const B0 = $('dcb'); B0.innerHTML = ''; const id = `pp${mk.k}${mk.mn}`;     // addendum (ad): Misiurewicz point of Per_1 -> PrePer_{k,n}
+      if (man.models.some(q => q.id === id)) { const b = document.createElement('button'); b.className = 'sm'; b.textContent = `Open in PrePer_{${mk.k},${mk.mn}}`;
+        b.onclick = async () => { const C = await fetch(`models/census_${id}.json`).then(r => r.json()), c = mk.p, P = C.centers.find(q => Math.hypot(q.c[0] - c[0], q.c[1] - c[1]) < 1e-8);
+          if (!P) { $('status').textContent += `\nnot found in the PrePer_{${mk.k},${mk.mn}} census`; return; } choose(id); handleParam({ e96: 'param', p: P.p, label: P.title, marker: Object.assign({ kind: 'poly' }, P) });
+          let tries = 0; const t = setInterval(() => { if (++tries > 12) { clearInterval(t); return; } try { $('frame').contentWindow.postMessage({ e96: 'mark', label: P.label, p: P.p, go: true }, '*'); } catch (e) {} }, 900); };
+        B0.appendChild(b); }
+      $('dcard').style.display = 'block'; return; }   // PrePer pages: census card only (Per_n tools do not apply)
     if (mk.kind === 'puncture') { const extra = punctLines(mk); if (extra.length) $('dct').innerHTML += '\n' + esc(extra.join('\n')); }
     if (mk.kind === 'puncture') rescaleLines(mk, n);
     if (mk.kind === 'bitrans') { btCard(mk); $('dcard').style.display = 'block'; return; }
