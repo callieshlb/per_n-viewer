@@ -246,6 +246,8 @@ var PM = (function () {
     if (family === 'pp22') return [cdiv([1, 0], csub([1, 0], t)), [-1, 0]];                              // tau = 1 - 1/a
     if (family === 'pp32') { var a = cdiv([1, 0], cadd(cscale(t, 2), [4, 0])); return [a, [-0.5 - a[0], -a[1]]]; }
     if (family === 'pp31') { var t1 = cadd(t, [1, 0]), q31 = cmul(t1, t1); return [cdiv(t, q31), cdiv([-2*t[0] - 1, -2*t[1]], q31)]; }   // tau = -(t + 1)/t
+    if (family === 'pp41') { var t1 = cadd(t, [1, 0]), q = cmul(cmul(t1, t1), cadd(cmul(t, t), cadd(cscale(t, 2), [2, 0])));         // (4,1): lines a + b = s, v^2 = 1 - 4s^2
+      return [cdiv(cmul(t, cadd(cmul(t, t), cadd(t, [1, 0]))), q), cscale(cdiv(cadd(cmul(cmul(t, t), cadd(cscale(t, 2), [4, 0])), cadd(cscale(t, 4), [1, 0])), q), -1)]; }
     throw new Error('unknown family ' + family);
   }
   // PrePer_{3,3} on the Per_5 torus (addendum (aa)): X = wp(u), w = wp'(u), x = -X - 5/4, s = 1/x, v = w s^2 (w = v x^2), a = (2s^2 + 5s + 2 + v)/(2s), b = s - a
@@ -278,6 +280,8 @@ var PM = (function () {
     if (family === 'pp22') return csub([1, 0], cdiv([1, 0], a));
     if (family === 'pp32') return csub(cdiv([1, 0], cscale(a, 2)), [2, 0]);
     if (family === 'pp31') { var s = cadd(a, b); return cscale(cdiv(cadd(s, [1, 0]), s), -1); }
+    if (family === 'pp41') { var s4 = cadd(a, b), s1 = cadd(s4, [1, 0]), num = csub(cscale(cmul(cmul(s4, s4), a), 2), cmul(cmul(csub(s4, [1, 0]), s1), cadd(cscale(s4, 2), [1, 0])));
+      var v4 = cdiv(num, cmul(s1, s1)), t0 = cdiv(v4, cadd(cscale(s4, 2), [1, 0])); return cdiv([2, 0], csub(t0, [1, 0])); }
     if (family === 'pp33') { var s3 = cadd(a, b), v = csub(cscale(cmul(s3, a), 2), cadd(cadd(cscale(cmul(s3, s3), 2), cscale(s3, 5)), [2, 0])), L = pp33Locate(s3, v); return L ? L.u : null; }
     return null;
   }

@@ -1,5 +1,5 @@
 {
- "built_from": "adb7cb2b",
+ "built_from": "e7eaa54e",
  "preperGenus": {
   "2,1": 0,
   "2,2": 0,
@@ -432,6 +432,41 @@
     "centers": 3,
     "centres": 3,
     "punctures": 3,
+    "circles": 1,
+    "tiling": "No tiling: the curve is a sphere and this chart covers it once."
+   }
+  },
+  {
+   "id": "pp41",
+   "n": 1,
+   "preper": {
+    "k": 4,
+    "n": 1
+   },
+   "short": "PrePer<sub>4,1</sub>",
+   "title": "PrePer<sub>4,1</sub>",
+   "titleText": "PrePer_{4,1}",
+   "kind": "plane",
+   "family": "pp41",
+   "famId": 11,
+   "param": "t",
+   "page": "plane.html?m=pp41",
+   "census": "models/census_pp41.json",
+   "view": {
+    "ctr": [
+     -0.6,
+     0
+    ],
+    "upp": 0.007
+   },
+   "real": true,
+   "normal": "f(z) = 1 + b/z + a/z<sup>2</sup>, a = t(t<sup>2</sup> + t + 1)/q, b = \u2212(2t<sup>3</sup> + 4t<sup>2</sup> + 4t + 1)/q, q = (t + 1)<sup>2</sup>(t<sup>2</sup> + 2t + 2) (\u03c1 = \u22121/(t<sup>2</sup>(t<sup>2</sup> + 2t + 2)): the landing region is around the puncture t = \u221e): marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>4</sub>, period 1; free critical point \u03c9\u2032 = \u22122a/b. Landing multiplier \u03c1 = -1/(t^2*(t^2 + 2*t + 2)).",
+   "about": "Each pixel is a parameter t of this curve, coloured by the fate of the free critical point \u03c9\u2032 (the marked one is in the Julia set). White: the polynomials z<sup>2</sup> + c (\u03c9\u2032 is a fixed critical point); their cards give c and its external angles. Phase colours: landing discs |\u03c1| < 1, where \u03c9\u2032 is attracted to the landing cycle; grey: another attracting cycle. Special points and punctures from preper_build.py (exact equations, puncture = fixed-point multipliers unbounded). ",
+   "info": {
+    "genus": 0,
+    "centers": 7,
+    "centres": 7,
+    "punctures": 7,
     "circles": 1,
     "tiling": "No tiling: the curve is a sphere and this chart covers it once."
    }
