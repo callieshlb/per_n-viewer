@@ -142,15 +142,17 @@ void main(){
       vec2 w = one; bool wi = false; fz(w, wi);
       nm = 3; mk[0] = w; mi[0] = wi; mk[1] = w; mi[1] = wi; fz(mk[1], mi[1]); mk[2] = mk[1]; mi[2] = mi[1]; fz(mk[2], mi[2]);
     }
-    else if ((fam >= 6 && fam <= 9) || fam == 11) {           // PrePer_{k,n} (addendum (z)): marked = landing cycle
-      vec2 one = vec2(1., 0.), a, b; int kk = fam <= 7 ? 2 : (fam == 11 ? 4 : 3), nn = (fam == 6 || fam == 9 || fam == 11) ? 1 : 2;
+    else if ((fam >= 6 && fam <= 9) || fam == 11 || fam == 13 || fam == 14) {           // PrePer_{k,n} (addendum (z)): marked = landing cycle
+      vec2 one = vec2(1., 0.), a, b; int kk = (fam <= 7 || fam == 13) ? 2 : ((fam == 11 || fam == 14) ? 4 : 3), nn = (fam == 6 || fam == 9 || fam == 11) ? 1 : (fam == 13 ? 3 : 2);
       if (fam == 6) { b = cinv(p); a = -b; } else if (fam == 7) { a = cinv(one - p); b = -one; } else if (fam == 8) { a = cinv(2.*p + vec2(4., 0.)); b = vec2(-.5, 0.) - a; }   // addendum (ab) coordinates
+      else if (fam == 13) { vec2 q = cm(p, p) - 2.*p + 2.*one, tm = p - one; a = cd(p - 2.*one, q); b = -cd(cm(tm, tm), q); }   // PrePer_{2,3} (af)
+      else if (fam == 14) { vec2 q = cm(p, p + 2.*one), t2 = cm(p, p); a = cd(cm(p + one, t2 + 3.*p + one), q); b = -cd(2.*t2 + 4.*p + one, q); }   // PrePer_{4,2} (af)
       else if (fam == 9) { vec2 t1 = p + one, q = cm(t1, t1); a = cd(p, q); b = cd(-2.*p - one, q); }
       else { vec2 t1 = p + one, q = cm(cm(t1, t1), cm(p, p) + 2.*p + 2.*one); a = cd(cm(p, cm(p, p) + p + one), q); b = -cd(cm(cm(p, p), 2.*p + 4.*one) + 4.*p + one, q); }   // fam 11: PrePer_{4,1}
       A_ = one; B_ = b; C_ = a; D_ = one; E_ = vec2(0.); F_ = vec2(0.);
       if (dot(b, b) < 1e-30) ok = false; else om = cd(-2.*a, b);
       vec2 w = one; bool wi = false; for (int i = 2; i < 4; i++) { if (i >= kk) break; fz(w, wi); }
-      nm = nn; mk[0] = w; mi[0] = wi; if (nn == 2) { mk[1] = w; mi[1] = wi; fz(mk[1], mi[1]); }
+      nm = nn; mk[0] = w; mi[0] = wi; if (nn >= 2) { mk[1] = w; mi[1] = wi; fz(mk[1], mi[1]); } if (nn == 3) { mk[2] = mk[1]; mi[2] = mi[1]; fz(mk[2], mi[2]); }
     }
     z0 = om;
     if (!ok || dot(om, om) > 1e30 || dot(B_, B_) > 1e30 || dot(C_, C_) > 1e30 || !(dot(om, om) >= 0.)) { o = vec4(85., 20., 20., 255.)/255.; return; }
