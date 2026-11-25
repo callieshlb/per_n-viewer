@@ -1,5 +1,5 @@
 {
- "built_from": "a7da6707",
+ "built_from": "00bfa19b",
  "preperGenus": {
   "2,1": 0,
   "2,2": 0,
@@ -616,6 +616,31 @@
     "punctures": 7,
     "circles": 1,
     "tiling": "Tiling: the plane of u tiled by the period rectangle (the Per<sub>5</sub> lattice); opposite sides are glued."
+   }
+  },
+  {
+   "id": "pp24",
+   "n": 4,
+   "preper": {
+    "k": 2,
+    "n": 4
+   },
+   "short": "PrePer<sub>2,4</sub>",
+   "title": "PrePer<sub>2,4</sub>",
+   "titleText": "PrePer_{2,4}",
+   "kind": "hyperbolic",
+   "family": "pp24",
+   "param": "(s, x)",
+   "page": "models/pp24/index.html",
+   "genus": 2,
+   "source": "2026-11-25-PP24-conformal",
+   "info": {
+    "genus": 2,
+    "centers": 12,
+    "centres": 12,
+    "punctures": 7,
+    "circles": 2,
+    "tiling": "Tiling: the universal cover (Poincar\u00e9 disk) tiled by copies of one Dirichlet polygon for the Fuchsian group (genus 2, area 4\u03c0). Chart: s = a + b, x = (s + 1)<sup>2</sup> a."
    }
   }
  ]

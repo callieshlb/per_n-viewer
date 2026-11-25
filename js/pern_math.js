@@ -347,8 +347,8 @@ var PM = (function () {
     var g1 = g([1, 0]), g2 = g([2, 0]); if (!g1 || !g2) return null; var e1 = csub(g1, [1, 0]), e2 = csub(g2, [1, 0]), b = csub(cscale(e2, 4), e1);
     return { a: csub(cscale(e1, 2), cscale(e2, 4)), b: b };
   }
-  function ppMap(family, t) {
-    var k = +family[2], n = +family[3], ab = family === 'pp33' ? pp33AB(t) : family === 'pp52' ? pp52AB(t) : ppAB(family, t); if (!ab) return null; var a = ab[0], b = ab[1];
+  function ppMap(family, t, abIn) {   // abIn: (a, b) given directly (hyperbolic PrePer models post them, e.g. PP24)
+    var k = +family[2], n = +family[3], ab = abIn || (family === 'pp33' ? pp33AB(t) : family === 'pp52' ? pp52AB(t) : ppAB(family, t)); if (!ab) return null; var a = ab[0], b = ab[1];
     var M = { n: n, k: k, A: [1, 0], B: b, C: a, D: [1, 0], E: [0, 0], F: [0, 0], a: a, b: b };
     M.omega = cabs(b) === 0 ? null : cdiv(cscale(a, -2), b);
     var w = [[0, 0], null, [1, 0]]; for (var j = 3; j < k + n; j++) w.push(fz(M, w[j - 1]));
@@ -367,7 +367,7 @@ var PM = (function () {
     else if (family === 'cor4') M = corMap(q.p, q.p, 4);
     else if (family === 'torus5') { var P = torusXY(q.p); if (!P.x || !P.y) return null; M = corMap(P.x, P.y, 5); }
     else if (family === 'cor') M = corMap(q.x, q.y, n);
-    else if (/^pp\d\d$/.test(family)) M = ppMap(family, q.p);
+    else if (/^pp\d\d$/.test(family)) M = ppMap(family, q.p, q.ab);
     else throw new Error('unknown family ' + family);
     M.scale = M.marked.map(function (a, j) {
       var m = 1; for (var i = 0; i < M.marked.length; i++) if (i !== j) m = Math.min(m, chord(a, M.marked[i])); return m; });

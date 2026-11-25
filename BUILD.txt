@@ -1,4 +1,4 @@
-Per_n(0) atlas, built by runs/2026-11-09-E96-pern-site/make_site.py at commit a7da6707
+Per_n(0) atlas, built by runs/2026-11-09-E96-pern-site/make_site.py at commit 00bfa19b
 n 3 puncture 0 loop0 x = -10003.0001 + 0i -> inf (distance 1e+04) -> c = 2 + 0i
 n 3 puncture 1 loop0 x = 4.99900005e-05 + 0.009997875474i -> 0 (distance 0.01) -> c = 0 + 0i
 n 4 puncture 0 loop0 y = -40013.00078 + 0i -> inf (distance 4e+04) -> c = 0 + 0i
@@ -30,6 +30,7 @@ pp42: 8 polynomials, 5 punctures, 12 special points (preper_build.py)
 pp41: 7 polynomials, 7 punctures, 5 special points (preper_build.py)
 pp52: 15 polynomials, 10 punctures, 28 special points (preper_build.py)
 pp33: 12 polynomials, 7 punctures, 21 special points (preper_build.py)
-American English applied to 38 files
+pp24: conformal hyperbolic model from 2026-11-25-PP24-conformal (12 polynomials, 7 punctures in marker_info.json)
+American English applied to 40 files
 no src/intro.md: no intro page
-cache-busting stamp 20261125034625
+cache-busting stamp 20261125040948
