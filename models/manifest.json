@@ -1,5 +1,5 @@
 {
- "built_from": "86525f0a",
+ "built_from": "adb7cb2b",
  "preperGenus": {
   "2,1": 0,
   "2,2": 0,
@@ -314,13 +314,13 @@
    "census": "models/census_pp21.json",
    "view": {
     "ctr": [
-     -1.5,
+     0,
      0
     ],
-    "upp": 0.012
+    "upp": 0.009
    },
    "real": true,
-   "normal": "f(z) = 1 + b/z + a/z<sup>2</sup>, a = t, b = \u2212t: marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>2</sub>, period 1; free critical point \u03c9\u2032 = \u22122a/b. Landing multiplier \u03c1 = -t.",
+   "normal": "f(z) = 1 + b/z + a/z<sup>2</sup>, a = \u22121/t, b = 1/t (\u03c1 = 1/t: the landing region |t| > 1 is around the puncture t = \u221e): marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>2</sub>, period 1; free critical point \u03c9\u2032 = \u22122a/b. Landing multiplier \u03c1 = 1/t.",
    "about": "Each pixel is a parameter t of this curve, coloured by the fate of the free critical point \u03c9\u2032 (the marked one is in the Julia set). White: the polynomials z<sup>2</sup> + c (\u03c9\u2032 is a fixed critical point); their cards give c and its external angles. Phase colours: landing discs |\u03c1| < 1, where \u03c9\u2032 is attracted to the landing cycle; grey: another attracting cycle. Special points and punctures from preper_build.py (exact equations, puncture = fixed-point multipliers unbounded). ",
    "info": {
     "genus": 0,
@@ -349,14 +349,14 @@
    "census": "models/census_pp22.json",
    "view": {
     "ctr": [
-     0.4,
+     0,
      0
     ],
-    "upp": 0.004
+    "upp": 0.007
    },
    "real": true,
-   "normal": "f(z) = 1 + b/z + a/z<sup>2</sup>, a = t, b = \u22121: marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>2</sub>, period 2; free critical point \u03c9\u2032 = \u22122a/b. Landing multiplier \u03c1 = (2*t - 1)/t^2.",
-   "about": "Each pixel is a parameter t of this curve, coloured by the fate of the free critical point \u03c9\u2032 (the marked one is in the Julia set). White: the polynomials z<sup>2</sup> + c (\u03c9\u2032 is a fixed critical point); their cards give c and its external angles. Phase colours: landing discs |\u03c1| < 1, where \u03c9\u2032 is attracted to the landing cycle; grey: another attracting cycle. Special points and punctures from preper_build.py (exact equations, puncture = fixed-point multipliers unbounded). t = \u221e is not a puncture: the chart degenerates but the fixed-point multipliers stay bounded (limit -2 + 6.179e-05i, -2 + 0.0001338i, -2 - 0.0001956i): a map of M_2 off this marked curve",
+   "normal": "f(z) = 1 + b/z + a/z<sup>2</sup>, a = 1/(1 \u2212 t), b = \u22121: marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>2</sub>, period 2; free critical point \u03c9\u2032 = \u22122a/b. Landing multiplier \u03c1 = -(t - 1)*(t + 1).",
+   "about": "Each pixel is a parameter t of this curve, coloured by the fate of the free critical point \u03c9\u2032 (the marked one is in the Julia set). White: the polynomials z<sup>2</sup> + c (\u03c9\u2032 is a fixed critical point); their cards give c and its external angles. Phase colours: landing discs |\u03c1| < 1, where \u03c9\u2032 is attracted to the landing cycle; grey: another attracting cycle. Special points and punctures from preper_build.py (exact equations, puncture = fixed-point multipliers unbounded). ",
    "info": {
     "genus": 0,
     "centers": 2,
@@ -419,13 +419,13 @@
    "census": "models/census_pp31.json",
    "view": {
     "ctr": [
-     -1.6,
+     -0.4,
      0
     ],
-    "upp": 0.01
+    "upp": 0.007
    },
    "real": true,
-   "normal": "f(z) = 1 + b/z + a/z<sup>2</sup>, a = \u2212t(1 + t), b = t(2 + t): marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>3</sub>, period 1; free critical point \u03c9\u2032 = \u22122a/b. Landing multiplier \u03c1 = -t^2/(t + 1)^2.",
+   "normal": "f(z) = 1 + b/z + a/z<sup>2</sup>, a = t/(t + 1)<sup>2</sup>, b = \u2212(2t + 1)/(t + 1)<sup>2</sup> (\u03c1 = \u22121/t<sup>2</sup>: the landing region |t| > 1 is around the puncture t = \u221e): marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>3</sub>, period 1; free critical point \u03c9\u2032 = \u22122a/b. Landing multiplier \u03c1 = -1/t^2.",
    "about": "Each pixel is a parameter t of this curve, coloured by the fate of the free critical point \u03c9\u2032 (the marked one is in the Julia set). White: the polynomials z<sup>2</sup> + c (\u03c9\u2032 is a fixed critical point); their cards give c and its external angles. Phase colours: landing discs |\u03c1| < 1, where \u03c9\u2032 is attracted to the landing cycle; grey: another attracting cycle. Special points and punctures from preper_build.py (exact equations, puncture = fixed-point multipliers unbounded). ",
    "info": {
     "genus": 0,
@@ -460,7 +460,7 @@
     "upp": 0.0065
    },
    "real": true,
-   "normal": "f(z) = 1 + b/z + a/z<sup>2</sup>, u on the Per_5 torus: X = \u2118(u), x = \u2212X \u2212 5/4, s = 1/x, v = \u2118\u2032(u) s<sup>2</sup>, a = (2s<sup>2</sup> + 5s + 2 + v)/(2s), b = s \u2212 a: marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>3</sub>, period 3; free critical point \u03c9\u2032 = \u22122a/b.",
+   "normal": "<b>Remark: it\u2019s the same torus as Per<sub>5</sub>!</b> f(z) = 1 + b/z + a/z<sup>2</sup>, u on the Per_5 torus: X = \u2118(u), x = \u2212X \u2212 5/4, s = 1/x, v = \u2118\u2032(u) s<sup>2</sup>, a = (2s<sup>2</sup> + 5s + 2 + v)/(2s), b = s \u2212 a: marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>3</sub>, period 3; free critical point \u03c9\u2032 = \u22122a/b.",
    "about": "Each pixel is a parameter t of this curve, coloured by the fate of the free critical point \u03c9\u2032 (the marked one is in the Julia set). White: the polynomials z<sup>2</sup> + c (\u03c9\u2032 is a fixed critical point); their cards give c and its external angles. Phase colours: landing discs |\u03c1| < 1, where \u03c9\u2032 is attracted to the landing cycle; grey: another attracting cycle. Special points and punctures from preper_build.py (exact equations, puncture = fixed-point multipliers unbounded).  PrePer<sub>3,3</sub> is birational over Q to the Per<sub>5</sub> elliptic curve w<sup>2</sup> = 4X<sup>3</sup> \u2212 (11/4)X + 3/8 (lines a + b = s through its one singular point [1 : \u22121 : 0]); so it is drawn on the same flat torus (dashed seams: the period rectangle; real circles Im u = 0 and Im u = W<sub>2</sub>/2). Census: preper33_build.py, preper33_locate.js.",
    "info": {
     "genus": 1,

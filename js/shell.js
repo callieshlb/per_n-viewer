@@ -3,8 +3,8 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261125002512').then(r => r.json());
-  let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
+  const man = await fetch('models/manifest.json?v=20261125004602').then(r => r.json());
+  let cur = null, M = null, sel = null, frac = 0.55, FACTS = '', PREP = null;
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
     $('left').style.width = x + 'px'; $('split').style.left = x + 'px'; $('right').style.left = (x + 4) + 'px'; }
@@ -19,8 +19,8 @@
   if (PPM.length) { const b = document.createElement('button'); b.innerHTML = 'PrePer<sub>k,n</sub> ▾'; b.id = 'b_ppgrid'; b.title = 'preperiodic curves: choose (k, n)';
     const box = document.createElement('div'); box.id = 'ppgrid'; document.body.appendChild(box); const G = man.preperGenus || {};
     let h = '<div style="margin-bottom:4px"><b>PrePer<sub>k,n</sub></b>: the marked critical point has preperiod k and period n. Click a highlighted cell.</div><table><tr><th>k \\ n</th>';
-    for (let n = 1; n <= 6; n++) h += `<th>${n}</th>`; h += '</tr>';
-    for (let k = 2; k <= 6; k++) { h += `<tr><th>${k}</th>`; for (let n = 1; n <= 6; n++) { const m = PPM.find(q => q.preper.k === k && q.preper.n === n), g = G[`${k},${n}`];
+    for (let n = 1; n <= 10; n++) h += `<th>${n}</th>`; h += '</tr>';
+    for (let k = 2; k <= 10; k++) { h += `<tr><th>${k}</th>`; for (let n = 1; n <= 10; n++) { const m = PPM.find(q => q.preper.k === k && q.preper.n === n), g = G[`${k},${n}`];
         h += m ? `<td class="on" data-id="${m.id}" title="open PrePer_{${k},${n}} (genus ${m.info.genus})">g ${m.info.genus}</td>` : `<td class="off" title="not built yet${g !== undefined ? '; genus ' + g + ' (' + (man.preperGenusSource || '') + ')' : ''}">${g !== undefined ? 'g ' + g : ''}</td>`; }
       h += '</tr>'; }
     box.innerHTML = h + `</table><div style="margin-top:4px;color:#777">gray: not built yet; genus from ${man.preperGenusSource || '?'}</div>`;
@@ -44,7 +44,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125002512'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125004602'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = (cur.preper ? `Marked orbit ω = 0 → ∞ → 1 → … lands on a ${cur.preper.n}-cycle at w${cur.preper.k}; polynomials z² + c here are Misiurewicz (0 has preperiod ${cur.preper.k}, period ${cur.preper.n}).\n` : `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n`) + `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -142,16 +142,20 @@
     const f = PM.fate(M, M.omega, dv.maxIt, dv.delta, 1e-7);
     let comp = '';
     if (f.kind === 'capture' && cur.preper) comp = `in a landing disc: the free critical point ω′ is attracted to the landing cycle w${cur.preper.k} … (phase ${f.phase})`;
-    else if (f.kind === 'capture' && cur.kind !== 'hyperbolic' && sel.p) { const C = PM.captureCentre(cur.family, cur.n, sel.p, f);
+    PREP = null;
+    if (f.kind === 'capture' && !cur.preper && cur.kind !== 'hyperbolic' && sel.p) { const C = PM.captureCentre(cur.family, cur.n, sel.p, f);
+      if (C && C.preperiod >= 2 && man.models.some(q => q.id === `pp${C.preperiod}${cur.n}`)) PREP = { k: C.preperiod, n: cur.n, center: C.center };   // addendum (ab) (3)
       comp = C ? `capture component: at its center (${cur.param} = ${PM.fmt(C.center, 6)}) ${C.preperiod === 0 ? 'the free critical point IS a' + C.j : 'the free critical point lands on a' + C.j + ' after ' + C.preperiod + ' step' + (C.preperiod === 1 ? '' : 's')}: preperiod ${C.preperiod}, period ${cur.n} (phase ${C.phase})`
                : `captured (phase ${f.phase}); center not found by Newton from here`; }
     else if (f.kind === 'capture') comp = `captured by the marked cycle (phase ${f.phase})`;
     if (f.kind === 'capture' && cur.family === 'quad') comp = 'escapes to ∞ (outside the Mandelbrot set)';
     else if (f.kind === 'cycle') comp = f.period === 1 ? 'hyperbolic component with an attracting fixed point (polynomial-like: the free critical point is attracted to a fixed point)' : `hyperbolic component of period ${f.period} (the free critical point is attracted to a ${f.period}-cycle)`;
     else comp = 'undecided: bifurcation locus (or beyond the iteration count)';
-    VIEWM = !cur.preper && f.kind === 'cycle' && f.period <= 9 ? f.period : 0;   // 9: Per_9 wired in 2026-11-12
-    $('vin').style.display = VIEWM ? '' : 'none';
-    if (VIEWM) $('vin').textContent = VIEWM === cur.n ? `View the involution image in Per_${VIEWM}  (v)` : `View this component's center in Per_${VIEWM}  (v)`;
+    VIEWM = cur.preper ? (f.kind === 'cycle' && f.period <= 9 ? f.period : f.kind === 'capture' && cur.n <= 9 ? cur.n : 0) : (f.kind === 'cycle' && f.period <= 9 ? f.period : 0);   // addendum (ab) (2)   // 9: Per_9 wired in 2026-11-12
+    $('vin').style.display = VIEWM || PREP ? '' : 'none';
+    if (PREP) $('vin').textContent = `View this center in PrePer_{${PREP.k},${PREP.n}} (the other critical point marked)  (v)`;
+    else if (VIEWM && cur.preper) $('vin').textContent = `View this component's center in Per_${VIEWM} (the other critical point marked)  (v)`;
+    else if (VIEWM) $('vin').textContent = VIEWM === cur.n ? `View the involution image in Per_${VIEWM}  (v)` : `View this component's center in Per_${VIEWM}  (v)`;
     return `${cur.titleText}${sel.label ? '  ·  ' + sel.label : ''}   ${par}\n` +
       `f(z) = ((${PM.fmt(M.A, 5)}) z² + (${PM.fmt(M.B, 5)}) z + (${PM.fmt(M.C, 5)})) / ((${PM.fmt(M.D, 5)}) z² + (${PM.fmt(M.E, 5)}) z + (${PM.fmt(M.F, 5)}))\n` +
       (cur.preper ? `landing cycle: ${M.marked.map((a, j) => 'w' + (cur.preper.k + j) + ' = ' + PM.fmt(a, 5)).join(',  ')}   (closes to ${PM.closure(M).toExponential(1)});  ρ = ${PM.fmt(ppRho(M), 5)}`
@@ -201,18 +205,30 @@
   window.addEventListener('message', ev => { if (ev.data && ev.data.e96 === 'key' && ev.data.key === 'h') goCenter(); });
   // ---- "View in Per_m" (REGISTRATION addendum 2026-11-10 (c)): the center of the clicked component, as a point of Per_m (m = period of omega's cycle)
   let VIEWM = 0, VSEND = null;
+  function viewPrePer() {         // addendum (ab) (3): Per_n capture center -> PrePer_{k,n} (marking swapped)
+    const P = PREP, from = cur.titleText, Mc = PM.mapFrom(cur.family, cur.n, { p: P.center }), R = Mc && PM.remarkAB(Mc), id = `pp${P.k}${P.n}`;
+    if (!R) { $('status').textContent += '\nView in PrePer: re-marking failed'; return; }
+    const p = PM.ppParam(id, R.a, R.b); if (!p || !isFinite(p[0] + p[1])) { $('status').textContent += '\nView in PrePer: the point is at ∞ of that chart'; return; }
+    const label = `≅ ${from.replace('(0)', '')} capture center`; choose(id);
+    handleParam({ e96: 'param', label, keepCard: true, p }); $('status').textContent += `\nThe same rational map: the capture center clicked in ${from} (there: ${PM.fmt(P.center, 8)}), now with the free critical point marked (a = ${PM.fmt(R.a, 8)}, b = ${PM.fmt(R.b, 8)}).`;
+    clearInterval(VSEND && VSEND.t); let tries = 0;
+    const post = () => { tries++; if (tries > 150) { clearInterval(VSEND.t); VSEND = null; return; } try { $('frame').contentWindow.postMessage({ e96: 'mark', label, go: true, p }, '*'); } catch (e) {} };
+    VSEND = { label, t: setInterval(post, 1200) }; post();
+  }
+  // PrePer pages: transfer's a0 must be the old marked critical point omega = w_0 (the tail's first point), not the landing-cycle point
   function viewM() {
-    if (!M || !VIEWM || !cur) return; const m = VIEWM, n0 = cur.n, from = cur.titleText, hyp = cur.kind === 'hyperbolic';
+    if (PREP && cur && !cur.preper) { viewPrePer(); return; }
+    if (!M || !VIEWM || !cur) return; const m = VIEWM, n0 = cur.n, from = cur.titleText, hyp = cur.kind === 'hyperbolic', fromPre = !!cur.preper;
     const C = PM.cycleCentre(hyp ? 'cor' : cur.family, n0, hyp ? { x: sel.x, y: sel.y } : { p: sel.p }, m);
     if (!C) { $('status').textContent += `\nView in Per_${m}: the center of this component was not found from here (click nearer its middle).`; return; }
-    const T = PM.transfer(C.M, m); if (!T) { $('status').textContent += `\nView in Per_${m}: transfer failed.`; return; }
+    const T = PM.transfer(fromPre ? Object.assign({}, C.M, { marked: [C.M.tail[0]].concat(C.M.marked.slice(1)) }) : C.M, m); if (!T) { $('status').textContent += `\nView in Per_${m}: transfer failed.`; return; }
     const label = `≅ ${from.replace('(0)', '')}${sel.label ? ' ' + sel.label : ''}`;
-    if (T.n !== n0) choose('per' + T.n);
+    if (T.n !== n0 || fromPre) choose('per' + T.n);
     let msg;
     if (cur.kind === 'plane') msg = { p: T.p };
     else if (cur.kind === 'torus') { const L = PM.torusLocate(T.x, T.y); if (!L) { $('status').textContent += '\ntorus point not found'; return; } msg = { p: L.u }; }
     else msg = { x: T.x, y: T.y };
-    const note = `${m === n0 ? 'Involution image' : 'The same rational map'}: center of the component clicked in ${from}` +
+    const note = `${m === n0 && !fromPre ? 'Involution image' : 'The same rational map'}: center of the component clicked in ${from}` +
       (C.p ? ` (there: ${PM.fmt(C.p, 8)})` : ` (there: x = ${PM.fmt(C.x, 8)}, y = ${PM.fmt(C.y, 8)})`) + `, now with the other critical cycle marked.`;
     handleParam(Object.assign({ e96: 'param', label, keepCard: true }, msg)); $('status').textContent += '\n' + note;
     clearInterval(VSEND && VSEND.t); let tries = 0;

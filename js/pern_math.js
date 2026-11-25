@@ -242,10 +242,10 @@ var PM = (function () {
   // family 'pp' + k + n, parameter t: (2,1) a = t, b = -t; (2,2) a = t, b = -1; (3,2) a = 1/(2t + 4), b = -1/2 - a; (3,1) a = -t(1 + t), b = t(2 + t).
   // marked = the landing cycle w_k .. w_(k+n-1) (so 'capture' = the free critical point is attracted to it); tail = w_0 .. w_(k-1).
   function ppAB(family, t) {
-    if (family === 'pp21') return [t, [-t[0], -t[1]]];
-    if (family === 'pp22') return [t, [-1, 0]];
+    if (family === 'pp21') { var i21 = cdiv([1, 0], t); return [[-i21[0], -i21[1]], i21]; }                 // addendum (ab): tau = -1/a
+    if (family === 'pp22') return [cdiv([1, 0], csub([1, 0], t)), [-1, 0]];                              // tau = 1 - 1/a
     if (family === 'pp32') { var a = cdiv([1, 0], cadd(cscale(t, 2), [4, 0])); return [a, [-0.5 - a[0], -a[1]]]; }
-    if (family === 'pp31') return [cscale(cmul(t, cadd(t, [1, 0])), -1), cmul(t, cadd(t, [2, 0]))];
+    if (family === 'pp31') { var t1 = cadd(t, [1, 0]), q31 = cmul(t1, t1); return [cdiv(t, q31), cdiv([-2*t[0] - 1, -2*t[1]], q31)]; }   // tau = -(t + 1)/t
     throw new Error('unknown family ' + family);
   }
   // PrePer_{3,3} on the Per_5 torus (addendum (aa)): X = wp(u), w = wp'(u), x = -X - 5/4, s = 1/x, v = w s^2 (w = v x^2), a = (2s^2 + 5s + 2 + v)/(2s), b = s - a
@@ -271,6 +271,22 @@ var PM = (function () {
     if (s === null) return wpLocate([-1.25, 0], [0, 2*v]);
     if (cabs(s) === 0) return wpLocate(null);
     var x = cdiv([1, 0], s); return wpLocate([-x[0] - 1.25, -x[1]], cmul(v, cmul(x, x)));
+  }
+  // a, b (site chart) -> the curve's parameter (inverse of ppAB / pp33AB)
+  function ppParam(family, a, b) {
+    if (family === 'pp21') { var i = cdiv([1, 0], a); return [-i[0], -i[1]]; }
+    if (family === 'pp22') return csub([1, 0], cdiv([1, 0], a));
+    if (family === 'pp32') return csub(cdiv([1, 0], cscale(a, 2)), [2, 0]);
+    if (family === 'pp31') { var s = cadd(a, b); return cscale(cdiv(cadd(s, [1, 0]), s), -1); }
+    if (family === 'pp33') { var s3 = cadd(a, b), v = csub(cscale(cmul(s3, a), 2), cadd(cadd(cscale(cmul(s3, s3), 2), cscale(s3, 5)), [2, 0])), L = pp33Locate(s3, v); return L ? L.u : null; }
+    return null;
+  }
+  // swap the marking of a map: the new marked critical point is M.omega; returns {a, b} of 1 + b/z + a/z^2 (T(omega) = 0, T(f omega) = inf, T(f^2 omega) = 1)
+  function remarkAB(M) {
+    var o0 = M.omega, o1 = fz(M, o0), o2 = fz(M, o1); if (o0 === undefined) return null;
+    var T = moebius3([o0, o1, o2], [[0, 0], null, [1, 0]]), Ti = moebius3([[0, 0], null, [1, 0]], [o0, o1, o2]), g = function (z) { return T(fz(M, Ti(z))); };
+    var g1 = g([1, 0]), g2 = g([2, 0]); if (!g1 || !g2) return null; var e1 = csub(g1, [1, 0]), e2 = csub(g2, [1, 0]), b = csub(cscale(e2, 4), e1);
+    return { a: csub(cscale(e1, 2), cscale(e2, 4)), b: b };
   }
   function ppMap(family, t) {
     var k = +family[2], n = +family[3], ab = family === 'pp33' ? pp33AB(t) : ppAB(family, t); if (!ab) return null; var a = ab[0], b = ab[1];
@@ -343,7 +359,11 @@ var PM = (function () {
       if (!ok) continue;
       var Mc = mapFrom(family, n, { p: q }); if (!Mc) continue;
       var fc = fate(Mc, Mc.omega, 400, 1e-6, 1e-9);
-      if (fc.kind === 'capture' && fc.phase === f.phase && fc.t <= tp + 1) return { preperiod: tp, j: jp, center: q, phase: f.phase };
+      if (!(fc.kind === 'capture' && fc.phase === f.phase && fc.t <= tp + 1)) continue;
+      // same component (addendum (ab), 2026-11-25): the segment p -> center stays captured with the same phase (Newton could jump to another component)
+      var same = true; for (var sgi = 1; sgi < 24 && same; sgi++) { var qq = cadd(p, cscale(csub(q, p), sgi/24)), Mq = mapFrom(family, n, { p: qq });
+        var fq = Mq ? fate(Mq, Mq.omega, 600, 1e-6, 1e-9) : null; if (!fq || fq.kind !== 'capture' || fq.phase !== f.phase) same = false; }
+      if (same) return { preperiod: tp, j: jp, center: q, phase: f.phase };
     }
     return null;
   }
@@ -490,6 +510,6 @@ var PM = (function () {
   function fateText(f) { return f.kind === 'capture' ? 'captured by the marked cycle, phase ' + f.phase + ', time ' + f.t
     : f.kind === 'cycle' ? 'attracting cycle, period ' + f.period : 'undecided (bifurcation locus)'; }
   return { cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY, torusLocate: torusLocate,
-           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, bitransFactors: bitransFactors, bitransPhiFrom: bitransPhiFrom, bitransDiff: bitransDiff, punctureInfo: punctureInfo, pp33AB: pp33AB, pp33Locate: pp33Locate, wpLocate: wpLocate, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
+           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, bitransFactors: bitransFactors, bitransPhiFrom: bitransPhiFrom, bitransDiff: bitransDiff, punctureInfo: punctureInfo, ppParam: ppParam, remarkAB: remarkAB, pp33AB: pp33AB, pp33Locate: pp33Locate, wpLocate: wpLocate, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
 })();
 if (typeof module !== 'undefined') module.exports = PM;
