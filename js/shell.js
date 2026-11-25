@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261125043118').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125044738').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '', PREP = null;
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -44,7 +44,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125043118'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125044738'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = (cur.preper ? `Marked orbit ω = 0 → ∞ → 1 → … lands on a ${cur.preper.n}-cycle at w${cur.preper.k}; polynomials z² + c here are Misiurewicz (0 has preperiod ${cur.preper.k}, period ${cur.preper.n}).\n` : `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n`) + `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -138,7 +138,7 @@
   function ppRho(M) { let r = [1, 0]; for (const z of M.marked) { if (!z) return [NaN, NaN]; const z2 = PM.cmul(z, z), d = PM.csub(PM.cdiv([-M.b[0], -M.b[1]], z2), PM.cdiv([2*M.a[0], 2*M.a[1]], PM.cmul(z2, z))); r = PM.cmul(r, d); } return r; }   // landing multiplier, f'(z) = -b/z^2 - 2a/z^3
   function statusText() {
     if (!M) return '';
-    const par = cur.preper && cur.kind === 'hyperbolic' && sel.x && sel.y ? `s = a + b = ${PM.fmt(sel.y)}   x = (s + 1)² a = ${PM.fmt(sel.x)}   a = ${PM.fmt(M.a)}   b = ${PM.fmt(M.b)}` : (cur.kind !== 'plane') && sel.x && sel.y ? `x = a${M.n - 1} = ${PM.fmt(sel.x)}   y = a3 = ${PM.fmt(sel.y)}${sel.p ? '   (' + cur.param + ' = ' + PM.fmt(sel.p) + ')' : ''}` : `${cur.param} = ${PM.fmt(sel.p)}`;
+    const par = cur.preper && cur.kind === 'hyperbolic' && sel.x && sel.y ? `s = a + b = ${PM.fmt(sel.y)}   x (chart) = ${PM.fmt(sel.x)}   a = ${PM.fmt(M.a)}   b = ${PM.fmt(M.b)}` : (cur.kind !== 'plane') && sel.x && sel.y ? `x = a${M.n - 1} = ${PM.fmt(sel.x)}   y = a3 = ${PM.fmt(sel.y)}${sel.p ? '   (' + cur.param + ' = ' + PM.fmt(sel.p) + ')' : ''}` : `${cur.param} = ${PM.fmt(sel.p)}`;
     const f = PM.fate(M, M.omega, dv.maxIt, dv.delta, 1e-7);
     let comp = '';
     if (f.kind === 'capture' && cur.preper) comp = `in a landing disc: the free critical point ω′ is attracted to the landing cycle w${cur.preper.k} … (phase ${f.phase})`;

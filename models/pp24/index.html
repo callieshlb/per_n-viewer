@@ -31,10 +31,10 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261125043118"></script>
-<script src="pern_math.js?v=20261125043118"></script>
-<script src="pp24_core.js?v=20261125043118"></script>
-<script src="pp24_viewer_core.js?v=20261125043118"></script>
+<script src="conformal_data.js?v=20261125044738"></script>
+<script src="pern_math.js?v=20261125044738"></script>
+<script src="pp24_core.js?v=20261125044738"></script>
+<script src="pp24_viewer_core.js?v=20261125044738"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -55,7 +55,7 @@
   </div>
   <div class="ctrl">
     <span>Coloring</span><select id="cmode"><option value="1" selected>live dynamics (per pixel)</option><option value="0">mesh colors (old)</option><option value="2">plain surface (no dynamics)</option></select>
-    <span>Parameter iterates</span><span><input type="range" id="pit" min="50" max="3000" step="50" value="600"> <span id="pitv">600</span></span>
+    <span>Parameter iterates</span><span><input type="range" id="pit" min="50" max="3000" step="50" value="2000"> <span id="pitv">2000</span></span>
     <span>Capture radius δ</span><span><input type="range" id="del" min="-5" max="-1" step="0.25" value="-3"> <span id="delv">1e-3</span> (relative)</span>
   </div>
   <div class="legend" id="legend"></div>
@@ -64,7 +64,7 @@
     <button id="gobtn">Go</button><br><span id="gomsg" class="sub"></span></p>
   <datalist id="gotolist"></datalist>
   <details open><summary><b>Polynomials and punctures</b> (click a row, or click a white / red dot in the picture)</summary>
-    <input id="mfilter" size="30" placeholder="filter: 7/30, puncture ..." style="margin:4px 0">
+    <input id="mfilter" size="30" placeholder="filter: puncture, or an angle ..." style="margin:4px 0">
     <div id="mlist"></div></details>
   <p style="margin:6px 0 2px"><b>Where you are</b> <span class="sub">(the Dirichlet polygon; red cross = view center; click to jump)</span></p>
   <canvas id="mini" width="632" height="632"></canvas>
@@ -281,7 +281,7 @@ const LEG = [['#2a78d6', 'captured by the landing 4-cycle, phase 0'], ['#eb6834'
   ['#555555', 'attracting fixed point (polynomial components)'],
   ['#a3a3a3', 'other attracting cycle'], ['#121212', 'undecided: bifurcation locus'], ['#551414', 'too close to a puncture to compute']];
 document.getElementById('legend').innerHTML = LEG.map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
-let liveMode = 1, pit = 600, delta = 1e-3, interacting = false, idleT = null;
+let liveMode = 1, pit = 2000, delta = 1e-3, interacting = false, idleT = null;
 document.getElementById('cmode').onchange = e => { liveMode = +e.target.value; dirty = true; };
 document.getElementById('pit').oninput = e => { pit = +e.target.value; document.getElementById('pitv').textContent = pit; dirty = true; };
 document.getElementById('del').oninput = e => { delta = Math.pow(10, +e.target.value); document.getElementById('delv').textContent = delta.toExponential(0); dirty = true; };
