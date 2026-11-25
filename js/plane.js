@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261125033804').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125034625').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261125033804').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261125034625').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -361,7 +361,7 @@
     // a marker shows its census data only
     if (marker) showCard(marker.title, marker.lines); else $('card').style.display = 'none';
     parent.postMessage({ e96: 'param', model: id, p, x, y, label: marker ? marker.title : null,
-      marker: marker ? { kind: E.preper && marker.kind === 'centre' ? 'poly' : marker.kind, k: marker.k, mn: marker.kind === 'mis' ? marker.n : undefined, label: marker.label, n: marker.n, title: marker.title, lines: marker.lines,
+      marker: marker ? { kind: E.preper && marker.kind === 'centre' ? 'poly' : marker.kind, k: marker.k, mn: marker.kind === 'mis' ? marker.n : undefined, c: marker.c || (marker.kind === 'mis' ? marker.p : undefined), label: marker.label, n: marker.n, title: marker.title, lines: marker.lines,
                          ks: marker.ks || null, thetas: marker.thetas || null, pc: marker.pc || null } : null }, '*');
   }
   const pv = new PlaneView($('view'), {

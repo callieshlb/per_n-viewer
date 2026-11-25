@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261125033804').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125034625').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '', PREP = null;
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -44,7 +44,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125033804'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125034625'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = (cur.preper ? `Marked orbit ω = 0 → ∞ → 1 → … lands on a ${cur.preper.n}-cycle at w${cur.preper.k}; polynomials z² + c here are Misiurewicz (0 has preperiod ${cur.preper.k}, period ${cur.preper.n}).\n` : `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n`) + `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -680,6 +680,14 @@
     if (GOTO && mk.label === GOTO.lab) { clearInterval(GOTO.t); GOTO = null; }
     const n = mk.n || cur.n, D = 2**n - 1, esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
     $('dct').innerHTML = '<b>' + esc(mk.title) + '</b>\n' + esc(mk.lines.join('\n'));
+    if ((mk.kind === 'poly' && cur.preper) || mk.kind === 'mis') {        // addendum (ai): Misiurewicz card
+      const k = mk.kind === 'mis' ? mk.k : cur.preper.k, nn = mk.kind === 'mis' ? mk.mn : cur.preper.n;
+      const angL = (mk.lines || []).find(l => /external angles/.test(l)), angs = angL ? (angL.replace(/^.*: /, '').match(/\d+\/\d+/g) || []) : [];
+      if (angs.length) { try { const t0 = angs.slice().sort((x, y) => { const [a1, b1] = x.split('/').map(Number), [a2, b2] = y.split('/').map(Number); return a1/b1 - a2/b2; })[0];
+          const I = ADDR.misInfo(t0, k, nn, angs.length); if (I) $('dct').innerHTML += '\n' + esc(I.lines.join('\n')); } catch (e) { $('dct').innerHTML += '\n' + esc('(card data not available: ' + e.message + ')'); } }
+      const c = mk.c || mk.p, z = []; if (c) { let w = [0, 0]; for (let i = 0; i <= k + nn; i++) { z.push(`z${i} = ${PM.fmt(w, 6)}`); w = PM.cadd(PM.cmul(w, w), c); } $('dct').innerHTML += '\n' + esc('critical orbit of z² + c: ' + z.join(', ')); }
+      if (mk.kind === 'poly') { $('dcb').innerHTML = ''; const b = document.createElement('button'); b.className = 'sm'; b.textContent = 'Show in Per_1'; b.onclick = () => showInPer1(mk.c, mk.label); $('dcb').appendChild(b); $('dcard').style.display = 'block'; return; }
+    }
     if (cur.preper) { $('dcb').innerHTML = ''; $('dcard').style.display = 'block'; return; }
     if (mk.kind === 'mis') { const B0 = $('dcb'); B0.innerHTML = ''; const id = `pp${mk.k}${mk.mn}`;     // addendum (ad): Misiurewicz point of Per_1 -> PrePer_{k,n}
       if (man.models.some(q => q.id === id)) { const b = document.createElement('button'); b.className = 'sm'; b.textContent = `Open in PrePer_{${mk.k},${mk.mn}}`;

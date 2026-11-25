@@ -51,6 +51,39 @@ var ADDR = (function () {
     for (var k = 1; k < addr.length; k++) if (!(addr[k] > addr[k - 1])) return null;
     return { address: addr, angles: ang };
   }
-  return { vein: vein, limb: limb, of: of, fmt: fmt, parse: parse, kneadAddr: kneadAddr };
+  // ---- addendum (ai): Misiurewicz cards. theta = [p, q] (BigInt, lowest terms, q = 2^a * odd, a = k - 1).
+  function digits(th, N) { var p = th[0], q = th[1], d = ''; for (var i = 0; i < N; i++) { p *= 2n; if (p >= q) { d += '1'; p -= q; } else d += '0'; } return d; }
+  function prePer(th) { var q = th[1], a = 0; while (q % 2n === 0n) { q /= 2n; a++; } var m = 1, t = 2n % q; if (q === 1n) return [a, 1]; while (t !== 1n) { t = (t*2n) % q; m++; } return [a, m]; }
+  function kneading(th, N) {        // nu_j = 1 iff 2^(j-1) theta in (theta/2, (theta+1)/2), '*' on the boundary
+    var p = th[0], q = th[1], x = p, out = [];
+    for (var j = 1; j <= N; j++) { var two = 2n*x; out.push(two === p || two === p + q ? '*' : (two > p && two < p + q ? '1' : '0')); x = (2n*x) % q; }
+    return out;
+  }
+  function rhoAddr(nu, maxTerms) {  // Lau-Schleicher: S_0 = 1, S_(i+1) = min { j > S_i : nu_j != nu_(j - S_i) }
+    var A = [1], r = 1; while (A.length < maxTerms) { var j = r + 1; while (j <= nu.length && nu[j - 1] === nu[j - r - 1]) j++; if (j > nu.length) break; A.push(j); r = j; }
+    return A;
+  }
+  function misInfo(thText, k, n, nAngles) {
+    var th = parseAngleBig(thText); if (!th) return null; var pm = prePer(th), a = pm[0], m = pm[1], L = a + 3*m + 24;
+    var nu = kneading(th, L), A = rhoAddr(nu, 24);
+    var V = vein(th, 12), cur = V[0], seq = [cur], i = 0;
+    while (true) { var best = null, bi = -1; for (var j = i + 1; j < V.length; j++) if (!best || V[j].n < best.n) { best = V[j]; bi = j; } if (!best || best.n <= cur.n) break; seq.push(best); cur = best; i = bi; }
+    var ang = []; for (var t = 0; t + 1 < seq.length; t++) { var q2 = Math.floor(seq[t + 1].n/seq[t].n) + 2; ang.push(limb(seq[t], th, Math.max(2, q2))); }
+    var ad = fmt({ address: seq.map(function (w) { return w.n; }), angled: ang });
+    var dg = digits(th, a + m), ren = [];
+    seq.forEach(function (W) { var p = W.n; if (p < 2 || a % p || m % p) return; var wm = bits(W.k0, p), wp = bits(W.k1, p), s = '';
+      for (var b = 0; b < a + m; b += p) { var blk = dg.slice(b, b + p); if (blk === wm) s += '0'; else if (blk === wp) s += '1'; else return; }
+      var pre = s.slice(0, a/p), per = s.slice(a/p), M = (1n << BigInt(per.length)) - 1n, num = (pre ? BigInt('0b' + pre) : 0n)*M + BigInt('0b' + per), den = (1n << BigInt(pre.length))*M, gg = function (x, y) { return y ? gg(y, x % y) : x; }, G = gg(num, den);
+      ren.push(`${W.n === 2 ? 'basilica' : W.n === 3 && W.k0 === 1 ? 'rabbit' : W.n === 3 && W.k0 === 3 ? 'airplane' : W.n === 3 && W.k0 === 5 ? 'co-rabbit' : 'period ' + W.n} (${W.k0}/${W.Q}) ⊥ ${num/G}/${den/G} (.${pre}(${per}))`); });
+    return { preperiod: a, rayPeriod: m, kneading: nu.slice(0, a).join('') + '|' + nu.slice(a, a + m).join(''), address: A, angled: ad, angledComplete: false, renorm: ren,
+      lines: [`external angles: ${nAngles} → ${nAngles === 1 ? 'tip (endpoint: one external ray)' : 'branch point with ' + nAngles + ' arms'}`,
+              `preperiod of the angle ${a} (critical point preperiod ${a + 1}), ray period ${m}, landing period n = ${n}` + (m > n ? ` (ray period > n: c is in the wake of a satellite of a period-${n} component)` : ''),
+              `kneading sequence (angle ${thText}): ${nu.slice(0, a).join('')}|(${nu.slice(a, a + m).join('')})`,
+              `internal address (Lau–Schleicher, from the kneading): ${A.join(' → ')}${A.length >= 24 ? ' → …' : ''}`,
+              `angled internal address of the components on the vein (periods ≤ 12): ${ad}${V.length ? ' → c' : ''}`,
+              ren.length ? `renormalizable: ${ren.join('; ')} (angle = tuning of the second by the first)` : 'not renormalizable by a component of period ≤ 12 on its vein'] };
+  }
+  function parseAngleBig(t) { var m = String(t).trim().match(/^(\d+)\/(\d+)$/); if (!m) return null; var p = BigInt(m[1]), q = BigInt(m[2]), g = function (x, y) { return y ? g(y, x % y) : x; }, d = g(p, q); return [p/d, q/d]; }
+  return { vein: vein, limb: limb, of: of, fmt: fmt, parse: parse, kneadAddr: kneadAddr, misInfo: misInfo, kneading: kneading, prePer: prePer, digits: digits, rhoAddr: rhoAddr };
 })();
 if (typeof module !== 'undefined') module.exports = ADDR;
