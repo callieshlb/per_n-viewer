@@ -40,9 +40,9 @@
   <div>background <select id="bgm"><option value="fate">fate of ω′ under the real map</option><option value="mega">megaPer<sub>n</sub> bands: first n with a<sub>n−1</sub> ≈ x</option><option value="none">none</option></select></div>
   <label style="display:block"><input type="checkbox" id="lab" checked> curve labels</label>
   <div class="sub" style="margin-top:4px">Fate background: period of the attracting cycle that captures ω′ (light colors: 1 gray, 2 rose, 3 green, 4 blue, 5 sand, 6 violet …); dark: none found (300 iterates).
-  Drag to pan, wheel to zoom. <button id="home">Reset view</button></div>
+  Drag to pan; wheel, pinch, double-click (shift: out) or the buttons to zoom. <button id="zin">+</button> <button id="zout">−</button> <button id="home">Reset view</button></div>
 </div>
-<script src="js/pern_math.js?v=20261125172659"></script>
+<script src="js/pern_math.js?v=20261125175414"></script>
 <script>
 'use strict';
 (async function () {
@@ -130,19 +130,25 @@
     if (PICK && PICK.uv) { const p = toPx(...PICK.uv); g.beginPath(); g.arc(p[0], p[1], 6*dpr, 0, 2*Math.PI); g.lineWidth = 2.5*dpr; g.strokeStyle = '#000'; g.stroke(); g.lineWidth = 1.2*dpr; g.strokeStyle = '#fff'; g.stroke(); }
   }
   let TIMER = null, PICK = null;
-  function redraw() { clearTimeout(TIMER); $('busy').textContent = 'computing…'; TIMER = setTimeout(() => { const t0 = performance.now(); compute(); paint(); $('busy').textContent = `${W}×${H} px, ${(performance.now() - t0).toFixed(0)} ms`; window.E96SLICE_READY = true; }, 30); }
+  let SNAP = null;   // last rendered image and its view, for instant pan / zoom previews (Caroline 2026-11-25: "can you allow zoom in R2 slice?")
+  function preview() { if (!SNAP) return; const k = SNAP.V.upp/V.upp, ox = W/2 + (SNAP.V.ca - V.ca)/V.upp - k*W/2, oy = H/2 - (SNAP.V.cb - V.cb)/V.upp - k*H/2;
+    g.fillStyle = '#ddd'; g.fillRect(0, 0, W, H); g.imageSmoothingEnabled = k < 4; g.drawImage(SNAP.c, ox, oy, W*k, H*k); }
+  function redraw(delay) { clearTimeout(TIMER); $('busy').textContent = 'computing…'; TIMER = setTimeout(() => { const t0 = performance.now(); compute(); paint(); $('busy').textContent = `${W}×${H} px, ${(performance.now() - t0).toFixed(0)} ms`; window.E96SLICE_READY = true; const c = document.createElement('canvas'); c.width = W; c.height = H; c.getContext('2d').drawImage(cv, 0, 0); SNAP = { c, V: { ...V } }; }, delay || 30); }
   function resize() { dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(cv.clientWidth*dpr); cv.height = Math.round(cv.clientHeight*dpr); redraw(); }
   window.addEventListener('resize', resize);
+  const zoomAt = (px, py, f) => { const uv = toUV(px, py); V.upp *= f; V.ca = uv[0] - (px - W/2)*V.upp; V.cb = uv[1] + (py - H/2)*V.upp; preview(); redraw(250); };
+  $('zin').onclick = () => zoomAt(W/2, H/2, 0.5); $('zout').onclick = () => zoomAt(W/2, H/2, 2);
+  cv.addEventListener('dblclick', e => { const r = cv.getBoundingClientRect(); zoomAt((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr, e.shiftKey ? 2 : 0.4); });
   $('bgm').onchange = redraw; $('coords').onchange = e => { MEGA = e.target.value === 'mega'; $('megainfo').style.display = MEGA ? '' : 'none'; V = MEGA ? { ca: 0, cb: 0, upp: 0.008 } : { ca: -0.3, cb: -0.6, upp: 0.009 }; PICK = null; redraw(); }; $('lab').onchange = paint; $('home').onclick = () => { V = { ca: -0.3, cb: -0.6, upp: 0.006*1.5/dpr }; redraw(); };
   // ---- pan / zoom
   let drag = null, moved = 0;
   cv.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY, V.ca, V.cb]; moved = 0; cv.setPointerCapture(e.pointerId); });
   cv.addEventListener('pointermove', e => { const r = cv.getBoundingClientRect(), ab = toAB((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr); const uv = toUV((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr); $('coord').textContent = (MEGA ? `x = ${uv[0].toFixed(5)}  y = ${uv[1].toFixed(5)}   ` : '') + `a = ${ab[0].toFixed(5)}  b = ${ab[1].toFixed(5)}`;
     if (!drag) return; const dx = (e.clientX - drag[0])*dpr, dy = (e.clientY - drag[1])*dpr; moved = Math.max(moved, Math.abs(dx) + Math.abs(dy));
-    if (moved > 3) { V.ca = drag[2] - dx*V.upp; V.cb = drag[3] + dy*V.upp; } });
+    if (moved > 3) { V.ca = drag[2] - dx*V.upp; V.cb = drag[3] + dy*V.upp; preview(); } });
   cv.addEventListener('pointerup', e => { const was = drag; drag = null; if (!was) return; if (moved > 3) { redraw(); return; } const r = cv.getBoundingClientRect(); click((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr); });
-  cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(), px = (e.clientX - r.left)*dpr, py = (e.clientY - r.top)*dpr, ab = toAB(px, py), f = Math.exp(e.deltaY*0.0015);
-    V.upp *= f; V.ca = ab[0] - (px - W/2)*V.upp; V.cb = ab[1] + (py - H/2)*V.upp; redraw(); }, { passive: false });
+  cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(), px = (e.clientX - r.left)*dpr, py = (e.clientY - r.top)*dpr, ab = toUV(px, py), f = Math.exp(e.deltaY*0.0015);
+    V.upp *= f; V.ca = ab[0] - (px - W/2)*V.upp; V.cb = ab[1] + (py - H/2)*V.upp; preview(); redraw(250); }, { passive: false });
   // ---- click: nearest kept curve pixel within 6 px, snapped by bisection across the curve
   function exactType(a, b) { const w = [0, null, 1]; for (let j = 3; j <= 12; j++) { const z = w[j - 1]; w.push(z === null ? 1 : z === 0 ? null : 1 + b/z + a/(z*z)); }
     const ch = (u, v) => u === null && v === null ? 0 : u === null ? 1/Math.hypot(1, v) : v === null ? 1/Math.hypot(1, u) : Math.abs(u - v)/Math.sqrt((1 + u*u)*(1 + v*v));

@@ -373,7 +373,11 @@ var PM = (function () {
       if (sl && !sl.per) M = ppMap('pp' + sl.k + sl.n, null, q.ab);
       else { M = { n: sl ? sl.n : 1, k: 0, A: [1, 0], B: sb, C: sa, D: [1, 0], E: [0, 0], F: [0, 0], a: sa, b: sb };
         M.omega = cabs(sb) === 0 ? null : cdiv(cscale(sa, -2), sb); var ws = [[0, 0], null]; for (var js = 2; js < (sl ? sl.n : 1); js++) ws.push(js === 2 ? [1, 0] : fz(M, ws[js - 1]));
-        M.tail = []; M.marked = sl ? ws.slice(0, sl.n) : [[0, 0]]; } }
+        M.tail = []; M.marked = sl ? ws.slice(0, sl.n) : [[0, 0]];
+        if (!sl && M.omega) {   // off every curve: mark the attracting cycle of omega' (if found), so the colors are its basin by phase; else nothing meaningful is marked
+          var zq = M.omega; for (var iq = 0; iq < 2000 && zq; iq++) zq = fz(M, zq); var cyc = null;
+          if (zq) for (var pq = 1; pq <= 16 && !cyc; pq++) { var z2 = zq, okq = true, pts = [zq]; for (var jq = 0; jq < pq; jq++) { z2 = fz(M, z2); if (!z2) { okq = false; break; } if (jq < pq - 1) pts.push(z2); } if (okq && chord(z2, zq) < 1e-9) cyc = pts; }
+          M.marked = cyc || [[1, 0]]; M.n = M.marked.length; M.sliceNote = cyc ? 'off the drawn curves: no relation on ω; marked here = the attracting ' + cyc.length + '-cycle of ω′, colors = its basin by phase' : 'off the drawn curves: no relation on ω and no attracting cycle of ω′ found; the colors are not meaningful here'; } } }
     else throw new Error('unknown family ' + family);
     M.scale = M.marked.map(function (a, j) {
       var m = 1; for (var i = 0; i < M.marked.length; i++) if (i !== j) m = Math.min(m, chord(a, M.marked[i])); return m; });
