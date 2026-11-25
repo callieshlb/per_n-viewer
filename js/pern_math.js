@@ -248,8 +248,32 @@ var PM = (function () {
     if (family === 'pp31') return [cscale(cmul(t, cadd(t, [1, 0])), -1), cmul(t, cadd(t, [2, 0]))];
     throw new Error('unknown family ' + family);
   }
+  // PrePer_{3,3} on the Per_5 torus (addendum (aa)): X = wp(u), w = wp'(u), x = -X - 5/4, s = 1/x, v = w s^2 (w = v x^2), a = (2s^2 + 5s + 2 + v)/(2s), b = s - a
+  function pp33AB(u) {
+    var W = wp(u); if (!W) return null; var x = [-W[0][0] - 1.25, -W[0][1]]; if (cabs(x) < 1e-300) return null;
+    var s = cdiv([1, 0], x), s2 = cmul(s, s), v = cmul(W[1], s2);
+    var a = cdiv(cadd(cadd(cadd(cscale(s2, 2), cscale(s, 5)), [2, 0]), v), cscale(s, 2)); return [a, csub(s, a)];
+  }
+  // u with wp(u) = X, wp'(u) = r (Newton from a grid, as torusLocate); X = null: u = 0
+  function wpLocate(X, r) {
+    if (X === null) return { u: [0, 0], err: 0 };
+    var best = null, bd = Infinity;
+    for (var i = 0; i < 10; i++) for (var j = 0; j < 10; j++) {
+      var u = [(i + .5)/10*T5.W1, (j + .5)/10*T5.W2];
+      for (var it = 0; it < 60; it++) { var w = wp(u); if (!w) break; var du = cdiv(csub(w[0], X), w[1]); u = csub(u, du); if (cabs(du) < 1e-15) break; }
+      var w2 = wp(u); if (!w2) continue; var e = cabs(csub(w2[0], X))/(1 + cabs(X)); if (e > 1e-10) continue;
+      var su = cabs(csub(w2[1], r)) <= cabs(cadd(w2[1], r)) ? u : [-u[0], -u[1]];
+      su = [su[0] - T5.W1*Math.floor(su[0]/T5.W1), su[1] - T5.W2*Math.floor(su[1]/T5.W2)];
+      var w3 = wp(su), d = cabs(csub(w3[1], r))/(1 + cabs(r)) + e; if (d < bd) { bd = d; best = su; } }
+    return best ? { u: best, err: bd } : null;
+  }
+  function pp33Locate(s, v) {      // place (s, v) of v^2 = -s(2s + 1)(2s^2 + 7s + 4); s = null: s = inf with v ~ sign*2i s^2 (v = sign)
+    if (s === null) return wpLocate([-1.25, 0], [0, 2*v]);
+    if (cabs(s) === 0) return wpLocate(null);
+    var x = cdiv([1, 0], s); return wpLocate([-x[0] - 1.25, -x[1]], cmul(v, cmul(x, x)));
+  }
   function ppMap(family, t) {
-    var k = +family[2], n = +family[3], ab = ppAB(family, t), a = ab[0], b = ab[1];
+    var k = +family[2], n = +family[3], ab = family === 'pp33' ? pp33AB(t) : ppAB(family, t); if (!ab) return null; var a = ab[0], b = ab[1];
     var M = { n: n, k: k, A: [1, 0], B: b, C: a, D: [1, 0], E: [0, 0], F: [0, 0], a: a, b: b };
     M.omega = cabs(b) === 0 ? null : cdiv(cscale(a, -2), b);
     var w = [[0, 0], null, [1, 0]]; for (var j = 3; j < k + n; j++) w.push(fz(M, w[j - 1]));
@@ -466,6 +490,6 @@ var PM = (function () {
   function fateText(f) { return f.kind === 'capture' ? 'captured by the marked cycle, phase ' + f.phase + ', time ' + f.t
     : f.kind === 'cycle' ? 'attracting cycle, period ' + f.period : 'undecided (bifurcation locus)'; }
   return { cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY, torusLocate: torusLocate,
-           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, bitransFactors: bitransFactors, bitransPhiFrom: bitransPhiFrom, bitransDiff: bitransDiff, punctureInfo: punctureInfo, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
+           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, bitransFactors: bitransFactors, bitransPhiFrom: bitransPhiFrom, bitransDiff: bitransDiff, punctureInfo: punctureInfo, pp33AB: pp33AB, pp33Locate: pp33Locate, wpLocate: wpLocate, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
 })();
 if (typeof module !== 'undefined') module.exports = PM;

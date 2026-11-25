@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261124235724').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125002512').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '';
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -14,19 +14,37 @@
       frac = Math.min(0.85, Math.max(0.15, (e.clientX - r.left)/r.width)); layout(); });
     $('split').addEventListener('pointerup', () => { drag = false; $('frame').style.pointerEvents = ''; }); }
   // ---- model menu
+  // PrePer_{k,n}: one menu button opening a (k, n) grid (Caroline 2026-11-25); built cells clickable, the rest show the genus from the table in the manifest
+  const PPM = man.models.filter(m => m.preper);
+  if (PPM.length) { const b = document.createElement('button'); b.innerHTML = 'PrePer<sub>k,n</sub> ▾'; b.id = 'b_ppgrid'; b.title = 'preperiodic curves: choose (k, n)';
+    const box = document.createElement('div'); box.id = 'ppgrid'; document.body.appendChild(box); const G = man.preperGenus || {};
+    let h = '<div style="margin-bottom:4px"><b>PrePer<sub>k,n</sub></b>: the marked critical point has preperiod k and period n. Click a highlighted cell.</div><table><tr><th>k \\ n</th>';
+    for (let n = 1; n <= 6; n++) h += `<th>${n}</th>`; h += '</tr>';
+    for (let k = 2; k <= 6; k++) { h += `<tr><th>${k}</th>`; for (let n = 1; n <= 6; n++) { const m = PPM.find(q => q.preper.k === k && q.preper.n === n), g = G[`${k},${n}`];
+        h += m ? `<td class="on" data-id="${m.id}" title="open PrePer_{${k},${n}} (genus ${m.info.genus})">g ${m.info.genus}</td>` : `<td class="off" title="not built yet${g !== undefined ? '; genus ' + g + ' (' + (man.preperGenusSource || '') + ')' : ''}">${g !== undefined ? 'g ' + g : ''}</td>`; }
+      h += '</tr>'; }
+    box.innerHTML = h + `</table><div style="margin-top:4px;color:#777">gray: not built yet; genus from ${man.preperGenusSource || '?'}</div>`;
+    box.querySelectorAll('td.on').forEach(td => td.onclick = () => { box.style.display = 'none'; choose(td.dataset.id); });
+    b.onclick = e => { const r = b.getBoundingClientRect(); box.style.left = r.left + 'px'; box.style.display = box.style.display === 'block' ? 'none' : 'block'; e.stopPropagation(); };
+    document.addEventListener('click', e => { if (!box.contains(e.target) && e.target !== b) box.style.display = 'none'; });
+    $('models').appendChild(b); }
   for (const m of man.models) {
+    if (m.preper) continue;
     const b = document.createElement('button'); b.innerHTML = m.short; b.id = 'b_' + m.id; b.title = m.titleText || m.id;
     if (m.placeholder) { b.disabled = true; b.title = m.placeholder; } else b.onclick = () => choose(m.id);
     $('models').appendChild(b);
   }
+  if ($('b_ppgrid')) $('models').appendChild($('b_ppgrid'));      // after Per_9
   function choose(id) {
     cur = man.models.find(m => m.id === id); if (!cur) return;
-    for (const m of man.models) $('b_' + m.id).classList.toggle('on', m.id === id);
+    for (const m of man.models) { const el = $('b_' + m.id); if (el) el.classList.toggle('on', m.id === id); }
+    if ($('b_ppgrid')) { $('b_ppgrid').classList.toggle('on', !!cur.preper); $('b_ppgrid').innerHTML = cur.preper ? `PrePer<sub>${cur.preper.k},${cur.preper.n}</sub> ▾` : 'PrePer<sub>k,n</sub> ▾';
+      document.querySelectorAll('#ppgrid td.on').forEach(td => td.classList.toggle('cur', td.dataset.id === id)); }
     const I = cur.info || {};
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261124235724'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125002512'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = (cur.preper ? `Marked orbit ω = 0 → ∞ → 1 → … lands on a ${cur.preper.n}-cycle at w${cur.preper.k}; polynomials z² + c here are Misiurewicz (0 has preperiod ${cur.preper.k}, period ${cur.preper.n}).\n` : `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n`) + `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;

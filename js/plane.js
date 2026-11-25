@@ -2,15 +2,15 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261124235724').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125002512').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261124235724').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261125002512').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
   document.title = E.titleText || id;
   $('legend').innerHTML = GLSL.LEGEND(E.n, E.palette).map(([c, t]) => [c, E.preper ? t.replace('captured, phase', 'attracted to the landing cycle, phase') : t]).map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
-  if (torus) ['gnl', 'gn', 'vil', 'vi', 'sml', 'sm'].forEach(k => { $(k).style.display = ''; });
+  if (torus) (E.preper ? ['sml', 'sm'] : ['gnl', 'gn', 'vil', 'vi', 'sml', 'sm']).forEach(k => { $(k).style.display = ''; });
   const opt = { mk: true, ml: true, gn: false, vi: false, sm: true, rc: false };      // real circles opt-in (Caroline 2026-11-10)
   if (E.real) ['rcl', 'rc'].forEach(k => { $(k).style.display = ''; });
   ['mk', 'ml', 'gn', 'vi', 'sm', 'rc'].forEach(k => { $(k).onchange = e => { opt[k] = e.target.checked; pv.redraw(); }; });
@@ -303,7 +303,7 @@
   function pick(p, marker) {
     picked = p; pv.redraw();
     let x = null, y = null;
-    if (torus) { const P = PM.torusXY(p); x = P.x; y = P.y; }
+    if (torus && !E.preper) { const P = PM.torusXY(p); x = P.x; y = P.y; }
     // Caroline 2026-11-10: no card for plain parameters (the status line below shows the map and the free critical point's fate);
     // a marker shows its census data only
     if (marker) showCard(marker.title, marker.lines); else $('card').style.display = 'none';

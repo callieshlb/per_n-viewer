@@ -108,6 +108,17 @@ void main(){
     else if (fam == 3) corMap(cd(p, vec2(2., 0.) - p), vec2(0.), 3, om);                 // x = c/(2 - c); om = c
     else if (fam == 4) { vec2 y4 = cd(vec2(.1, 0.), p) + vec2(.6180339887498949, 0.); corMap(y4, y4, 4, om); }
     else if (fam == 5) { vec2 x, y; ok = torusXY(p, x, y); if (ok) corMap(x, y, 5, om); }
+    else if (fam == 10) {                      // PrePer_{3,3} on the Per_5 torus (addendum (aa))
+      vec2 one = vec2(1., 0.); bool pole, p1, p2; vec2 X = wpX(p, pole); if (pole) ok = false;
+      vec2 r = csq(4.*cm(X, cm(X, X)) - 2.75*X + vec2(.375, 0.)); float h = 2e-3; vec2 fd = (wpX(p + vec2(h, 0.), p1) - wpX(p - vec2(h, 0.), p2))/(2.*h);
+      if (length(fd - r) > length(fd + r)) r = -r;
+      vec2 x = -X - vec2(1.25, 0.); if (dot(x, x) < 1e-24) ok = false;
+      vec2 s = cinv(x), v = cm(r, cm(s, s)), a = cd(2.*cm(s, s) + 5.*s + 2.*one + v, 2.*s), b = s - a;
+      A_ = one; B_ = b; C_ = a; D_ = one; E_ = vec2(0.); F_ = vec2(0.);
+      if (dot(b, b) < 1e-30) ok = false; else om = cd(-2.*a, b);
+      vec2 w = one; bool wi = false; fz(w, wi);
+      nm = 3; mk[0] = w; mi[0] = wi; mk[1] = w; mi[1] = wi; fz(mk[1], mi[1]); mk[2] = mk[1]; mi[2] = mi[1]; fz(mk[2], mi[2]);
+    }
     else if (fam >= 6 && fam <= 9) {           // PrePer_{k,n} (addendum (z)): marked = landing cycle
       vec2 one = vec2(1., 0.), a, b; int kk = fam <= 7 ? 2 : 3, nn = (fam == 6 || fam == 9) ? 1 : 2;
       if (fam == 6) { a = p; b = -p; } else if (fam == 7) { a = p; b = -one; } else if (fam == 8) { a = cinv(2.*p + vec2(4., 0.)); b = vec2(-.5, 0.) - a; }

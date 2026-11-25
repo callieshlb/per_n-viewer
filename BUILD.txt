@@ -1,4 +1,4 @@
-Per_n(0) atlas, built by runs/2026-11-09-E96-pern-site/make_site.py at commit 68bb3b41
+Per_n(0) atlas, built by runs/2026-11-09-E96-pern-site/make_site.py at commit 86525f0a
 n 3 puncture 0 loop0 x = -10003.0001 + 0i -> inf (distance 1e+04) -> c = 2 + 0i
 n 3 puncture 1 loop0 x = 4.99900005e-05 + 0.009997875474i -> 0 (distance 0.01) -> c = 0 + 0i
 n 4 puncture 0 loop0 y = -40013.00078 + 0i -> inf (distance 4e+04) -> c = 0 + 0i
@@ -25,6 +25,7 @@ pp21: 1 polynomials, 2 punctures, 0 special points (preper_build.py)
 pp22: 2 polynomials, 1 punctures, 2 special points (preper_build.py)
 pp32: 3 polynomials, 2 punctures, 4 special points (preper_build.py)
 pp31: 3 polynomials, 3 punctures, 1 special points (preper_build.py)
-American English applied to 34 files
+pp33: 12 polynomials, 7 punctures, 21 special points (preper_build.py)
+American English applied to 35 files
 no src/intro.md: no intro page
-cache-busting stamp 20261124235724
+cache-busting stamp 20261125002512
