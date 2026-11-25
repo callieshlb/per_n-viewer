@@ -1,5 +1,5 @@
 {
- "built_from": "d8adbb0f",
+ "built_from": "1f3790e8",
  "preperGenus": {
   "2,1": 0,
   "2,2": 0,
@@ -691,6 +691,31 @@
     "punctures": 12,
     "circles": 2,
     "tiling": "Tiling: the universal cover (Poincar\u00e9 disk) tiled by copies of one Dirichlet polygon for the Fuchsian group (genus 4, area 12\u03c0). Chart: y = 1/(s \u2212 1), x = s(s + 1)<sup>2</sup> a y<sup>4</sup>, s = a + b."
+   }
+  },
+  {
+   "id": "pp43",
+   "n": 3,
+   "preper": {
+    "k": 4,
+    "n": 3
+   },
+   "short": "PrePer<sub>4,3</sub>",
+   "title": "PrePer<sub>4,3</sub>",
+   "titleText": "PrePer_{4,3}",
+   "kind": "hyperbolic",
+   "family": "pp43",
+   "param": "(s, x)",
+   "page": "models/pp43/index.html",
+   "genus": 3,
+   "source": "2026-11-25-PP43-conformal",
+   "info": {
+    "genus": 3,
+    "centers": 21,
+    "centres": 21,
+    "punctures": 13,
+    "circles": 2,
+    "tiling": "Tiling: the universal cover (Poincar\u00e9 disk) tiled by copies of one Dirichlet polygon for the Fuchsian group (genus 3, area 8\u03c0). Chart: s = a + b, x = s(s + 1) a."
    }
   }
  ]
