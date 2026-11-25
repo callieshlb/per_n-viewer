@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261125030639').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125031950').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261125030639').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261125031950').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -394,12 +394,13 @@
     $('rayclr').onclick = () => { RAYS = []; $('rayout').textContent = ''; parent.postMessage({ e96: 'rays', angles: [] }, '*'); pv.redraw(); }; }
   if (E.preper) {                           // PrePer_{k,n} pages (addendum (z)): hide the Per_n-only tools
     for (const k of ['bt', 'bta', 'gl', 'gthru']) { const el = $(k), box = el.parentElement.classList.contains('ctrl') ? el : el.parentElement; box.style.display = 'none'; if (box.previousElementSibling) box.previousElementSibling.style.display = 'none'; }
-    for (const k of ['matebox', 'webbox', 'btao', 'globe']) $(k).style.display = 'none';
+    for (const k of ['webbox', 'btao', 'globe']) $(k).style.display = 'none';
+    { const s = $('matebox').querySelector('.sub'); if (s) s.innerHTML = 'f: a polynomial of this curve by its label (an angle, e.g. ' + (C.centers[0] ? C.centers[0].label : '') + '); g: any external angle. Result: yellow star; the vein: f ⊔ g_i for the centers g_i on the arc from z² to g (addendum (ag)).'; }
     const ph = [...document.querySelectorAll('.sub')].find(d => /^Phase k/.test(d.textContent)); if (ph) ph.textContent = 'Coloured: the free critical point ω′ is attracted to the landing cycle w_k … w_(k+n−1) (a landing disc, |ρ| < 1), phase j = which point of the cycle it reaches at times ≡ −j (mod n).';
     $('legend').innerHTML += [['#fff', 'polynomial z² + c (Misiurewicz; ω′ fixed)'], ['#00e5ff', '◆ ρ = 0: center of a landing disc'], ['#ff9d2e', '■ ω′ in the tail of the marked orbit'], ['#c78bff', '▲ the landing cycle collapses (ρ = 1)'], ['#9e9e9e', '● chart degenerates, a map off this curve'], ['#e8173a', 'puncture']].map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
   }
   $('minb').onclick();                      // panel starts collapsed (Caroline 2026-11-10); + expands
-  if (E.n < 2) $('matebox').style.display = 'none';
+  if (E.n < 2 && !E.preper) $('matebox').style.display = 'none';
   $('mvl').onchange = () => pv.redraw(); $('mvlab').onchange = () => pv.redraw();
   window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'veinLabels') { $('mvlab').checked = !!d.on; pv.redraw(); } }); window.addEventListener('message', ev => { const d = ev.data; if (d && d.e96 === 'veinLines') { $('mvl').checked = !!d.on; pv.redraw(); } });
   $('mgo').onclick = () => parent.postMessage({ e96: 'mateReq', label: $('mf').value, angle: $('mg').value, K: $('mvn').checked ? +$('mvk').value || 0 : 0, mis: $('mvm').checked }, '*');

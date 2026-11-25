@@ -76,7 +76,7 @@ var MATE = (function () {
   function mate(cf, cg, opts) {
     opts = opts || {}; var S = opts.S || 200, maxIt = opts.maxIt || 4000;
     var Of = orbitOf(cf), Og = orbitOf(cg); if (!Of || !Og) return { ok: false, why: 'not post-critically finite' };
-    if (Of.F[Of.pts.length - 1] !== 0) return { ok: false, why: 'f: critical point not periodic' };
+    if (Of.F[Of.pts.length - 1] !== 0 && !opts.preper) return { ok: false, why: 'f: critical point not periodic' };   // addendum (ag): preperiodic f allowed on PrePer pages
     var nf = Of.pts.length, ng = Og.pts.length, s = cdiv([1, 0], cf);
     // opts.merge (addendum (u)): rep[i] = index of the representative of g-orbit point i. Points of g's critical orbit that the mating identifies (their
     // rays, seen from f, land at one point of J_f) are tracked as ONE marked point: without this the pullback on the formal mating makes them collide
@@ -136,6 +136,13 @@ var MATE = (function () {
     else if (n === 4) { out.family = 'cor4c'; out.p = cdiv([0.1, 0], csub(y, [(Math.sqrt(5) - 1)/2, 0])); }
     else out.family = n === 5 ? 'torus5' : 'cor';
     return out;
+  }
+  // addendum (ag): the mating on a PrePer curve: marked critical point = f's critical point (Zf[0] = 0); R as a quadratic map; PM.remarkAB, PM.ppParam
+  function toChartPP(m, family) {
+    var M = m.v2 === null ? { A: [1, 0], B: [0, 0], C: cmul(m.mu, m.v1), D: [0, 0], E: [0, 0], F: m.mu }
+                          : { A: m.v2, B: [0, 0], C: cmul(m.mu, m.v1), D: [1, 0], E: [0, 0], F: m.mu };
+    M.omega = [0, 0]; var R = PM.remarkAB(M); if (!R) return null; var p = PM.ppParam(family, R.a, R.b);
+    return p && isFinite(p[0] + p[1]) ? { p: p, a: R.a, b: R.b } : null;
   }
   // Lavaurs' algorithm: the pairs of characteristic angles [k0, k1] / (2^n - 1) of all period-n components, n = 2..P (cached, extended on demand).
   // Smallest unused angle of period n is joined to the next unused angle of period n such that the chord crosses no earlier chord.
@@ -199,6 +206,6 @@ var MATE = (function () {
   // period of the free critical point (infinity) under the mated map m.R (chordal tolerance), or 0
   function omegaPeriod(m, maxP) { var z = null;
     for (var i = 1; i <= (maxP || 40); i++) { z = m.R(z); if (z === null || PM.chord(z, [1e9, 0]) < 1e-7) return i; } return 0; }
-  return { lavaurs: lavaurs, lavaursOld: lavaursOld, centerOf: centerOf, veinList: veinList, omegaPeriod: omegaPeriod, spiderCentre: spiderCentre, pcfFromAngle: pcfFromAngle, orbitOf: orbitOf, mate: mate, toChart: toChart, newtonCentre: newtonCentre };
+  return { lavaurs: lavaurs, lavaursOld: lavaursOld, centerOf: centerOf, veinList: veinList, omegaPeriod: omegaPeriod, spiderCentre: spiderCentre, pcfFromAngle: pcfFromAngle, orbitOf: orbitOf, mate: mate, toChart: toChart, toChartPP: toChartPP, newtonCentre: newtonCentre };
 })();
 if (typeof module !== 'undefined') module.exports = MATE;

@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261125030639').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125031950').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '', PREP = null;
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -44,7 +44,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125030639'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125031950'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = (cur.preper ? `Marked orbit ω = 0 → ∞ → 1 → … lands on a ${cur.preper.n}-cycle at w${cur.preper.k}; polynomials z² + c here are Misiurewicz (0 has preperiod ${cur.preper.k}, period ${cur.preper.n}).\n` : `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n`) + `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -293,6 +293,12 @@
   }
   async function mateFromText(ft, gt, K, useMis) {
     if (!cur) return; const n = cur.n;
+    if (cur.preper) {          // addendum (ag): f = a polynomial of this PrePer curve, by its label or any of its angles
+      const C = await fetch(cur.census).then(r => r.json()), t = String(ft).trim(), q = PM.parseAngle(t);
+      const P = C.centers.find(c => c.label === t) || (q && C.centers.find(c => (c.lines.find(l => l.startsWith('external angles')) || '').replace(/^.*: /, '').split(', ').some(s => { const r = PM.parseAngle(s.trim()); return r && r.p*q.q === q.p*r.q; })));
+      if (!P) { $('status').textContent = `Mating: "${ft}" is not a polynomial of ${cur.titleText} (give its label, e.g. ${C.centers[0].label})`; return; }
+      let vtxt = ''; VG = null; if (K > 0) vtxt = await doVein(P.c, n, P.label, gt, K, useMis !== false);
+      doMate(P.c, n, P.label, gt, null); VG = null; if (vtxt) $('status').textContent += '\n' + vtxt; return; }
     if (n < 2) { $('status').textContent = 'Mating: choose Per_n with n ≥ 2 (in Per_1, z² ⊔ g = g).'; return; }
     const P = await resolveF(ft, n);
     if (!P) { $('status').textContent = `Mating: "${ft}" is not a period-${n} center (give its label k, or either angle k/${2**n - 1})`; return; }
@@ -312,9 +318,9 @@
     const W = $('frame').contentWindow; let ok = 0; const obs = [];
     VG = { id: `${lab}^${a.text}`, end: V.length + 1 }; let vi = 0;     // chain order (2026-11-18): V is sorted by wake width, i.e. along the arc from z² to g
     for (const v of V) { vi++; const cg = MATE.centerOf(v), nm = v.mis ? v.name : `${v.k0}/${v.Q}`; if (!cg) { obs.push(nm + ' (center not found)'); continue; }
-      const m = MATE.mate(cf, cg); if (!m.ok) { obs.push(nm); continue; }
-      const ch = MATE.toChart(m); if (!ch) continue; let msg;
-      if (cur.kind === 'plane') msg = { p: ch.p };
+      const m = MATE.mate(cf, cg, cur.preper ? { preper: true } : {}); if (!m.ok) { obs.push(nm); continue; }
+      const ch = cur.preper ? MATE.toChartPP(m, cur.family) : MATE.toChart(m); if (!ch) continue; let msg;
+      if (cur.kind === 'plane' || cur.preper) msg = { p: ch.p };
       else if (cur.kind === 'torus') { const L = PM.torusLocate(ch.x, ch.y); if (!L) { obs.push(nm + ' (not located)'); continue; } msg = { p: L.u }; }
       else msg = { x: ch.x, y: ch.y };
       W.postMessage(Object.assign({ e96: 'mark', label: nm, vein: true, quiet: true, vg: VG.id, vi }, msg), '*'); ok++; }
@@ -574,13 +580,14 @@
   function doMate(cf, n, lab, text, out) {
     out = out || { set textContent(t) { $('status').textContent = t; } };
     const a = PM.parseAngle(text); if (!a || !cf) { out.textContent = 'enter an angle p/q or binary, e.g. 3/7 or (011)'; return; }
-    const g = MATE.pcfFromAngle(a), m = MATE.mate(cf, g.c), gname = `g = ${g.kind === 'centre' ? 'center' : g.kind} of angle ${a.text} (c = ${PM.fmt(g.c, 6)})`;
+    const g = MATE.pcfFromAngle(a), m = MATE.mate(cf, g.c, cur.preper ? { preper: true } : {}), gname = `g = ${g.kind === 'centre' ? 'center' : g.kind} of angle ${a.text} (c = ${PM.fmt(g.c, 6)})`;
     if (g.kind === 'misiurewicz' && g.moved > 0.05) { out.textContent = `g not found: the parameter ray of ${a.text} did not land well enough (Newton moved ${g.moved.toExponential(1)} from the ray's end)`; return; }
     if (!m.ok) { out.textContent = `not converged: ${m.why} (${gname})`; return; }
-    const ch = MATE.toChart(m), label = `${lab} ⊔ ${a.text}`;
-    if (!ch || cur.n !== n) { out.textContent = `f ⊔ g lies in Per_${n}; open Per_${n} to place it (coming next)`; return; }
+    const ch = cur.preper ? MATE.toChartPP(m, cur.family) : MATE.toChart(m), label = `${lab} ⊔ ${a.text}`;
+    if (cur.preper && !ch) { out.textContent = `${label}: converged, but the result is at ∞ of this chart`; return; }
+    if (!ch || (!cur.preper && cur.n !== n)) { out.textContent = `f ⊔ g lies in Per_${n}; open Per_${n} to place it (coming next)`; return; }
     let msg;
-    if (cur.kind === 'plane') msg = { p: ch.p };
+    if (cur.kind === 'plane' || cur.preper) msg = { p: ch.p };
     else if (cur.kind === 'torus') { const L = PM.torusLocate(ch.x, ch.y); if (!L) { out.textContent = 'torus point not found'; return; } msg = { p: L.u }; }
     else msg = { x: ch.x, y: ch.y };
     $('frame').contentWindow.postMessage(Object.assign({ e96: 'mark', label }, msg, VG ? { vg: VG.id, vi: VG.end } : {}), '*');
