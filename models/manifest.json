@@ -1,5 +1,5 @@
 {
- "built_from": "938a49fd",
+ "built_from": "05117e9d",
  "preperGenus": {
   "2,1": 0,
   "2,2": 0,
@@ -34,25 +34,6 @@
  },
  "preperGenusSource": "the punctures sessions' numerical table (not verifier-checked)",
  "models": [
-  {
-   "id": "about",
-   "n": 0,
-   "short": "About",
-   "title": "About",
-   "titleText": "About",
-   "kind": "about",
-   "family": "about",
-   "param": "",
-   "page": "intro.html",
-   "info": {
-    "genus": "",
-    "centers": "",
-    "centres": "",
-    "punctures": "",
-    "circles": "",
-    "tiling": ""
-   }
-  },
   {
    "id": "per1",
    "n": 1,
