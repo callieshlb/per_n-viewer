@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261125051935').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125052753').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261125051935').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261125052753').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -206,6 +206,7 @@
       for (const d of w.dots) { const s = pv.toScreen([d.p[0] + o[0], d.p[1] + o[1]]); if (s[0] < -6 || s[1] < -6 || s[0] > W + 6 || s[1] > H + 6) continue;
         g.beginPath(); g.arc(s[0], s[1], d.r || 3, 0, 2*Math.PI); if (d.hollow) { g.fillStyle = 'rgba(0,0,0,.55)'; g.fill(); g.strokeStyle = d.color; g.lineWidth = 1.6; g.stroke(); } else { g.fillStyle = d.color; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 0.8; g.stroke(); } } }
     if (RAYS.length) drawRays(g, W, H);
+    if (LR.length) drawLR(g);
     if (E.rays) drawPerN(g, W, H);
     if (E.rays && MISV.length) { g.font = '500 10px system-ui'; g.textBaseline = 'middle'; const lab = opt.ml && MISV.length <= 300;
       for (const m of MISV) { const s = pv.toScreen(m.p); if (s[0] < -6 || s[1] < -6 || s[0] > W + 6 || s[1] > H + 6) continue;
@@ -316,6 +317,34 @@
     RAYS = angs.map(a => ({ a, ...PM.rayWithLanding('param', a, null) }));
     $('rayout').textContent = RAYS.map(r => `${r.a.text}: lands at c = ${PM.fmt(r.landing, 10)}\n  (${r.how}${r.period ? ', angle period ' + r.period : ', preperiodic angle'})`).join('\n');
     parent.postMessage({ e96: 'rays', angles: angs.map(a => a.text) }, '*'); pv.redraw();
+  }
+  // ---- addendum (al): rays in the landing region of PrePer_{k,1} (plane pages), ray (theta, fiber j) in zeta, zeta^d = rho, zeta ~ c/t at t = inf
+  let LR = [];
+  const LRC = ['#ffe650', '#7cf', '#f9a', '#9f9', '#fc6', '#c9f', '#6ff', '#f66'];
+  if (E.preper && E.preper.n === 1 && E.kind === 'plane') {
+    const rT = PM.lrRho(E.family, [1e4, 0]), d = Math.round(-Math.log(PM.cabs(rT))/Math.log(1e4)); $('lrbox').style.display = '';   // local degree of rho at t = inf (1, 2, 4 for k = 2, 3, 4: 2^(k-2))
+    $('lrj').innerHTML = '<option value="all">all</option>' + Array.from({ length: d }, (_, j) => `<option>${j}</option>`).join('');
+    $('lrnote').innerHTML = `ρ has degree d = ${d} at t = ∞: a ray is (θ, fiber j), j = 0 … ${d - 1}, i.e. the ray of angle (θ + j)/${d} in ζ, ζ<sup>${d}</sup> = ρ, ζ ≈ c/t (c the principal root of κ = lim t<sup>${d}</sup>ρ; this fixes which fiber is 0). It lands where ρ = e<sup>2πiθ</sup>: the landing fixed point is parabolic.`;
+    const parseTh = t => { t = t.trim(); if (!t) return null; const m = t.match(/^(\d+)\s*\/\s*(\d+)$/); const v = m ? +m[1]/+m[2] : Number(t); return isFinite(v) ? { v: ((v % 1) + 1) % 1, text: t } : null; };
+    const draw = () => { const ths = $('lra').value.split(',').map(parseTh).filter(Boolean), js = ($('lrsp').checked || $('lrj').value === 'all') ? Array.from({ length: d }, (_, j) => j) : [+$('lrj').value];
+      LR = []; const out = [];
+      ths.forEach((th, ti) => js.forEach(j => { const R = PM.lrRay(E.family, d, th.v, j); R.col = LRC[ti % LRC.length]; R.label = `${th.text}${d > 1 ? ' · ' + j : ''}`;
+        if (R.fail) { out.push(`θ = ${th.text}, fiber ${j}: ${R.fail}`); return; } LR.push(R);
+        out.push({ R, text: `θ = ${th.text}, fiber ${j}: ` + (R.puncture ? `lands on a puncture, t ≈ ${PM.fmt(R.land, 8)}` : `lands at t = ${PM.fmt(R.land, 10)}  (|ρ − e(θ)| ${R.landErr.toExponential(1)})`) }); }));
+      $('lrout').innerHTML = ''; out.forEach(o => { const el = document.createElement('div'); if (typeof o === 'string') { el.textContent = o; } else { el.textContent = o.text; el.style.cursor = 'pointer'; el.title = 'show the landing map';
+          el.onclick = () => { const R = o.R, M = PM.mapFrom(E.family, 1, { p: R.land }), lines = [`t = ${PM.fmt(R.land, 12)}`, `a = ${PM.fmt(M.a, 10)}   b = ${PM.fmt(M.b, 10)}`, `ρ = f′(w${E.preper.k}) = ${PM.fmt(PM.lrRho(E.family, R.land), 10)}`,
+              R.puncture ? 'the ray reaches a puncture (the map degenerates)' : `parabolic: the landing fixed point w${E.preper.k} has multiplier e^(2πi·${o.text.split(',')[0].slice(4)})`, `ray: angle (θ + j)/${d} = ${((R.theta + R.j)/d).toFixed(6)} in ζ`];
+            showCard(`landing point of the ray ${R.label}`, lines); if (!R.puncture) parent.postMessage({ e96: 'param', model: id, p: R.land, label: `landing point of the ray ${R.label}`, keepCard: true }, '*'); }; }
+        $('lrout').appendChild(el); });
+      pv.redraw(); };
+    $('lrgo').onclick = draw; $('lra').onkeydown = e => { if (e.key === 'Enter') draw(); }; $('lrsp').onchange = draw; $('lrclr').onclick = () => { LR = []; $('lrout').innerHTML = ''; pv.redraw(); };
+    window.E96TEST_lr = (a, sp) => { $('lra').value = a; $('lrsp').checked = !!sp; draw(); return LR.map(R => ({ label: R.label, n: R.pts.length, land: R.land, punct: !!R.puncture, pts: R.pts.filter((_, i) => i % Math.max(1, Math.floor(R.pts.length/20)) === 0) })); };
+  }
+  function drawLR(g) {
+    for (const R of LR) { g.beginPath(); R.pts.forEach((q, j) => { const s = pv.toScreen(q); j ? g.lineTo(...s) : g.moveTo(...s); });
+      g.strokeStyle = 'rgba(0,0,0,.7)'; g.lineWidth = 3.5; g.stroke(); g.strokeStyle = R.col; g.lineWidth = 1.8; g.stroke();
+      const s = pv.toScreen(R.land); g.beginPath(); g.arc(s[0], s[1], 4, 0, 2*Math.PI); g.fillStyle = R.puncture ? '#e8173a' : R.col; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1; g.stroke();
+      if (opt.ml) { g.font = '600 12px system-ui'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(R.label, s[0] + 6, s[1] - 8); g.fillStyle = R.col; g.fillText(R.label, s[0] + 6, s[1] - 8); } }
   }
   function showCard(title, lines) {
     const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');

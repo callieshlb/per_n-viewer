@@ -568,7 +568,41 @@ var PM = (function () {
     return f(z[0]) + (z[1] < 0 ? ' − ' : ' + ') + f(Math.abs(z[1])) + 'i'; }
   function fateText(f) { return f.kind === 'capture' ? 'captured by the marked cycle, phase ' + f.phase + ', time ' + f.t
     : f.kind === 'cycle' ? 'attracting cycle, period ' + f.period : 'undecided (bifurcation locus)'; }
-  return { cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY, torusLocate: torusLocate,
+
+  // Addendum (al): rays in the landing region of PrePer_{k,1} (plane families, puncture t = inf). rho(t) = f'(w_k); zeta^d = rho, zeta ~ c/t.
+  function lrRho(family, t) {
+    var M = ppMap(family, t); if (!M) return null; var z = M.marked[0]; if (!z) return null;
+    var z2 = cmul(z, z), r = cadd(cdiv(M.b, z2), cscale(cdiv(M.a, cmul(z2, z)), 2)); return [-r[0], -r[1]];
+  }
+  function lrSolve(family, t, target) {        // Newton on rho(t) = target from t
+    for (var it = 0; it < 60; it++) {
+      var r = lrRho(family, t); if (!r) return null; var e = csub(r, target); if (cabs(e) < 1e-15*(1 + cabs(target))) return t;
+      var h = 1e-7*Math.max(1, cabs(t)), r2 = lrRho(family, cadd(t, [h, 0])); if (!r2) return null;
+      var dr = cscale(csub(r2, r), 1/h); if (cabs(dr) === 0) return null; var dt = cdiv(e, dr);
+      if (cabs(dt) > 0.5*Math.max(1, cabs(t))) dt = cscale(dt, 0.5*Math.max(1, cabs(t))/cabs(dt));
+      t = csub(t, dt); if (!isFinite(t[0] + t[1])) return null;
+    }
+    var rr = lrRho(family, t); return rr && cabs(csub(rr, target)) < 1e-10*(1 + cabs(target)) ? t : null;
+  }
+  function lrRay(family, d, theta, j) {
+    var T = cmul([1e4, 0], [Math.cos(0.3), Math.sin(0.3)]), Td = [1, 0]; for (var i = 0; i < d; i++) Td = cmul(Td, T);
+    var kap = cmul(lrRho(family, T), Td); if (Math.abs(kap[1]) < 1e-3*cabs(kap)) kap = [kap[0], 0];   /* kappa real (all three charts): arg exactly 0 or pi, so the fiber labels are stable */
+    var c = [Math.pow(cabs(kap), 1/d)*Math.cos(Math.atan2(kap[1], kap[0])/d), Math.pow(cabs(kap), 1/d)*Math.sin(Math.atan2(kap[1], kap[0])/d)];
+    var phi = 2*Math.PI*(theta + j)/d, eth = [Math.cos(2*Math.PI*theta), Math.sin(2*Math.PI*theta)];
+    var ls = Math.log(1e-6), r0 = Math.exp(ls), zeta = cscale([Math.cos(phi), Math.sin(phi)], Math.pow(r0, 1/d));
+    var t = lrSolve(family, cdiv(c, zeta), cscale(eth, r0)); if (!t) return { fail: 'start not found' };
+    var pts = [t], maxErr = 0, step = 0.25;
+    while (ls < -1e-9) {
+      var ls2 = Math.min(-1e-9, ls + step), tg = cscale(eth, Math.exp(ls2)), t2 = lrSolve(family, t, tg);
+      if (!t2 || cabs(csub(t2, t)) > 0.15*Math.max(0.05, cabs(t))) { step /= 2; if (step < 1e-9) { var Ms = ppMap(family, t); if (Ms && (cabs(Ms.a) + cabs(Ms.b) > 1e3 || cabs(Ms.a) < 1e-2*Math.max(1, cabs(Ms.b)))) return { pts: pts, land: t, puncture: true, r: Math.exp(ls), landErr: cabs(csub(lrRho(family, t), eth)), maxErr: maxErr, kappa: kap, c: c, theta: theta, j: j, d: d };   /* lands on a puncture (a, b -> inf, or a -> 0: degree drops) */
+        return { pts: pts, fail: 'continuation stalled at r = ' + Math.exp(ls).toPrecision(6) }; } continue; }
+      var e = cabs(csub(lrRho(family, t2), tg)); if (e > maxErr) maxErr = e;
+      t = t2; ls = ls2; pts.push(t); step = Math.min(step*1.5, Math.max(0.02, -ls));
+    }
+    var land = lrSolve(family, t, eth), le = land ? cabs(csub(lrRho(family, land), eth)) : null; if (land) pts.push(land);
+    return { pts: pts, land: land, landErr: le, maxErr: maxErr, kappa: kap, c: c, theta: theta, j: j, d: d };
+  }
+  return { lrRho: lrRho, lrRay: lrRay, lrSolve: lrSolve, cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY, torusLocate: torusLocate,
            corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, bitransFactors: bitransFactors, bitransPhiFrom: bitransPhiFrom, bitransDiff: bitransDiff, punctureInfo: punctureInfo, ppParam: ppParam, L52: L52, latWp: latWp, latReduce: latReduce, pp52SV: pp52SV, pp52AB: pp52AB, pp52Locate: pp52Locate, remarkAB: remarkAB, pp33AB: pp33AB, pp33Locate: pp33Locate, wpLocate: wpLocate, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
 })();
 if (typeof module !== 'undefined') module.exports = PM;
