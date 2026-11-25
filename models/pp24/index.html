@@ -31,10 +31,10 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261125040948"></script>
-<script src="pern_math.js?v=20261125040948"></script>
-<script src="pp24_core.js?v=20261125040948"></script>
-<script src="pp24_viewer_core.js?v=20261125040948"></script>
+<script src="conformal_data.js?v=20261125043118"></script>
+<script src="pern_math.js?v=20261125043118"></script>
+<script src="pp24_core.js?v=20261125043118"></script>
+<script src="pp24_viewer_core.js?v=20261125043118"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -60,11 +60,11 @@
   </div>
   <div class="legend" id="legend"></div>
   <p><button id="home">Recenter on the base tile</button> <button id="zout">Reset zoom</button></p>
-  <p style="margin:4px 0"><b>Go to</b> <input id="goto" list="gotolist" size="22" placeholder="angle 7/30, 3/10, or a puncture: cusp, b=-1">
+  <p style="margin:4px 0"><b>Go to</b> <input id="goto" list="gotolist" size="22" placeholder="angle 7/30, 3/10, or puncture 3">
     <button id="gobtn">Go</button><br><span id="gomsg" class="sub"></span></p>
   <datalist id="gotolist"></datalist>
   <details open><summary><b>Polynomials and punctures</b> (click a row, or click a white / red dot in the picture)</summary>
-    <input id="mfilter" size="30" placeholder="filter: 7/30, puncture, cusp ..." style="margin:4px 0">
+    <input id="mfilter" size="30" placeholder="filter: 7/30, puncture ..." style="margin:4px 0">
     <div id="mlist"></div></details>
   <p style="margin:6px 0 2px"><b>Where you are</b> <span class="sub">(the Dirichlet polygon; red cross = view center; click to jump)</span></p>
   <canvas id="mini" width="632" height="632"></canvas>
@@ -435,8 +435,8 @@ function drawOverlay() {
       g2.fillStyle = m.kind === 'centre' ? '#ffffff' : '#e8173a'; g2.strokeStyle = '#141414'; g2.lineWidth = 1.2*dpr;
       g2.beginPath(); g2.arc(p[0], p[1], r, 0, TAU); g2.fill(); g2.stroke();
       if (opt.ml && r > 4*dpr) {
-        g2.font = `600 ${fs}px system-ui`; g2.lineWidth = 3*dpr; g2.strokeStyle = 'rgba(0,0,0,.85)'; g2.strokeText(m.label, p[0] + r + 3*dpr, p[1]);
-        g2.fillStyle = m.kind === 'centre' ? '#ffffff' : '#ffd0d8'; g2.fillText(m.label, p[0] + r + 3*dpr, p[1]);
+        g2.font = `600 ${fs}px system-ui`; g2.lineWidth = 3*dpr; g2.strokeStyle = 'rgba(0,0,0,.85)'; if (m.kind === 'centre') g2.strokeText(m.label, p[0] + r + 3*dpr, p[1]);
+        g2.fillStyle = m.kind === 'centre' ? '#ffffff' : '#ffd0d8'; if (m.kind === 'centre') g2.fillText(m.label, p[0] + r + 3*dpr, p[1]);
       }
     }
   }
@@ -488,7 +488,7 @@ function gotoMarker(text) {          // E93: center the view on a polynomial (by
   if (ra) i = MI.items.findIndex(it => it.kind === 'centre' && it.ks.includes(ra));
   if (i < 0) i = MI.items.findIndex(it => it.label.toLowerCase() === t);
   if (i < 0) i = MI.items.findIndex(it => it.kind === 'puncture' && it.label.toLowerCase().includes(t) && t.length > 0);
-  if (i < 0) { msg.textContent = `not found: "${text}" (try an angle like 7/30 or 3/10, or a puncture like cusp or b=-1)`; return; }
+  if (i < 0) { msg.textContent = `not found: "${text}" (try an angle like 7/30 or 3/10, or puncture 3)`; return; }
   const mk = T.markers[i]; V = Mq(mk.p); anim = null; reduceView(); dirty = true;
   inspect(mk.p, Infinity);
   msg.textContent = (note ? note + '; ' : '') + `centered on ${MI.items[i].title}`;
