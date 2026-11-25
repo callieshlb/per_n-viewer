@@ -31,10 +31,10 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261125052753"></script>
-<script src="pern_math.js?v=20261125052753"></script>
-<script src="pp51_core.js?v=20261125052753"></script>
-<script src="pp51_viewer_core.js?v=20261125052753"></script>
+<script src="conformal_data.js?v=20261125054342"></script>
+<script src="pern_math.js?v=20261125054342"></script>
+<script src="pp51_core.js?v=20261125054342"></script>
+<script src="pp51_viewer_core.js?v=20261125054342"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -622,5 +622,51 @@ mini.addEventListener('click', e => {
 </script>
 <script>/* E96: keep the view matrix V in SU(1,1) (orchestrator's fix for the drift Caroline saw after long panning; E98 viewer_drift). On by default (Caroline 2026-11-12: go); E96_SU11=0 builds without it. */
 (function(){var su11=function(m){var a=[(m.a[0]+m.d[0])/2,(m.a[1]-m.d[1])/2],b=[(m.b[0]+m.c[0])/2,(m.b[1]-m.c[1])/2],s=Math.sqrt(cabs2(a)-cabs2(b));if(!(s>0)||!isFinite(s))return m;return M([a[0]/s,a[1]/s],[b[0]/s,b[1]/s],[b[0]/s,-b[1]/s],[a[0]/s,-a[1]/s]);};
-var _rv=reduceView;reduceView=function(){_rv.apply(this,arguments);V=su11(V);};window.E96SU11=su11;})();</script></body>
+var _rv=reduceView;reduceView=function(){_rv.apply(this,arguments);V=su11(V);};window.E96SU11=su11;})();</script><script>/* E96 addendum (am): Voronoi (Dirichlet) cell of the escape puncture (rho = 0) under the Fuchsian group: one copy of every point of the curve,
+   centered on the landing region. Cell at p0: in the disk coordinate w = (z - p0)/(1 - conj(p0) z) the bisector with an orbit point q is
+   |q|^2 r^2 - 2 Re(conj(q) u) r + |q|^2 = 0 along the radius u = e^(i phi); r(phi) = min over q of the smaller root (radii from 0 are geodesics). */
+(function () {
+  let VC = null, ON = false;
+  const mob = (z, p, s) => { const pc = [p[0], -p[1]*1]; return s > 0 ? cdiv(csub(z, p), csub([1, 0], cmul([p[0], -p[1]], z))) : cdiv(cadd(z, p), cadd([1, 0], cmul([p[0], -p[1]], z))); };
+  function escapeMarker() {
+    if (!MI) return null; const it = MI.items.find(q => q.kind === 'puncture' && q.lines.some(l => /ρ/.test(l) && /\(this group\): 0$/.test(l.trim())));
+    return it ? T.markers.find(m => m.kind === 'puncture' && m.label === it.label) : null; }
+  function build() {
+    const mk = escapeMarker(); if (!mk) return null; const p0 = mk.p, Rlim = 4*RD + 1, pts = [], seen = new Set(), q = [I2];
+    seen.add('0,0');
+    while (q.length && pts.length < 20000) { const g = q.shift();
+      for (let a = 0; a < NF; a++) { const h = comp(g, FGf[a]), z = ap(h, p0); if (hdist(z, p0) > Rlim) continue;
+        const key = Math.round(z[0]*1e9) + ',' + Math.round(z[1]*1e9); if (seen.has(key)) continue; seen.add(key); pts.push(z); q.push(h); } }
+    const W = pts.map(z => mob(z, p0, 1)).filter(w => Math.hypot(w[0], w[1]) > 1e-9), N = 2048, bd = [];
+    let area = 0, maxr = 0;
+    for (let i = 0; i < N; i++) { const ph = 2*Math.PI*i/N, u = [Math.cos(ph), Math.sin(ph)]; let r = 1;
+      for (const w of W) { const q2 = w[0]*w[0] + w[1]*w[1], c = w[0]*u[0] + w[1]*u[1]; if (c < q2) continue; const disc = c*c - q2*q2; if (disc < 0) continue; const rr = (c - Math.sqrt(disc))/q2; if (rr < r) r = rr; }
+      area += 2*r*r/(1 - r*r)*(2*Math.PI/N); maxr = Math.max(maxr, r); bd.push(mob([r*u[0], r*u[1]], p0, -1)); }
+    return { p0, bd, area, orbit: pts.length, maxr, label: mk.label }; }
+  window.E96VOR = () => { if (!VC) VC = build(); return VC && { area: VC.area, areaTarget: 4*Math.PI*((2 - (T.nCycles - T.nPairs + 1))/2 - 1), orbit: VC.orbit, maxRadius: VC.maxr, label: VC.label }; };
+  const _dO = drawOverlay;
+  drawOverlay = function () { _dO.apply(this, arguments); if (!ON) return; if (!VC) VC = build(); if (!VC) return;
+    let best = null, bdist = Infinity;
+    for (const t of tiles) { const c = ap(t.W, VC.p0), d = c[0]*c[0] + c[1]*c[1]; if (d < bdist) { bdist = d; best = t; } }
+    const path = t => { const P = new Path2D(); VC.bd.forEach((b, i) => { const s = diskToScreen(ap(t.W, b)); i ? P.lineTo(s[0], s[1]) : P.moveTo(s[0], s[1]); }); P.closePath(); return P; };
+    g2.lineWidth = 1.6*dpr; g2.strokeStyle = 'rgba(255,255,255,.8)';
+    for (const t of tiles) { const c = ap(t.W, VC.p0); if (1 - (c[0]*c[0] + c[1]*c[1]) < 0.02) continue; g2.stroke(path(t)); }
+    if (best) { g2.lineWidth = 2.2*dpr; g2.strokeStyle = '#ff2d55'; g2.stroke(path(best)); } };
+  // containment check (v4): along NR radii from p0, walk out in steps of dr (in w) while the free critical point is captured by the landing fixed point;
+  // the first non-captured radius must come before the cell boundary r(phi). Returns the raw radii.
+  window.E96VORCHK = (NR = 128, dr = 0.004) => { if (!VC) VC = build(); const out = [], p0 = VC.p0;
+    for (let i = 0; i < NR; i++) { const k = Math.round(i*VC.bd.length/NR), ph = 2*Math.PI*k/VC.bd.length, u = [Math.cos(ph), Math.sin(ph)], wb = mob(VC.bd[k], p0, 1), rc = Math.hypot(wb[0], wb[1]);
+      let r = dr, rexit = null, nolook = 0;
+      for (; r < rc; r += dr) { const z = mob([r*u[0], r*u[1]], p0, -1), L = chartLookup(fold(z)); if (!L) { nolook++; continue; }
+        const MM = CORE.mapData(L.x, L.y), f = CORE.fate(MM, MM.omega, pit, delta, 1e-7, null, true); if (f.kind !== 'capture') { rexit = r; break; } }
+      out.push({ ph, rcell: rc, rexit, nolook }); }
+    const hd = r => 2*Math.atanh(r), gaps = out.filter(o => o.rexit !== null).map(o => hd(o.rcell) - hd(o.rexit));
+    return { radii: NR, step: dr, reachedBoundaryCaptured: out.filter(o => o.rexit === null).length, minGapHyp: Math.min(...gaps), lookupFailures: out.reduce((a, o) => a + o.nolook, 0), out }; };
+  const row = document.getElementById('ov2').parentNode, sp = document.createElement('span'), cb = document.createElement('input');
+  sp.textContent = 'Tiles centered on the escape region'; sp.title = 'the Dirichlet (Voronoi) tiling around the copies of the rho = 0 puncture: each tile is a fundamental domain containing one whole copy of the escape region (red: the one nearest the view center)';
+  cb.type = 'checkbox'; cb.id = 'e96vor'; cb.onchange = e => { ON = e.target.checked; if (ON) { const ed = document.getElementById('ed'); if (ed.checked) { ed.checked = false; ed.dispatchEvent(new Event('change')); } const mk = escapeMarker(); if (mk) { V = Mq(mk.p); anim = null; reduceView(); } } dirty = true; };
+  row.insertBefore(cb, document.getElementById('ov2').nextSibling); row.insertBefore(sp, cb);
+})();
+</script>
+</body>
 </html>
