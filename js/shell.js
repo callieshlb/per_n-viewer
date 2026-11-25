@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261125063443').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125172659').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '', PREP = null;
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -44,7 +44,7 @@
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125063443'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125172659'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = (cur.preper ? `Marked orbit ω = 0 → ∞ → 1 → … lands on a ${cur.preper.n}-cycle at w${cur.preper.k}; polynomials z² + c here are Misiurewicz (0 has preperiod ${cur.preper.k}, period ${cur.preper.n}).\n` : `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n`) + `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -224,7 +224,7 @@
       else if (d.id === 'pp52') { const s = PM.cdiv(PM.cadd(b, [1, 0]), a), s1 = PM.cadd(s, [1, 0]), q = PM.cmul(PM.cmul(s1, PM.cadd(PM.cscale(s, 3), [2, 0])), PM.cadd(PM.cadd(PM.cscale(PM.cmul(s, s), 2), PM.cscale(s, 2)), [1, 0])),
           num = PM.cadd(PM.cadd(PM.cadd(PM.cscale(PM.cmul(PM.cmul(s, s), s), 7), PM.cscale(PM.cmul(s, s), 9)), PM.cscale(s, 5)), [1, 0]), v = PM.cdiv(PM.csub(PM.cscale(PM.cmul(a, q), 2), num), s1), L = PM.pp52Locate(s, v); if (L) msg = { p: L.u }; }
       else if (tgt.kind === 'hyperbolic') { const s = PM.cadd(a, b), s1 = PM.cadd(s, [1, 0]); let y = s, x = null;
-        if (d.id === 'pp24') x = PM.cmul(PM.cmul(s1, s1), a); else if (d.id === 'pp34') x = PM.cmul(PM.cmul(s, PM.cadd(PM.cadd(PM.cscale(PM.cmul(s, s), 2), PM.cscale(s, 4)), [1, 0])), a);
+        if (d.id === 'pp24') x = PM.cmul(PM.cmul(s1, s1), a); else if (d.id === 'pp25') x = PM.cmul(PM.cmul(PM.cmul(s, s1), s1), a); else if (d.id === 'pp34') x = PM.cmul(PM.cmul(s, PM.cadd(PM.cadd(PM.cscale(PM.cmul(s, s), 2), PM.cscale(s, 4)), [1, 0])), a);
         else if (d.id === 'pp43') x = PM.cmul(PM.cmul(s, s1), a); else if (d.id === 'pp51') { y = PM.cdiv([1, 0], PM.csub(s, [1, 0])); const y2 = PM.cmul(y, y); x = PM.cmul(PM.cmul(PM.cmul(PM.cmul(s, s1), s1), a), PM.cmul(y2, y2)); }
         if (x) { msg = { x, y, ab: [a, b] }; note = ' (the disk page shows the map; locating it in the disk is not available on these pages yet)'; } } }
     else {   // Per_n: the periodic critical point omega = 0 becomes the marked one (PM.transfer, as "View in Per_m")

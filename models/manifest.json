@@ -1,5 +1,5 @@
 {
- "built_from": "2dce65f4",
+ "built_from": "e12c5874",
  "preperGenus": {
   "2,1": 0,
   "2,2": 0,
@@ -716,6 +716,50 @@
     "punctures": 13,
     "circles": 2,
     "tiling": "Tiling: the universal cover (Poincar\u00e9 disk) tiled by copies of one Dirichlet polygon for the Fuchsian group (genus 3, area 8\u03c0). Chart: s = a + b, x = s(s + 1) a."
+   }
+  },
+  {
+   "id": "pp25",
+   "n": 5,
+   "preper": {
+    "k": 2,
+    "n": 5
+   },
+   "short": "PrePer<sub>2,5</sub>",
+   "title": "PrePer<sub>2,5</sub>",
+   "titleText": "PrePer_{2,5}",
+   "kind": "hyperbolic",
+   "family": "pp25",
+   "param": "(s, x)",
+   "page": "models/pp25/index.html",
+   "genus": 11,
+   "source": "2026-11-25-PP25-conformal",
+   "info": {
+    "genus": 11,
+    "centers": 30,
+    "centres": 30,
+    "punctures": 19,
+    "circles": 4,
+    "tiling": "Tiling: the universal cover (Poincar\u00e9 disk) tiled by copies of one Dirichlet polygon for the Fuchsian group (genus 11, area 40\u03c0). Chart: s = a + b, x = s(s + 1)<sup>2</sup> a."
+   }
+  },
+  {
+   "id": "slice",
+   "n": 1,
+   "short": "\u211d\u00b2 slice",
+   "title": "The real slice (a, b) \u2208 \u211d\u00b2",
+   "titleText": "real slice",
+   "kind": "slice",
+   "family": "slice",
+   "param": "(a, b)",
+   "page": "slice.html",
+   "info": {
+    "genus": "\u2014",
+    "centers": "\u2014",
+    "centres": "\u2014",
+    "punctures": "\u2014",
+    "circles": "\u2014",
+    "tiling": "Every curve with a page drawn on the real plane of the site chart (addendum (ak))."
    }
   }
  ]

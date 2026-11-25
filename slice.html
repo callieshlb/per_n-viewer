@@ -33,13 +33,16 @@
   periodic point, period n}. Per<sub>1</sub> and Per<sub>2</sub> do not meet this chart (w<sub>1</sub> = ∞, w<sub>2</sub> = 1 ≠ 0). Computed live in double precision; lower relations
   (k′ ≤ k, n′ | n, and ω periodic) are removed. Click near a curve: the point is snapped onto it, with a card and “Open in …”.</div>
   <div id="leg"></div>
+  <div style="margin:4px 0">coordinates <select id="coords"><option value="ab">(a, b): the site chart</option><option value="mega">(x, y): megaPer<sub>n</sub></option></select></div>
+  <div class="sub" id="megainfo" style="display:none">megaPer<sub>n</sub> (Caroline's script): f(z) = (z − x)(z − w)/z², w = (x + y − 1)/(x − 1), so ω = 0 → ∞ → 1 → y → …; Per<sub>n</sub> is drawn as a<sub>n−1</sub> = x
+  (the orbit of y reaches the zero x of f). Same maps as the site chart: a = x w, b = −(x + w); the (x, y) plane double-covers the part of the (a, b) plane where z² + bz + a has real roots (x ↔ w).</div>
   <label style="display:block"><input type="checkbox" id="grey"> other (k, n) with k + n ≤ 10, no page yet (gray)</label>
-  <label style="display:block"><input type="checkbox" id="bg" checked> background: fate of ω′ under the real map</label>
+  <div>background <select id="bgm"><option value="fate">fate of ω′ under the real map</option><option value="mega">megaPer<sub>n</sub> bands: first n with a<sub>n−1</sub> ≈ x</option><option value="none">none</option></select></div>
   <label style="display:block"><input type="checkbox" id="lab" checked> curve labels</label>
-  <div class="sub" style="margin-top:4px">Background: period of the attracting cycle that captures ω′ (light colors: 1 gray, 2 rose, 3 green, 4 blue, 5 sand, 6 violet …); dark: none found (300 iterates).
+  <div class="sub" style="margin-top:4px">Fate background: period of the attracting cycle that captures ω′ (light colors: 1 gray, 2 rose, 3 green, 4 blue, 5 sand, 6 violet …); dark: none found (300 iterates).
   Drag to pan, wheel to zoom. <button id="home">Reset view</button></div>
 </div>
-<script src="js/pern_math.js?v=20261125063443"></script>
+<script src="js/pern_math.js?v=20261125172659"></script>
 <script>
 'use strict';
 (async function () {
@@ -61,26 +64,32 @@
     leg.append(c, s, t); });
   $('grey').onchange = e => { REL.filter(r => !r.page).forEach(r => r.on = e.target.checked); paint(); };
   // ---- view
-  let V = { ca: -0.3, cb: -0.6, upp: 0.006 }, W = 0, H = 0, dpr = 1;
-  const toAB = (px, py) => [V.ca + (px - W/2)*V.upp, V.cb - (py - H/2)*V.upp];
-  const toPx = (a, b) => [W/2 + (a - V.ca)/V.upp, H/2 - (b - V.cb)/V.upp];
+  let V = { ca: -0.3, cb: -0.6, upp: 0.006 }, W = 0, H = 0, dpr = 1, MEGA = false;
+  const toUV = (px, py) => [V.ca + (px - W/2)*V.upp, V.cb - (py - H/2)*V.upp];
+  const uv2ab = (u, v) => { if (!MEGA) return [u, v]; const w = (u + v - 1)/(u - 1); return [u*w, -(u + w)]; };    // megaPer: x = u, y = v
+  const toAB = (px, py) => uv2ab(...toUV(px, py));
+  const toPx = (u, v) => [W/2 + (u - V.ca)/V.upp, H/2 - (v - V.cb)/V.upp];
+  const ab2uv = (a, b) => { if (!MEGA) return [a, b]; const D = b*b - 4*a; if (D < 0) return null; const x = (-b + Math.sqrt(D))/2; return [x, 1 + b + a]; };
   function orbitTheta(a, b, out) {     // projective angles 2 atan(w_j), j = 0..10 (inf -> pi)
     let w = 0, inf = false; out[0] = 0; out[1] = Math.PI; w = 1; out[2] = 2*Math.atan(1);
     for (let j = 3; j <= 10; j++) { if (inf) { w = 1; inf = false; } else if (w === 0) { inf = true; } else { w = 1 + b/w + a/(w*w); if (!isFinite(w) || Math.abs(w) > 1e300) inf = true; }
       out[j] = inf ? Math.PI : 2*Math.atan(w); } }
   const wrap = d => d > Math.PI ? d - 2*Math.PI : (d <= -Math.PI ? d + 2*Math.PI : d);
-  const relVal = (r, th) => wrap(th[r.i] - th[r.j]);
+  let THX = 0; const relVal = (r, th) => (MEGA && r.per) ? wrap(th[r.n - 1] - THX) : wrap(th[r.i] - th[r.j]);
   let LO = null, HI = null, BG = null, KEEP = null;
   function fate(a, b) {               // omega' = -2a/b under the real map: period of an attracting cycle, or 0
     if (b === 0) return 0; let z = -2*a/b; for (let it = 0; it < 300; it++) { if (z === 0 || !isFinite(z)) { z = it % 2 ? 1 : 1e308; } z = 1 + b/z + a/(z*z); if (!isFinite(z)) z = 1e308; }
     const z0 = z; for (let p = 1; p <= 12; p++) { z = 1 + b/z + a/(z*z); const d = Math.abs(z - z0)/(1 + Math.abs(z0)); if (d < 1e-7) return p; } return 0; }
+  function megaBand(a, b, x) {        // first n (4..13) with a_(n-1) within 1e-2 (chordal) of x (megaPer chart) or of 0 (site chart: w_n = 0)
+    let z = 1 + b + a; for (let j = 0; j < 10; j++) { const t = x === null ? z : z; const d = x === null ? Math.abs(1 + b/z + a/(z*z))/Math.hypot(1, 1 + b/z + a/(z*z)) : Math.abs(z - x)/Math.sqrt((1 + z*z)*(1 + x*x));
+      if (d < 1e-2) return Math.min(13, j + 4) - 3; if (z === 0) return 0; z = 1 + b/z + a/(z*z); if (!isFinite(z)) return 0; } return 0; }
   function compute() {
     W = cv.width; H = cv.height; const R = REL.length, th = new Float64Array(11), prev = new Float64Array(R*W), cur = new Float64Array(R*W);
     LO = new Uint32Array(W*H); HI = new Uint32Array(W*H); BG = new Uint8Array(W*H);
-    const doBG = $('bg').checked, step = 2;
-    for (let y = 0; y < H; y++) { for (let x = 0; x < W; x++) { const [a, b] = toAB(x + .5, y + .5); orbitTheta(a, b, th);
+    const bgm = $('bgm').value, doBG = bgm !== 'none', step = 2;
+    for (let y = 0; y < H; y++) { for (let x = 0; x < W; x++) { const uv = toUV(x + .5, y + .5), [a, b] = uv2ab(...uv); orbitTheta(a, b, th); THX = MEGA ? 2*Math.atan(uv[0]) : 0;
         for (let r = 0; r < R; r++) cur[r*W + x] = relVal(REL[r], th);
-        if (doBG && x % step === 0 && y % step === 0) { const f = fate(a, b); for (let dy = 0; dy < step && y + dy < H; dy++) for (let dx = 0; dx < step && x + dx < W; dx++) BG[(y + dy)*W + x + dx] = f + 1; } }
+        if (doBG && x % step === 0 && y % step === 0) { const f = bgm === 'mega' ? megaBand(a, b, MEGA ? uv[0] : null) : fate(a, b); for (let dy = 0; dy < step && y + dy < H; dy++) for (let dx = 0; dx < step && x + dx < W; dx++) BG[(y + dy)*W + x + dx] = f + 1; } }
       for (let x = 0; x < W; x++) for (let r = 0; r < R; r++) { const v = cur[r*W + x]; let hit = false;
         if (x > 0) { const u = cur[r*W + x - 1]; if ((u < 0) !== (v < 0) && Math.abs(u) < Math.PI/2 && Math.abs(v) < Math.PI/2) hit = true; }
         if (y > 0) { const u = prev[r*W + x]; if ((u < 0) !== (v < 0) && Math.abs(u) < Math.PI/2 && Math.abs(v) < Math.PI/2) hit = true; }
@@ -98,7 +107,7 @@
   }
   const BGC = [[28, 28, 30], [205, 205, 205], [232, 196, 196], [196, 226, 200], [196, 208, 236], [236, 226, 190], [218, 200, 232], [190, 228, 230], [240, 214, 186], [216, 222, 182], [210, 210, 210], [210, 210, 210], [210, 210, 210], [210, 210, 210]];
   function paint() {
-    if (!KEEP) return; const img = g.createImageData(W, H), D = img.data, doBG = $('bg').checked, hex = c => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+    if (!KEEP) return; const img = g.createImageData(W, H), D = img.data, doBG = $('bgm').value !== 'none', hex = c => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
     const RC = REL.map(r => r.col.length === 4 ? [0, 0, 0] : hex(r.col));
     for (let i = 0; i < W*H; i++) { const c = doBG ? BGC[BG[i]] || BGC[0] : [245, 244, 240]; D[4*i] = c[0]; D[4*i + 1] = c[1]; D[4*i + 2] = c[2]; D[4*i + 3] = 255; }
     const put = (i, c) => { D[4*i] = c[0]; D[4*i + 1] = c[1]; D[4*i + 2] = c[2]; };
@@ -111,24 +120,24 @@
     g.fillStyle = 'rgba(0,0,0,.6)'; g.font = `${11*dpr}px system-ui`; const st = Math.pow(10, Math.floor(Math.log10(V.upp*W/4)));
     for (let a = Math.ceil(toAB(0, 0)[0]/st)*st; a < toAB(W, 0)[0]; a += st) { const p = toPx(a, 0); g.fillText(+a.toPrecision(6) + '', p[0] + 2, Math.min(H - 4, Math.max(12*dpr, o[1] - 3))); }
     for (let b = Math.ceil(toAB(0, H)[1]/st)*st; b < toAB(0, 0)[1]; b += st) { const p = toPx(0, b); g.fillText(+b.toPrecision(6) + '', Math.min(W - 40*dpr, Math.max(2, o[0] + 3)), p[1] - 2); }
-    g.fillText('a →', W - 30*dpr, o[1] - 14*dpr); g.fillText('b ↑', o[0] + 4, 14*dpr);
+    g.fillText(MEGA ? 'x →' : 'a →', W - 30*dpr, o[1] - 14*dpr); g.fillText(MEGA ? 'y ↑' : 'b ↑', o[0] + 4, 14*dpr);
     if ($('lab').checked) { const seen = new Set(); g.font = `600 ${12*dpr}px system-ui`;
       for (let y = 20; y < H - 10; y += 37) for (let x = 20; x < W - 60; x += 53) { const r = KEEP[y*W + x]; if (r === 255 || seen.has(r) || !REL[r].on || !REL[r].page) continue; seen.add(r);
         g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,.9)'; const t = REL[r].per ? `Per${REL[r].n}` : `(${REL[r].k},${REL[r].n})`; g.strokeText(t, x + 4, y - 4); g.fillStyle = REL[r].col; g.fillText(t, x + 4, y - 4); }
       // labels need hits on the sampling lattice; search the whole image for the rest
       for (let i = 0; i < W*H && seen.size < REL.length; i += 7) { const r = KEEP[i]; if (r === 255 || seen.has(r) || !REL[r].on || !REL[r].page) continue; seen.add(r); const x = i % W, y = (i - x)/W;
         g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,.9)'; const t = REL[r].per ? `Per${REL[r].n}` : `(${REL[r].k},${REL[r].n})`; g.strokeText(t, x + 4, y - 4); g.fillStyle = REL[r].col; g.fillText(t, x + 4, y - 4); } }
-    if (PICK) { const p = toPx(PICK.a, PICK.b); g.beginPath(); g.arc(p[0], p[1], 6*dpr, 0, 2*Math.PI); g.lineWidth = 2.5*dpr; g.strokeStyle = '#000'; g.stroke(); g.lineWidth = 1.2*dpr; g.strokeStyle = '#fff'; g.stroke(); }
+    if (PICK && PICK.uv) { const p = toPx(...PICK.uv); g.beginPath(); g.arc(p[0], p[1], 6*dpr, 0, 2*Math.PI); g.lineWidth = 2.5*dpr; g.strokeStyle = '#000'; g.stroke(); g.lineWidth = 1.2*dpr; g.strokeStyle = '#fff'; g.stroke(); }
   }
   let TIMER = null, PICK = null;
   function redraw() { clearTimeout(TIMER); $('busy').textContent = 'computing…'; TIMER = setTimeout(() => { const t0 = performance.now(); compute(); paint(); $('busy').textContent = `${W}×${H} px, ${(performance.now() - t0).toFixed(0)} ms`; window.E96SLICE_READY = true; }, 30); }
   function resize() { dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(cv.clientWidth*dpr); cv.height = Math.round(cv.clientHeight*dpr); redraw(); }
   window.addEventListener('resize', resize);
-  $('bg').onchange = redraw; $('lab').onchange = paint; $('home').onclick = () => { V = { ca: -0.3, cb: -0.6, upp: 0.006*1.5/dpr }; redraw(); };
+  $('bgm').onchange = redraw; $('coords').onchange = e => { MEGA = e.target.value === 'mega'; $('megainfo').style.display = MEGA ? '' : 'none'; V = MEGA ? { ca: 0, cb: 0, upp: 0.008 } : { ca: -0.3, cb: -0.6, upp: 0.009 }; PICK = null; redraw(); }; $('lab').onchange = paint; $('home').onclick = () => { V = { ca: -0.3, cb: -0.6, upp: 0.006*1.5/dpr }; redraw(); };
   // ---- pan / zoom
   let drag = null, moved = 0;
   cv.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY, V.ca, V.cb]; moved = 0; cv.setPointerCapture(e.pointerId); });
-  cv.addEventListener('pointermove', e => { const r = cv.getBoundingClientRect(), ab = toAB((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr); $('coord').textContent = `a = ${ab[0].toFixed(5)}  b = ${ab[1].toFixed(5)}`;
+  cv.addEventListener('pointermove', e => { const r = cv.getBoundingClientRect(), ab = toAB((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr); const uv = toUV((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr); $('coord').textContent = (MEGA ? `x = ${uv[0].toFixed(5)}  y = ${uv[1].toFixed(5)}   ` : '') + `a = ${ab[0].toFixed(5)}  b = ${ab[1].toFixed(5)}`;
     if (!drag) return; const dx = (e.clientX - drag[0])*dpr, dy = (e.clientY - drag[1])*dpr; moved = Math.max(moved, Math.abs(dx) + Math.abs(dy));
     if (moved > 3) { V.ca = drag[2] - dx*V.upp; V.cb = drag[3] + dy*V.upp; } });
   cv.addEventListener('pointerup', e => { const was = drag; drag = null; if (!was) return; if (moved > 3) { redraw(); return; } const r = cv.getBoundingClientRect(); click((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr); });
@@ -139,23 +148,23 @@
     const ch = (u, v) => u === null && v === null ? 0 : u === null ? 1/Math.hypot(1, v) : v === null ? 1/Math.hypot(1, u) : Math.abs(u - v)/Math.sqrt((1 + u*u)*(1 + v*v));
     for (let k = 0; k <= 10; k++) for (let n = 1; k + n <= 12; n++) if (ch(w[k + n], w[k]) < 1e-9) return { k, n, w }; return { k: null, n: null, w }; }
   function snap(r, px, py) {     // bisection along the segment between two neighbouring pixel centers with a sign change (|value| < pi/2)
-    const th = new Float64Array(11), val = (a, b) => { orbitTheta(a, b, th); return relVal(r, th); }; let best = null;
+    const th = new Float64Array(11), val = (u, v) => { const [a, b] = uv2ab(u, v); orbitTheta(a, b, th); THX = MEGA ? 2*Math.atan(u) : 0; return relVal(r, th); }; let best = null;
     for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) { const x = Math.round(px) + dx, y = Math.round(py) + dy; if (x < 1 || y < 1 || x >= W || y >= H) continue;
-      for (const [x2, y2] of [[x - 1, y], [x, y - 1]]) { const A = toAB(x + .5, y + .5), B = toAB(x2 + .5, y2 + .5), u = val(...A), v = val(...B);
+      for (const [x2, y2] of [[x - 1, y], [x, y - 1]]) { const A = toUV(x + .5, y + .5), B = toUV(x2 + .5, y2 + .5), u = val(...A), v = val(...B);
         if ((u < 0) === (v < 0) || Math.abs(u) > Math.PI/2 || Math.abs(v) > Math.PI/2) continue; const d = dx*dx + dy*dy; if (best && best.d <= d) continue;
         let P = A, Q = B, fu = u; for (let it = 0; it < 80; it++) { const M = [(P[0] + Q[0])/2, (P[1] + Q[1])/2], fm = val(...M); if ((fm < 0) === (fu < 0)) { P = M; fu = fm; } else Q = M; }
-        best = { d, a: (P[0] + Q[0])/2, b: (P[1] + Q[1])/2 }; } }
+        const U = [(P[0] + Q[0])/2, (P[1] + Q[1])/2], AB = uv2ab(...U); best = { d, a: AB[0], b: AB[1], uv: U }; } }
     return best; }
   function click(px, py) {
     const cand = new Map(); for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) { const x = Math.round(px) + dx, y = Math.round(py) + dy; if (x < 0 || y < 0 || x >= W || y >= H) continue;
       const i = y*W + x; for (let r = 0; r < REL.length; r++) { const has = r < 32 ? (LO[i] >>> r) & 1 : (HI[i] >>> (r - 32)) & 1; if (!has || !REL[r].on) continue; const d = dx*dx + dy*dy; if (!cand.has(r) || cand.get(r) > d) cand.set(r, d); } }
-    if (!cand.size) { const ab = toAB(px, py); PICK = { a: ab[0], b: ab[1] }; paint(); showCard('a point off the drawn curves', [`a = ${ab[0]}`, `b = ${ab[1]}`, `ω′ under the real map: ${(f => f ? 'attracted to a cycle of period ' + f : 'no attracting cycle found')(fate(...ab))}`], null);
+    if (!cand.size) { const ab = toAB(px, py); PICK = { a: ab[0], b: ab[1], uv: toUV(px, py) }; paint(); showCard('a point off the drawn curves', [`a = ${ab[0]}`, `b = ${ab[1]}`, `ω′ under the real map: ${(f => f ? 'attracted to a cycle of period ' + f : 'no attracting cycle found')(fate(...ab))}`], null);
       parent.postMessage({ e96: 'param', model: 'slice', ab: [[ab[0], 0], [ab[1], 0]], x: [ab[0], 0], y: [ab[1], 0], label: 'slice point (no curve)' }, '*'); return; }
     const r = REL[[...cand.entries()].sort((u, v) => u[1] - v[1] || (REL[v[0]].page ? 1 : 0) - (REL[u[0]].page ? 1 : 0))[0][0]], S = snap(r, px, py);
-    if (!S) return; PICK = { a: S.a, b: S.b, r }; paint(); const T = exactType(S.a, S.b), res = r.per ? Math.abs(T.w[r.n] === null ? Infinity : T.w[r.n]) : (T.w[r.i] === null || T.w[r.j] === null ? NaN : Math.abs(T.w[r.i] - T.w[r.j]));
-    const lines = [`a = ${S.a.toPrecision(15)}`, `b = ${S.b.toPrecision(15)}`, `residual |${r.per ? 'w' + r.n : 'w' + r.i + ' − w' + r.j}| = ${res.toExponential(2)}`,
+    if (!S) return; PICK = { a: S.a, b: S.b, uv: S.uv, r }; paint(); const T = exactType(S.a, S.b), res = r.per ? Math.abs(T.w[r.n] === null ? Infinity : T.w[r.n]) : (T.w[r.i] === null || T.w[r.j] === null ? NaN : Math.abs(T.w[r.i] - T.w[r.j]));
+    const lines = (MEGA ? [`x = ${S.uv[0].toPrecision(15)}`, `y = ${S.uv[1].toPrecision(15)}`] : []).concat([`a = ${S.a.toPrecision(15)}`, `b = ${S.b.toPrecision(15)}`, `residual |${r.per ? 'w' + r.n : 'w' + r.i + ' − w' + r.j}| = ${res.toExponential(2)}`,
       `exact type of ω here: ${T.k === null ? 'none found (k + n ≤ 12)' : T.k === 0 ? 'periodic, period ' + T.n : 'preperiod ' + T.k + ', period ' + T.n}`,
-      `ω′ = ${(-2*S.a/S.b).toPrecision(8)}; ω′ under the real map: ${(f => f ? 'attracted to a cycle of period ' + f : 'no attracting cycle found')(fate(S.a, S.b))}`];
+      `ω′ = ${(-2*S.a/S.b).toPrecision(8)}; ω′ under the real map: ${(f => f ? 'attracted to a cycle of period ' + f : 'no attracting cycle found')(fate(S.a, S.b))}`]);
     if ([...cand.keys()].length > 1) lines.push('other curves within 6 px: ' + [...cand.keys()].filter(q => q !== r.ix).map(q => REL[q].name).join(', '));
     showCard(`${r.name} ∩ ℝ²`, lines, r.page ? r : null);
     parent.postMessage({ e96: 'param', model: 'slice', ab: [[S.a, 0], [S.b, 0]], x: [S.a, 0], y: [S.b, 0], slice: { per: r.per, k: r.k, n: r.n }, label: `${r.name} at a = ${S.a.toPrecision(8)}, b = ${S.b.toPrecision(8)}` }, '*');
@@ -164,7 +173,7 @@
     $('cardb').innerHTML = ''; if (r) { const b = document.createElement('button'); b.textContent = `Open in ${r.name}`; b.onclick = () => parent.postMessage({ e96: 'slicego', id: r.id, per: r.per, k: r.k, n: r.n, a: PICK.a, b: PICK.b }, '*'); $('cardb').appendChild(b); }
     $('card').style.display = 'block'; }
   $('cardx').onclick = () => { $('card').style.display = 'none'; };
-  window.E96SLICE_click = (a, b) => { const p = toPx(a, b); click(p[0], p[1]); return window.E96SLICE_LAST; };
+  window.E96SLICE_click = (a, b) => { const q = ab2uv(a, b); if (!q) return null; const p = toPx(...q); click(p[0], p[1]); return window.E96SLICE_LAST; };
   window.E96SLICE_view = (ca, cb, upp) => { V = { ca, cb, upp }; redraw(); };
   window.E96SLICE_REL = () => REL.map(r => ({ name: r.name, page: !!r.page, ex: r.ex.map(q => REL[q].name) }));
   V.upp = 0.006*1.5; resize();
