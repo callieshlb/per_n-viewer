@@ -7,7 +7,7 @@ var GLSL = (function () {
   var HEAD = `#version 300 es
 precision highp float;
 uniform vec2 res; uniform vec2 ctr; uniform float upp;           // view: center, units per pixel
-uniform int maxIt; uniform float delta; uniform float tolP; uniform int fam; uniform int nM;
+uniform int maxIt; uniform float delta; uniform float tolP; uniform int fam; uniform int nM; uniform int sqp;
 uniform vec2 uA, uB, uC, uD, uE, uF; uniform vec2 uMk[12]; uniform int uMkI[12];   // dynamical-plane map (mode 0)
 uniform float W1, W2, qn, e1; uniform int invz; uniform vec2 mA, mB, mC, mD;   // invz: pixel w -> z = (mA w + mB)/(mC w + mD)                                    // Per_5 torus
 out vec4 o;
@@ -106,6 +106,7 @@ vec3 fateColour(vec2 z, bool zi){
   var MAIN = `
 void main(){
   vec2 p = ctr + (gl_FragCoord.xy - .5*res)*upp;
+  if (sqp == 1) p = vec2(p.x*p.x - p.y*p.y, 2.*p.x*p.y);   // symmetry locus: t = k^2 (PrePer_{2,1} chart)
   if (plain == 1) { o = vec4(.94, .93, .90, 1.); return; }        // plain surface: the curve alone, no dynamics
   vec2 om; bool ok = true; vec2 z0; bool z0i = false;
   if (fam == 0) {                          // dynamical plane: the pixel is the starting point

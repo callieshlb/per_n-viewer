@@ -1,5 +1,5 @@
 {
- "built_from": "bdbd1667",
+ "built_from": "938a49fd",
  "preperGenus": {
   "2,1": 0,
   "2,2": 0,
@@ -34,6 +34,25 @@
  },
  "preperGenusSource": "the punctures sessions' numerical table (not verifier-checked)",
  "models": [
+  {
+   "id": "about",
+   "n": 0,
+   "short": "About",
+   "title": "About",
+   "titleText": "About",
+   "kind": "about",
+   "family": "about",
+   "param": "",
+   "page": "intro.html",
+   "info": {
+    "genus": "",
+    "centers": "",
+    "centres": "",
+    "punctures": "",
+    "circles": "",
+    "tiling": ""
+   }
+  },
   {
    "id": "per1",
    "n": 1,
@@ -769,9 +788,66 @@
    }
   },
   {
+   "id": "pp62",
+   "n": 2,
+   "preper": {
+    "k": 6,
+    "n": 2
+   },
+   "short": "PrePer<sub>6,2</sub>",
+   "title": "PrePer<sub>6,2</sub>",
+   "titleText": "PrePer_{6,2}",
+   "kind": "hyperbolic",
+   "family": "pp62",
+   "param": "(s, x)",
+   "page": "models/pp62/index.html",
+   "genus": 9,
+   "source": "2026-11-25-PP62-conformal",
+   "info": {
+    "genus": 9,
+    "centers": 32,
+    "centres": 32,
+    "punctures": 19,
+    "circles": 3,
+    "tiling": "Tiling: the universal cover (Poincar\u00e9 disk) tiled by copies of one Dirichlet polygon for the Fuchsian group (genus 9, area 32\u03c0). Chart: y = 1/(s \u2212 3/2), x = 64 s(s + 1)<sup>2</sup>(s<sup>2</sup> + 4s + 1) a y<sup>6</sup>, s = a + b."
+   }
+  },
+  {
+   "id": "sym",
+   "n": 1,
+   "short": "Sym",
+   "title": "The symmetry locus",
+   "titleText": "symmetry locus",
+   "kind": "plane",
+   "family": "sym",
+   "famId": 6,
+   "sqp": true,
+   "param": "k",
+   "page": "plane.html?m=sym",
+   "census": "models/census_sym.json",
+   "view": {
+    "ctr": [
+     0,
+     0
+    ],
+    "upp": 0.006
+   },
+   "real": true,
+   "normal": "f(z) = k(z + 1/z), which commutes with z \u21a6 \u2212z; critical points \u00b11. Its quotient by the symmetry, w = z\u00b2, is g(w) = k\u00b2(w + 2 + 1/w): the point PrePer<sub>2,1</sub> at t = k\u00b2 (a 2:1 cover k \u21a6 k\u00b2). \u00b1i \u2192 0 \u2192 \u221e (fixed): \u221e plays the landing fixed point.",
+   "about": "Each pixel is a parameter k, colored by the fate of the critical points \u00b11 (by the symmetry they share it), exactly as PrePer<sub>2,1</sub> colors t = k\u00b2: phase colors when they are attracted to the fixed point \u221e (|k| > 1), grey for another attracting cycle. The picture is the PrePer<sub>2,1</sub> picture pulled back by k \u21a6 k\u00b2.",
+   "info": {
+    "genus": 0,
+    "centers": 0,
+    "centres": 0,
+    "punctures": 2,
+    "circles": 2,
+    "tiling": "No tiling: the k-plane, a 2:1 cover of the PrePer<sub>2,1</sub> parameter plane."
+   }
+  },
+  {
    "id": "slice",
    "n": 1,
-   "short": "\u211d\u00b2 slice",
+   "short": "\u211d\u00b2",
    "title": "The real slice (a, b) \u2208 \u211d\u00b2",
    "titleText": "real slice",
    "kind": "slice",

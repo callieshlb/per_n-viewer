@@ -31,10 +31,10 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261125175711"></script>
-<script src="pern_math.js?v=20261125175711"></script>
-<script src="pp51_core.js?v=20261125175711"></script>
-<script src="pp51_viewer_core.js?v=20261125175711"></script>
+<script src="conformal_data.js?v=20261125183333"></script>
+<script src="pern_math.js?v=20261125183333"></script>
+<script src="pp51_core.js?v=20261125183333"></script>
+<script src="pp51_viewer_core.js?v=20261125183333"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -630,21 +630,25 @@ var _rv=reduceView;reduceView=function(){_rv.apply(this,arguments);V=su11(V);};w
   let VC = null, ON = false;
   const mob = (z, p, s) => { const pc = [p[0], -p[1]*1]; return s > 0 ? cdiv(csub(z, p), csub([1, 0], cmul([p[0], -p[1]], z))) : cdiv(cadd(z, p), cadd([1, 0], cmul([p[0], -p[1]], z))); };
   function escapeMarker() {
-    if (!MI) return null; const it = MI.items.find(q => q.kind === 'puncture' && q.lines.some(l => /ρ/.test(l) && /\(this group\): 0$/.test(l.trim())));
+    if (!MI) return null; const it = MI.items.find(q => q.kind === 'puncture' && (q.lines.some(l => /ρ/.test(l) && /\(this group\): 0$/.test(l.trim())) || /^place: a ?= ?0, b ?= ?0\b/.test(q.lines[0] || '')));   /* rho -> 0 at (a, b) = (0, 0); PP61 lines carry no rho */
     return it ? T.markers.find(m => m.kind === 'puncture' && m.label === it.label) : null; }
-  function build() {
-    const mk = escapeMarker(); if (!mk) return null; const p0 = mk.p, Rlim = 4*RD + 1, pts = [], seen = new Set(), q = [I2];
-    seen.add('0,0');
-    while (q.length && pts.length < 20000) { const g = q.shift();
-      for (let a = 0; a < NF; a++) { const h = comp(g, FGf[a]), z = ap(h, p0); if (hdist(z, p0) > Rlim) continue;
-        const key = Math.round(z[0]*1e9) + ',' + Math.round(z[1]*1e9); if (seen.has(key)) continue; seen.add(key); pts.push(z); q.push(h); } }
-    const W = pts.map(z => mob(z, p0, 1)).filter(w => Math.hypot(w[0], w[1]) > 1e-9), N = 2048, bd = [];
-    let area = 0, maxr = 0;
+  function cellFrom(p0, R, N) {   // orbit of p0 through the tiles h(D) with center h(0) within R + R_D of p0 (tile centers are well separated: robust dedupe)
+    const pts = [], seen = new Set(), q = [I2], hyp = z => { const d = 1 - (z[0]*z[0] + z[1]*z[1]); return Math.round(2*z[0]/d*1e3) + ',' + Math.round(2*z[1]/d*1e3); };
+    seen.add(hyp([0, 0]));
+    while (q.length && pts.length < 200000) { const g = q.shift();
+      for (let a = 0; a < NF; a++) { const h = comp(g, FGf[a]), c = ap(h, [0, 0]); if (!(hdist(c, p0) <= R + RD)) continue; const key = hyp(c); if (seen.has(key)) continue; seen.add(key); q.push(h);
+        const z = ap(h, p0); if (hdist(z, p0) <= R) pts.push(z); } }
+    const W = pts.map(z => mob(z, p0, 1)).filter(w => Math.hypot(w[0], w[1]) > 1e-9), bd = []; let area = 0, maxr = 0;
     for (let i = 0; i < N; i++) { const ph = 2*Math.PI*i/N, u = [Math.cos(ph), Math.sin(ph)]; let r = 1;
       for (const w of W) { const q2 = w[0]*w[0] + w[1]*w[1], c = w[0]*u[0] + w[1]*u[1]; if (c < q2) continue; const disc = c*c - q2*q2; if (disc < 0) continue; const rr = (c - Math.sqrt(disc))/q2; if (rr < r) r = rr; }
       area += 2*r*r/(1 - r*r)*(2*Math.PI/N); maxr = Math.max(maxr, r); bd.push(mob([r*u[0], r*u[1]], p0, -1)); }
-    return { p0, bd, area, orbit: pts.length, maxr, label: mk.label }; }
-  window.E96VOR = () => { if (!VC) VC = build(); return VC && { area: VC.area, areaTarget: 4*Math.PI*((2 - (T.nCycles - T.nPairs + 1))/2 - 1), orbit: VC.orbit, maxRadius: VC.maxr, label: VC.label }; };
+    return { p0, bd, area, orbit: pts.length, maxr, Rlim: R }; }
+  function build() {   // adaptive radius: complete once R >= 2 * (hyperbolic circumradius of the cell) + margin
+    const mk = escapeMarker(); if (!mk) return null; let R = 3, C = null;
+    for (let it = 0; it < 14; it++) { C = cellFrom(mk.p, R, 2048); const H = C.maxr < 1 ? 2*Math.atanh(C.maxr) : Infinity; if (R >= 2*H + 0.2) break; R = isFinite(H) ? Math.max(R*1.25, 2*H + 0.5) : R*1.4; }
+    if (C.maxr > 0.95) C = cellFrom(mk.p, C.Rlim, 16384);   /* long thin arms near the rim: finer angular sampling */
+    C.label = mk.label; return C; }
+  window.E96VOR = () => { if (!VC) VC = build(); return VC && { area: VC.area, areaTarget: 4*Math.PI*((2 - (T.nCycles - T.nPairs + 1))/2 - 1), orbit: VC.orbit, maxRadius: VC.maxr, Rlim: VC.Rlim, label: VC.label }; };
   const _dO = drawOverlay;
   drawOverlay = function () { _dO.apply(this, arguments); if (!ON) return; if (!VC) VC = build(); if (!VC) return;
     let best = null, bdist = Infinity;

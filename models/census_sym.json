@@ -1,0 +1,1 @@
+{"centres": [], "centers": [], "punctures": [{"label": "p0", "title": "puncture k = 0 (the map degenerates)", "p": [0, 0], "lines": ["k = 0: f degenerates (constant \u221e / degree drop)"], "summary": "k = 0"}], "special": [], "meta": {"rho": "1/k^2"}}

@@ -368,6 +368,8 @@ var PM = (function () {
     else if (family === 'torus5') { var P = torusXY(q.p); if (!P.x || !P.y) return null; M = corMap(P.x, P.y, 5); }
     else if (family === 'cor') M = corMap(q.x, q.y, n);
     else if (/^pp\d\d$/.test(family)) M = ppMap(family, q.p, q.ab);
+    else if (family === 'sym') {   // symmetry locus f(z) = k(z + 1/z): its quotient w = z^2 is PrePer_{2,1} at t = k^2; marked = the fixed point inf (landing point of +-i -> 0 -> inf)
+      var kk = q.p; M = { n: 1, k: 0, A: kk, B: [0, 0], C: kk, D: [0, 0], E: [1, 0], F: [0, 0], a: kk, b: [0, 0], omega: [1, 0], tail: [[0, 1], [0, 0]], marked: [null] }; }
     else if (family === 'slice') {   // addendum (ak): a real point (a, b) of the slice; marking from the curve that was clicked
       var sa = q.ab[0], sb = q.ab[1], sl = q.slice;
       if (sl && !sl.per) M = ppMap('pp' + sl.k + sl.n, null, q.ab);
@@ -612,7 +614,7 @@ var PM = (function () {
     var land = lrSolve(family, t, eth), le = land ? cabs(csub(lrRho(family, land), eth)) : null; if (land) pts.push(land);
     return { pts: pts, land: land, landErr: le, maxErr: maxErr, kappa: kap, c: c, theta: theta, j: j, d: d };
   }
-  return { lrRho: lrRho, lrRay: lrRay, lrSolve: lrSolve, cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY, torusLocate: torusLocate,
+  return { lrRho: lrRho, lrRay: lrRay, lrSolve: lrSolve, cscale: cscale, cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY, torusLocate: torusLocate,
            corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, bitransFactors: bitransFactors, bitransPhiFrom: bitransPhiFrom, bitransDiff: bitransDiff, punctureInfo: punctureInfo, ppParam: ppParam, L52: L52, latWp: latWp, latReduce: latReduce, pp52SV: pp52SV, pp52AB: pp52AB, pp52Locate: pp52Locate, remarkAB: remarkAB, pp33AB: pp33AB, pp33Locate: pp33Locate, wpLocate: wpLocate, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
 })();
 if (typeof module !== 'undefined') module.exports = PM;

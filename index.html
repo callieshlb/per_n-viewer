@@ -25,6 +25,7 @@
   #left iframe { border:0; width:100%; height:100%; display:block; }
   #split { position:absolute; top:0; bottom:0; width:7px; margin-left:-3px; cursor:col-resize; background:#cfcdc6; z-index:5; }
   #right { right:0; background:#111; }
+  body.about #right, body.about #split { display:none; } body.about #left { width:auto !important; right:0 !important; }
   #dyn { position:absolute; inset:0; }
   #dside { position:absolute; top:8px; right:8px; width:240px; background:rgba(250,250,248,.95); border:1px solid var(--faint);
            border-radius:6px; padding:7px 9px; z-index:3; font-size:12px; box-sizing:border-box; }
@@ -47,17 +48,17 @@
             font:12px/1.5 ui-monospace, Menlo, monospace; padding:4px 10px; box-sizing:border-box; overflow:auto; white-space:pre; }
   button.sm { font:inherit; padding:0 6px; border:1px solid #bbb; background:#fff; border-radius:4px; cursor:pointer; }
 </style>
-<script src="js/pern_math.js?v=20261125175711"></script>
-<script src="js/glsl.js?v=20261125175711"></script>
-<script src="js/planeview.js?v=20261125175711"></script>
-<script src="js/mating.js?v=20261125175711"></script>
-<script src="js/capture.js?v=20261125175711"></script>
-<script src="js/web.js?v=20261125175711"></script>
-<script src="js/entropy.js?v=20261125175711"></script>
-<script src="js/rescale.js?v=20261125175711"></script>
-<script src="js/address.js?v=20261125175711"></script>
-<script src="js/tree.js?v=20261125175711"></script>
-<script src="js/spheres.js?v=20261125175711"></script>
+<script src="js/pern_math.js?v=20261125183333"></script>
+<script src="js/glsl.js?v=20261125183333"></script>
+<script src="js/planeview.js?v=20261125183333"></script>
+<script src="js/mating.js?v=20261125183333"></script>
+<script src="js/capture.js?v=20261125183333"></script>
+<script src="js/web.js?v=20261125183333"></script>
+<script src="js/entropy.js?v=20261125183333"></script>
+<script src="js/rescale.js?v=20261125183333"></script>
+<script src="js/address.js?v=20261125183333"></script>
+<script src="js/tree.js?v=20261125183333"></script>
+<script src="js/spheres.js?v=20261125183333"></script>
 </head>
 <body>
 <div id="top"><h1>Per<sub>n</sub>(0) atlas</h1><div id="models"></div><span id="kind"></span></div>
@@ -112,6 +113,6 @@
   component of f; the second critical value is moved along that ray to the component's center. If the landing point lies on several components they are listed in the status line; pick one with “component #”.
   Type f, Tab, θ, Enter. Esc closes.</div></div>
 <div id="status">Choose a model, then click a parameter.</div>
-<script src="js/shell.js?v=20261125175711"></script>
+<script src="js/shell.js?v=20261125183333"></script>
 </body>
 </html>

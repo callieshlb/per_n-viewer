@@ -2,9 +2,9 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261125175711').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125183333').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261125175711').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261125183333').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
@@ -398,7 +398,7 @@
   }
   const pv = new PlaneView($('view'), {
     ctr: E.view.ctr, upp: E.view.upp, maxIt: 600, delta: 1e-3,
-    setUniforms: (gl, U) => { gl.uniform1i(U('fam'), E.famId); GLSL.setPalette(gl, U, E.palette, E.flat);
+    setUniforms: (gl, U) => { gl.uniform1i(U('fam'), E.famId); gl.uniform1i(U('sqp'), E.sqp ? 1 : 0); GLSL.setPalette(gl, U, E.palette, E.flat);
       gl.uniform1f(U('W1'), T5.W1); gl.uniform1f(U('W2'), T5.W2); gl.uniform1f(U('qn'), Math.exp(-Math.PI*T5.W2/T5.W1)); gl.uniform1f(U('e1'), 0.75); },
     drawOverlay,
     onPick: (p, s) => {

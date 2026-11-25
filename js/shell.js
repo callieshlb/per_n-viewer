@@ -3,7 +3,7 @@
 'use strict';
 (async function () {
   const $ = s => document.getElementById(s);
-  const man = await fetch('models/manifest.json?v=20261125175711').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125183333').then(r => r.json());
   let cur = null, M = null, sel = null, frac = 0.55, FACTS = '', PREP = null;
   // ---- layout
   function layout() { const W = $('main').clientWidth, x = Math.round(W*frac);
@@ -29,7 +29,7 @@
     document.addEventListener('click', e => { if (!box.contains(e.target) && e.target !== b) box.style.display = 'none'; });
     $('models').appendChild(b); }
   for (const m of man.models) {
-    if (m.preper) continue;
+    if (m.preper || m.kind === 'about') continue;
     const b = document.createElement('button'); b.innerHTML = m.short; b.id = 'b_' + m.id; b.title = m.titleText || m.id;
     if (m.placeholder) { b.disabled = true; b.title = m.placeholder; } else b.onclick = () => choose(m.id);
     $('models').appendChild(b);
@@ -40,11 +40,13 @@
     for (const m of man.models) { const el = $('b_' + m.id); if (el) el.classList.toggle('on', m.id === id); }
     if ($('b_ppgrid')) { $('b_ppgrid').classList.toggle('on', !!cur.preper); $('b_ppgrid').innerHTML = cur.preper ? `PrePer<sub>${cur.preper.k},${cur.preper.n}</sub> ▾` : 'PrePer<sub>k,n</sub> ▾';
       document.querySelectorAll('#ppgrid td.on').forEach(td => td.classList.toggle('cur', td.dataset.id === id)); }
+    document.body.classList.toggle('about', cur.kind === 'about');
+    if (cur.kind === 'about') { $('kind').textContent = ''; $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125183333'; history.replaceState(null, '', location.pathname); $('status').textContent = 'Choose a curve above.'; return; }
     const I = cur.info || {};
     $('kind').textContent = ({ plane: 'parameter plane', torus: 'flat torus', hyperbolic: 'hyperbolic model' }[cur.kind] || '') +
       ` · genus ${I.genus} · ${I.centers} polynomial centers · ${I.punctures} punctures · ${I.circles} real circle${I.circles === 1 ? '' : 's'}` + (I.sheets ? ` · ${I.sheets} sheets over the y-line` : '');
     hideCard(); $('dover').style.display = 'none'; $('vin').style.display = 'none'; TREEP = null;
-    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125175711'; history.replaceState(null, '', '#' + id);
+    $('frame').src = cur.page + (cur.page.includes('?') ? '&' : '?') + 'v=20261125183333'; history.replaceState(null, '', '#' + id);
     M = null; sel = null; DRAYS = []; RAYA = []; $('dhint').style.display = ''; dv.redraw();
     FACTS = (cur.preper ? `Marked orbit ω = 0 → ∞ → 1 → … lands on a ${cur.preper.n}-cycle at w${cur.preper.k}; polynomials z² + c here are Misiurewicz (0 has preperiod ${cur.preper.k}, period ${cur.preper.n}).\n` : `Polynomials z² + c are labeled by the even numerator k of their characteristic angles k/(2^n − 1).\n`) + `${cur.titleText}: genus ${I.genus}, ${I.punctures} puncture${I.punctures === 1 ? '' : 's'}, ${I.centers} polynomial center${I.centers === 1 ? '' : 's'}, ${I.circles} real circle${I.circles === 1 ? '' : 's'}${I.sheets ? ', ' + I.sheets + ' sheets over the y-line' : ''}.\n${I.tiling || ''}`;
     $('status').textContent = FACTS + `\n${cur.kind === 'hyperbolic' ? 'The model loads in the left pane (tens of MB; the first load can take a while), then click a point.' : 'Click a parameter.'}`;
@@ -151,7 +153,7 @@
     if (f.kind === 'capture' && cur.family === 'quad') comp = 'escapes to ∞ (outside the Mandelbrot set)';
     else if (f.kind === 'cycle') comp = f.period === 1 ? 'hyperbolic component with an attracting fixed point (polynomial-like: the free critical point is attracted to a fixed point)' : `hyperbolic component of period ${f.period} (the free critical point is attracted to a ${f.period}-cycle)`;
     else comp = 'undecided: bifurcation locus (or beyond the iteration count)';
-    VIEWM = cur.preper ? (f.kind === 'cycle' && f.period <= 9 ? f.period : f.kind === 'capture' && cur.n <= 9 ? cur.n : 0) : (f.kind === 'cycle' && f.period <= 9 ? f.period : 0);   // addendum (ab) (2)   // 9: Per_9 wired in 2026-11-12
+    VIEWM = (cur.family === 'sym' || cur.family === 'slice') ? 0 : cur.preper ? (f.kind === 'cycle' && f.period <= 9 ? f.period : f.kind === 'capture' && cur.n <= 9 ? cur.n : 0) : (f.kind === 'cycle' && f.period <= 9 ? f.period : 0);   // addendum (ab) (2)   // 9: Per_9 wired in 2026-11-12
     $('vin').style.display = VIEWM || PREP ? '' : 'none';
     if (PREP) $('vin').textContent = `View this center in PrePer_{${PREP.k},${PREP.n}} (the other critical point marked)  (v)`;
     else if (VIEWM && cur.preper) $('vin').textContent = `View this component's center in Per_${VIEWM} (the other critical point marked)  (v)`;
@@ -225,7 +227,7 @@
           num = PM.cadd(PM.cadd(PM.cadd(PM.cscale(PM.cmul(PM.cmul(s, s), s), 7), PM.cscale(PM.cmul(s, s), 9)), PM.cscale(s, 5)), [1, 0]), v = PM.cdiv(PM.csub(PM.cscale(PM.cmul(a, q), 2), num), s1), L = PM.pp52Locate(s, v); if (L) msg = { p: L.u }; }
       else if (tgt.kind === 'hyperbolic') { const s = PM.cadd(a, b), s1 = PM.cadd(s, [1, 0]); let y = s, x = null;
         if (d.id === 'pp24') x = PM.cmul(PM.cmul(s1, s1), a); else if (d.id === 'pp25') x = PM.cmul(PM.cmul(PM.cmul(s, s1), s1), a); else if (d.id === 'pp34') x = PM.cmul(PM.cmul(s, PM.cadd(PM.cadd(PM.cscale(PM.cmul(s, s), 2), PM.cscale(s, 4)), [1, 0])), a);
-        else if (d.id === 'pp43') x = PM.cmul(PM.cmul(s, s1), a); else if (d.id === 'pp61') { y = PM.cdiv([1, 0], PM.csub(s, [1.5, 0])); const y2 = PM.cmul(y, y), y6 = PM.cmul(PM.cmul(y2, y2), y2), s2 = PM.cmul(s1, s1); x = PM.cscale(PM.cmul(PM.cmul(PM.cmul(s, PM.cmul(s2, s2)), a), y6), 64); } else if (d.id === 'pp51') { y = PM.cdiv([1, 0], PM.csub(s, [1, 0])); const y2 = PM.cmul(y, y); x = PM.cmul(PM.cmul(PM.cmul(PM.cmul(s, s1), s1), a), PM.cmul(y2, y2)); }
+        else if (d.id === 'pp43') x = PM.cmul(PM.cmul(s, s1), a); else if (d.id === 'pp62') { y = PM.cdiv([1, 0], PM.csub(s, [1.5, 0])); const y2 = PM.cmul(y, y), y6 = PM.cmul(PM.cmul(y2, y2), y2), q = PM.cadd(PM.cadd(PM.cmul(s, s), PM.cscale(s, 4)), [1, 0]); x = PM.cscale(PM.cmul(PM.cmul(PM.cmul(PM.cmul(PM.cmul(s, s1), s1), q), a), y6), 64); } else if (d.id === 'pp61') { y = PM.cdiv([1, 0], PM.csub(s, [1.5, 0])); const y2 = PM.cmul(y, y), y6 = PM.cmul(PM.cmul(y2, y2), y2), s2 = PM.cmul(s1, s1); x = PM.cscale(PM.cmul(PM.cmul(PM.cmul(s, PM.cmul(s2, s2)), a), y6), 64); } else if (d.id === 'pp51') { y = PM.cdiv([1, 0], PM.csub(s, [1, 0])); const y2 = PM.cmul(y, y); x = PM.cmul(PM.cmul(PM.cmul(PM.cmul(s, s1), s1), a), PM.cmul(y2, y2)); }
         if (x) { msg = { x, y, ab: [a, b] }; note = ' (the disk page shows the map; locating it in the disk is not available on these pages yet)'; } } }
     else {   // Per_n: the periodic critical point omega = 0 becomes the marked one (PM.transfer, as "View in Per_m")
       const Mt = { n: d.n, A: [1, 0], B: b, C: a, D: [1, 0], E: [0, 0], F: [0, 0], a, b, omega: [0, 0], marked: [PM.cdiv(PM.cscale(a, -2), b)] }, T = PM.transfer(Mt, d.n);
@@ -766,5 +768,6 @@
   $('dmin').onclick = () => { $('dside').classList.toggle('min'); $('dmin').textContent = $('dside').classList.contains('min') ? '+' : '–'; };
   if ($('right').clientWidth < 900) $('dmin').onclick();
   window.addEventListener('hashchange', () => { const h2 = location.hash.slice(1); if (man.models.some(m => m.id === h2 && !m.placeholder) && (!cur || cur.id !== h2)) choose(h2); });
-  const h = location.hash.slice(1); choose(man.models.some(m => m.id === h && !m.placeholder) ? h : 'per1');
+  const h = location.hash.slice(1); choose(man.models.some(m => m.id === h && !m.placeholder) ? h : 'about');   // no hash: the About page (Caroline 2026-11-25)
+  document.querySelector('#top h1').style.cursor = 'pointer'; document.querySelector('#top h1').title = 'About this atlas'; document.querySelector('#top h1').onclick = () => choose('about');
 })().catch(e => { document.getElementById('status').textContent = 'error: ' + e.message; console.error(e); });
