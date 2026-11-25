@@ -1,5 +1,5 @@
 {
- "built_from": "6a10aefe",
+ "built_from": "bdbd1667",
  "preperGenus": {
   "2,1": 0,
   "2,2": 0,
@@ -741,6 +741,31 @@
     "punctures": 19,
     "circles": 4,
     "tiling": "Tiling: the universal cover (Poincar\u00e9 disk) tiled by copies of one Dirichlet polygon for the Fuchsian group (genus 11, area 40\u03c0). Chart: s = a + b, x = s(s + 1)<sup>2</sup> a."
+   }
+  },
+  {
+   "id": "pp61",
+   "n": 1,
+   "preper": {
+    "k": 6,
+    "n": 1
+   },
+   "short": "PrePer<sub>6,1</sub>",
+   "title": "PrePer<sub>6,1</sub>",
+   "titleText": "PrePer_{6,1}",
+   "kind": "hyperbolic",
+   "family": "pp61",
+   "param": "(s, x)",
+   "page": "models/pp61/index.html",
+   "genus": 14,
+   "source": "2026-11-25-PP61-conformal",
+   "info": {
+    "genus": 14,
+    "centers": 31,
+    "centres": 31,
+    "punctures": 26,
+    "circles": 2,
+    "tiling": "Tiling: the universal cover (Poincar\u00e9 disk) tiled by copies of one Dirichlet polygon for the Fuchsian group (genus 14, area 52\u03c0). Chart: y = 1/(s \u2212 3/2), x\u2032 = 64 s(s + 1)<sup>4</sup> a y<sup>6</sup>, s = a + b."
    }
   },
   {
