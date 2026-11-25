@@ -6,7 +6,7 @@
 <style>
   :root { --ink:#2b2b2b; --muted:#6b6b6b; --faint:#d9d9d9; }
   html, body { margin:0; height:100%; font:13px/1.4 -apple-system, system-ui, sans-serif; color:var(--ink); background:#111; overflow:hidden; }
-  #cv { position:absolute; inset:0; width:100%; height:100%; cursor:crosshair; }
+  #cv { position:absolute; inset:0; width:100%; height:100%; cursor:crosshair; touch-action:none; }
   #side { position:absolute; top:8px; right:8px; width:290px; max-height:calc(100% - 16px); overflow:auto; background:rgba(250,250,248,.96);
           border:1px solid var(--faint); border-radius:6px; padding:8px 10px; box-sizing:border-box; z-index:3; }
   #side.min > :not(#hdr) { display:none; }
@@ -36,13 +36,14 @@
   <div style="margin:4px 0">coordinates <select id="coords"><option value="ab">(a, b): the site chart</option><option value="mega">(x, y): megaPer<sub>n</sub></option></select></div>
   <div class="sub" id="megainfo" style="display:none">megaPer<sub>n</sub> (Caroline's script): f(z) = (z − x)(z − w)/z², w = (x + y − 1)/(x − 1), so ω = 0 → ∞ → 1 → y → …; Per<sub>n</sub> is drawn as a<sub>n−1</sub> = x
   (the orbit of y reaches the zero x of f). Same maps as the site chart: a = x w, b = −(x + w); the (x, y) plane double-covers the part of the (a, b) plane where z² + bz + a has real roots (x ↔ w).</div>
+  <label style="display:block" title="the same relations on the free critical point ω′ = −2a/b (coPer_n: ω′ has exact period n; coPrePer_{k,n}: f^k(ω′) is the first periodic point, period n), dotted; white rings where a curve meets a co-curve: COR points (both critical points satisfy a relation)"><input type="checkbox" id="co"> coPer<sub>n</sub> / coPrePer<sub>k,n</sub> (dotted) and their crossings</label>
   <label style="display:block"><input type="checkbox" id="grey"> other (k, n) with k + n ≤ 10, no page yet (gray)</label>
   <div>background <select id="bgm"><option value="fate">fate of ω′ under the real map</option><option value="mega">megaPer<sub>n</sub> bands: first n with a<sub>n−1</sub> ≈ x</option><option value="none">none</option></select></div>
   <label style="display:block"><input type="checkbox" id="lab" checked> curve labels</label>
   <div class="sub" style="margin-top:4px">Fate background: period of the attracting cycle that captures ω′ (light colors: 1 gray, 2 rose, 3 green, 4 blue, 5 sand, 6 violet …); dark: none found (300 iterates).
-  Drag to pan; wheel, pinch, double-click (shift: out) or the buttons to zoom. <button id="zin">+</button> <button id="zout">−</button> <button id="home">Reset view</button></div>
+  Drag to pan; wheel, pinch, z / x at the cursor, Shift-drag a box, double-click (Shift: out) or the buttons to zoom; ⌘ / Ctrl-click undoes the last zoom or pan. <button id="zin">+</button> <button id="zout">−</button> <button id="home">Reset view</button></div>
 </div>
-<script src="js/pern_math.js?v=20261125211442"></script>
+<script src="js/pern_math.js?v=20261125213255"></script>
 <script>
 'use strict';
 (async function () {
@@ -55,10 +56,16 @@
   REL.forEach((r, ix) => { r.ix = ix; r.id = r.per ? `per${r.n}` : `pp${r.k}${r.n}`; r.page = man.models.find(m => m.id === r.id) || null;
     r.name = r.per ? `Per_${r.n}(0)` : `PrePer_{${r.k},${r.n}}`; r.html = r.per ? `Per<sub>${r.n}</sub>(0)` : `PrePer<sub>${r.k},${r.n}</sub>`; });
   // exclusions: PrePer (k, n): PrePer (k', n'), k' <= k, n' | n, != ; Per_p, p | n. Per_n: Per_d, d | n, d < n.
+  const COREL = []; for (let p = 1; p <= 10; p++) COREL.push({ per: true, co: true, k: 0, n: p, i: p, j: 0 });
+  for (let k = 2; k <= 9; k++) for (let n = 1; k + n <= 10; n++) COREL.push({ per: false, co: true, k, n, i: k + n, j: k });
+  COREL.forEach((r, ix) => { r.ix = ix; const twin = REL.find(q => q.per === r.per && q.k === r.k && q.n === r.n); r.page = r.per ? (r.n <= 9 ? { kind: 'co' } : null) : (twin && twin.page ? { kind: 'co' } : null);
+    r.name = r.per ? `coPer_${r.n}` : `coPrePer_{${r.k},${r.n}}`; });
+  COREL.forEach(r => { r.ex = COREL.filter(q => q !== r && (r.per ? (q.per && r.n % q.n === 0) : ((q.per && r.n % q.n === 0) || (!q.per && q.k <= r.k && r.n % q.n === 0)))).map(q => q.ix); });
   REL.forEach(r => { r.ex = REL.filter(q => q !== r && (r.per ? (q.per && r.n % q.n === 0) : ((q.per && r.n % q.n === 0) || (!q.per && q.k <= r.k && r.n % q.n === 0)))).map(q => q.ix); });
   const PERC = ['#000', '#888', '#d64545', '#3f9e4d', '#3f6fd6', '#c99a1a', '#9a52c9', '#1aa3a8', '#d9772b', '#7f8f2a', '#555'];
   const PPC = ['#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#00c7be', '#30b0c7', '#007aff', '#5856d6', '#af52de', '#ff2d55', '#a2845e', '#e056fd', '#7bed9f', '#70a1ff'];
-  let ci = 0; REL.forEach(r => { r.col = r.page ? (r.per ? PERC[r.n] : PPC[ci++ % PPC.length]) : '#9a9a9a'; r.on = !!r.page; });
+  let ci = 0; const COC = ['#6b6b6b', '#000000', '#7a4a00', '#0b5d1e', '#1e3a8a', '#7c2d12', '#581c87', '#134e4a', '#9a3412', '#3f6212', '#444444'];
+  REL.forEach(r => { r.col = r.page ? (r.per ? PERC[r.n] : PPC[ci++ % PPC.length]) : '#9a9a9a'; r.on = !!r.page; });
   const leg = $('leg'); REL.filter(r => r.page).forEach(r => { const c = document.createElement('input'); c.type = 'checkbox'; c.checked = true; c.onchange = () => { r.on = c.checked; paint(); };
     const s = document.createElement('span'); s.className = 'sw'; s.style.background = r.col; const t = document.createElement('span'); t.innerHTML = r.html + (r.page.kind === 'hyperbolic' ? ' <span class="sub">(disk)</span>' : '');
     leg.append(c, s, t); });
@@ -74,6 +81,9 @@
     let w = 0, inf = false; out[0] = 0; out[1] = Math.PI; w = 1; out[2] = 2*Math.atan(1);
     for (let j = 3; j <= 10; j++) { if (inf) { w = 1; inf = false; } else if (w === 0) { inf = true; } else { w = 1 + b/w + a/(w*w); if (!isFinite(w) || Math.abs(w) > 1e300) inf = true; }
       out[j] = inf ? Math.PI : 2*Math.atan(w); } }
+  function orbitThetaCo(a, b, out) {   // projective angles of v_j = f^j(omega'), omega' = -2a/b, j = 0..10
+    let w = b === 0 ? null : -2*a/b; for (let j = 0; j <= 10; j++) { out[j] = w === null ? Math.PI : 2*Math.atan(w);
+      if (w === null) w = 1; else if (w === 0) w = null; else { w = 1 + b/w + a/(w*w); if (!isFinite(w) || Math.abs(w) > 1e300) w = null; } } }
   const wrap = d => d > Math.PI ? d - 2*Math.PI : (d <= -Math.PI ? d + 2*Math.PI : d);
   let THX = 0; const relVal = (r, th) => (MEGA && r.per) ? wrap(th[r.n - 1] - THX) : wrap(th[r.i] - th[r.j]);
   let LO = null, HI = null, BG = null, KEEP = null;
@@ -83,6 +93,23 @@
   function megaBand(a, b, x) {        // first n (4..13) with a_(n-1) within 1e-2 (chordal) of x (megaPer chart) or of 0 (site chart: w_n = 0)
     let z = 1 + b + a; for (let j = 0; j < 10; j++) { const t = x === null ? z : z; const d = x === null ? Math.abs(1 + b/z + a/(z*z))/Math.hypot(1, 1 + b/z + a/(z*z)) : Math.abs(z - x)/Math.sqrt((1 + z*z)*(1 + x*x));
       if (d < 1e-2) return Math.min(13, j + 4) - 3; if (z === 0) return 0; z = 1 + b/z + a/(z*z); if (!isFinite(z)) return 0; } return 0; }
+  function crossPass(RELS, orbitFn, valFn) {   // sign-change crossings + lower-relation exclusions for one family of relations
+    const R = RELS.length, th = new Float64Array(11), prev = new Float64Array(R*W), cur = new Float64Array(R*W), L = new Uint32Array(W*H), Hh = new Uint32Array(W*H);
+    for (let y = 0; y < H; y++) { for (let x = 0; x < W; x++) { const uv = toUV(x + .5, y + .5), [a, b] = uv2ab(...uv); orbitFn(a, b, th); for (let r = 0; r < R; r++) cur[r*W + x] = valFn(RELS[r], th, uv); }
+      for (let x = 0; x < W; x++) for (let r = 0; r < R; r++) { const v = cur[r*W + x]; let hit = false;
+        if (x > 0) { const u = cur[r*W + x - 1]; if ((u < 0) !== (v < 0) && Math.abs(u) < Math.PI/2 && Math.abs(v) < Math.PI/2) hit = true; }
+        if (y > 0) { const u = prev[r*W + x]; if ((u < 0) !== (v < 0) && Math.abs(u) < Math.PI/2 && Math.abs(v) < Math.PI/2) hit = true; }
+        if (hit) { if (r < 32) L[y*W + x] |= 1 << r; else Hh[y*W + x] |= 1 << (r - 32); } }
+      prev.set(cur); }
+    const DL = new Uint32Array(W*H), DH = new Uint32Array(W*H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { let l = 0, h = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= W || Y >= H) continue; l |= L[Y*W + X]; h |= Hh[Y*W + X]; } DL[y*W + x] = l; DH[y*W + x] = h; }
+    const EXL = RELS.map(r => r.ex.reduce((m, q) => q < 32 ? (m | (1 << q)) >>> 0 : m, 0)), EXH = RELS.map(r => r.ex.reduce((m, q) => q >= 32 ? (m | (1 << (q - 32))) >>> 0 : m, 0)), K = new Uint8Array(W*H).fill(255);
+    for (let i = 0; i < W*H; i++) { if (!L[i] && !Hh[i]) continue; let best = 255;
+      for (let r = 0; r < R; r++) { const has = r < 32 ? (L[i] >>> r) & 1 : (Hh[i] >>> (r - 32)) & 1; if (!has) continue;
+        if ((DL[i] & EXL[r]) || (DH[i] & EXH[r])) { if (r < 32) L[i] &= ~(1 << r); else Hh[i] &= ~(1 << (r - 32)); continue; } if (best === 255 || RELS[r].page) best = r; }
+      K[i] = best; }
+    return { L, H: Hh, K }; }
+  let CO = null, XPTS = [];
   function compute() {
     W = cv.width; H = cv.height; const R = REL.length, th = new Float64Array(11), prev = new Float64Array(R*W), cur = new Float64Array(R*W);
     LO = new Uint32Array(W*H); HI = new Uint32Array(W*H); BG = new Uint8Array(W*H);
@@ -104,6 +131,11 @@
       for (let r = 0; r < R; r++) { const has = r < 32 ? (LO[i] >>> r) & 1 : (HI[i] >>> (r - 32)) & 1; if (!has) continue;
         if ((DLO[i] & EXL[r]) || (DHI[i] & EXH[r])) { if (r < 32) LO[i] &= ~(1 << r); else HI[i] &= ~(1 << (r - 32)); continue; } if (best === 255 || REL[r].page) best = r; }
       KEEP[i] = best; }
+    CO = null; XPTS = [];
+    if ($('co').checked) { CO = crossPass(COREL, orbitThetaCo, (r, th) => wrap(th[r.i] - th[r.j]));
+      for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const i = y*W + x, rc = CO.K[i]; if (rc === 255 || !COREL[rc].page) continue;
+        let rr = 255; for (let dy = -1; dy <= 1 && rr === 255; dy++) for (let dx = -1; dx <= 1; dx++) { const q = KEEP[i + dy*W + dx]; if (q !== 255 && REL[q].page && REL[q].on) { rr = q; break; } }
+        if (rr === 255 || XPTS.some(p => Math.abs(p.x - x) < 8 && Math.abs(p.y - y) < 8)) continue; XPTS.push({ x, y, r: rr, c: rc }); } }
   }
   const BGC = [[28, 28, 30], [205, 205, 205], [232, 196, 196], [196, 226, 200], [196, 208, 236], [236, 226, 190], [218, 200, 232], [190, 228, 230], [240, 214, 186], [216, 222, 182], [210, 210, 210], [210, 210, 210], [210, 210, 210], [210, 210, 210]];
   function paint() {
@@ -114,7 +146,11 @@
     for (let pass = 0; pass < 2; pass++) for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = y*W + x; if (!LO[i] && !HI[i]) continue;
       for (let r = REL.length - 1; r >= 0; r--) { const has = r < 32 ? (LO[i] >>> r) & 1 : (HI[i] >>> (r - 32)) & 1; if (!has || !REL[r].on || (pass === 0) !== !REL[r].page) continue;
         const c = RC[r]; put(i, c); if (REL[r].page) { if (x + 1 < W) put(i + 1, c); if (y + 1 < H) put(i + W, c); } } }
+    if (CO) { const hexc = c => [parseInt(c.slice(1, 3), 16), parseInt(c.slice(3, 5), 16), parseInt(c.slice(5, 7), 16)];
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = y*W + x, rc = CO.K[i]; if (rc === 255 || !COREL[rc].page || ((x + y) % 4) > 1) continue;
+        const r = COREL[rc], tw = REL.find(q => q.per === r.per && q.k === r.k && q.n === r.n), c = hexc(tw && tw.col.length === 7 ? tw.col : (r.per ? (['#6b6b6b', '#222222'][r.n % 2]) : '#555555')); put(i, c); if (x + 1 < W) put(i + 1, c); } }
     g.putImageData(img, 0, 0);
+    for (const p of XPTS) { g.beginPath(); g.arc(p.x, p.y, 5*dpr, 0, 2*Math.PI); g.lineWidth = 3*dpr; g.strokeStyle = '#000'; g.stroke(); g.lineWidth = 1.6*dpr; g.strokeStyle = '#fff'; g.stroke(); }
     // axes
     g.strokeStyle = 'rgba(0,0,0,.35)'; g.lineWidth = 1; const o = toPx(0, 0); g.beginPath(); g.moveTo(0, o[1]); g.lineTo(W, o[1]); g.moveTo(o[0], 0); g.lineTo(o[0], H); g.stroke();
     g.fillStyle = 'rgba(0,0,0,.6)'; g.font = `${11*dpr}px system-ui`; const st = Math.pow(10, Math.floor(Math.log10(V.upp*W/4)));
@@ -136,18 +172,34 @@
   function redraw(delay) { clearTimeout(TIMER); $('busy').textContent = 'computing…'; TIMER = setTimeout(() => { const t0 = performance.now(); compute(); paint(); $('busy').textContent = `${W}×${H} px, ${(performance.now() - t0).toFixed(0)} ms`; window.E96SLICE_READY = true; const c = document.createElement('canvas'); c.width = W; c.height = H; c.getContext('2d').drawImage(cv, 0, 0); SNAP = { c, V: { ...V } }; }, delay || 30); }
   function resize() { dpr = Math.min(2, window.devicePixelRatio || 1); cv.width = Math.round(cv.clientWidth*dpr); cv.height = Math.round(cv.clientHeight*dpr); redraw(); }
   window.addEventListener('resize', resize);
+  const HIST = []; let lastCont = 0; function pushV(cont) { const now = Date.now(); if (cont && now - lastCont < 600) { lastCont = now; return; } if (cont) lastCont = now; HIST.push({ ...V }); if (HIST.length > 200) HIST.shift(); }
+  function undoV() { const h = HIST.pop(); if (!h) return; V = h; preview(); redraw(150); }
+  let LASTXY = null; cv.addEventListener('pointermove', e => { const r = cv.getBoundingClientRect(); LASTXY = [(e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr]; });
+  window.addEventListener('keydown', e => { if (!LASTXY || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.metaKey || e.ctrlKey || (e.key !== 'z' && e.key !== 'x')) return; pushV(false); zoomAt(LASTXY[0], LASTXY[1], e.key === 'z' ? 1/1.6 : 1.6); });
   const zoomAt = (px, py, f) => { const uv = toUV(px, py); V.upp *= f; V.ca = uv[0] - (px - W/2)*V.upp; V.cb = uv[1] + (py - H/2)*V.upp; preview(); redraw(250); };
-  $('zin').onclick = () => zoomAt(W/2, H/2, 0.5); $('zout').onclick = () => zoomAt(W/2, H/2, 2);
+  // Safari trackpad pinch (gesture events, no wheel) and two-finger touch pinch
+  let GS = null; cv.addEventListener('gesturestart', e => { e.preventDefault(); GS = { s: 1 }; });
+  cv.addEventListener('gesturechange', e => { e.preventDefault(); if (!GS) return; const r = cv.getBoundingClientRect(); zoomAt((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr, GS.s/e.scale); GS.s = e.scale; });
+  cv.addEventListener('gestureend', e => { e.preventDefault(); GS = null; });
+  let TP = null; const tdist = t => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  cv.addEventListener('touchstart', e => { if (e.touches.length === 2) { TP = tdist(e.touches); drag = null; } }, { passive: true });
+  cv.addEventListener('touchmove', e => { if (e.touches.length !== 2 || !TP) return; e.preventDefault(); const d = tdist(e.touches), r = cv.getBoundingClientRect(), cx = ((e.touches[0].clientX + e.touches[1].clientX)/2 - r.left)*dpr, cy = ((e.touches[0].clientY + e.touches[1].clientY)/2 - r.top)*dpr; zoomAt(cx, cy, TP/d); TP = d; }, { passive: false });
+  cv.addEventListener('touchend', () => { TP = null; });
+  $('zin').onclick = () => { pushV(false); zoomAt(W/2, H/2, 0.5); }; $('zout').onclick = () => { pushV(false); zoomAt(W/2, H/2, 2); };
   cv.addEventListener('dblclick', e => { const r = cv.getBoundingClientRect(); zoomAt((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr, e.shiftKey ? 2 : 0.4); });
-  $('bgm').onchange = redraw; $('coords').onchange = e => { MEGA = e.target.value === 'mega'; $('megainfo').style.display = MEGA ? '' : 'none'; V = MEGA ? { ca: 0, cb: 0, upp: 0.008 } : { ca: -0.3, cb: -0.6, upp: 0.009 }; PICK = null; redraw(); }; $('lab').onchange = paint; $('home').onclick = () => { V = { ca: -0.3, cb: -0.6, upp: 0.006*1.5/dpr }; redraw(); };
+  $('bgm').onchange = redraw; $('co').onchange = redraw; $('coords').onchange = e => { MEGA = e.target.value === 'mega'; $('megainfo').style.display = MEGA ? '' : 'none'; V = MEGA ? { ca: 0, cb: 0, upp: 0.008 } : { ca: -0.3, cb: -0.6, upp: 0.009 }; PICK = null; redraw(); }; $('lab').onchange = paint; $('home').onclick = () => { V = { ca: -0.3, cb: -0.6, upp: 0.006*1.5/dpr }; redraw(); };
   // ---- pan / zoom
   let drag = null, moved = 0;
-  cv.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY, V.ca, V.cb]; moved = 0; cv.setPointerCapture(e.pointerId); });
+  let BOX = null; cv.addEventListener('pointerdown', e => { drag = [e.clientX, e.clientY, V.ca, V.cb]; moved = 0; cv.setPointerCapture(e.pointerId); BOX = e.shiftKey ? [e.clientX, e.clientY, e.clientX, e.clientY] : null; });
   cv.addEventListener('pointermove', e => { const r = cv.getBoundingClientRect(), ab = toAB((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr); const uv = toUV((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr); $('coord').textContent = (MEGA ? `x = ${uv[0].toFixed(5)}  y = ${uv[1].toFixed(5)}   ` : '') + `a = ${ab[0].toFixed(5)}  b = ${ab[1].toFixed(5)}`;
     if (!drag) return; const dx = (e.clientX - drag[0])*dpr, dy = (e.clientY - drag[1])*dpr; moved = Math.max(moved, Math.abs(dx) + Math.abs(dy));
+    if (BOX) { BOX[2] = e.clientX; BOX[3] = e.clientY; preview(); const r = cv.getBoundingClientRect(); g.strokeStyle = '#fff'; g.lineWidth = 1.5*dpr; g.setLineDash([5*dpr, 4*dpr]); g.strokeRect((Math.min(BOX[0], BOX[2]) - r.left)*dpr, (Math.min(BOX[1], BOX[3]) - r.top)*dpr, Math.abs(BOX[2] - BOX[0])*dpr, Math.abs(BOX[3] - BOX[1])*dpr); g.setLineDash([]); return; }
     if (moved > 3) { V.ca = drag[2] - dx*V.upp; V.cb = drag[3] + dy*V.upp; preview(); } });
-  cv.addEventListener('pointerup', e => { const was = drag; drag = null; if (!was) return; if (moved > 3) { redraw(); return; } const r = cv.getBoundingClientRect(); click((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr); });
-  cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(), px = (e.clientX - r.left)*dpr, py = (e.clientY - r.top)*dpr, ab = toUV(px, py), f = Math.exp(e.deltaY*0.0015);
+  cv.addEventListener('pointerup', e => { const was = drag; drag = null; if (!was) return;
+    if (BOX) { const b = BOX; BOX = null; const r = cv.getBoundingClientRect(), w = Math.abs(b[2] - b[0])*dpr, h = Math.abs(b[3] - b[1])*dpr; if (w > 8 && h > 8) { pushV(false); const c = toUV(((b[0] + b[2])/2 - r.left)*dpr, ((b[1] + b[3])/2 - r.top)*dpr); V.ca = c[0]; V.cb = c[1]; V.upp *= Math.max(w/W, h/H); preview(); redraw(150); } else preview(); return; }
+    if (moved <= 3 && (e.metaKey || e.ctrlKey)) { undoV(); return; }
+    if (moved > 3) { pushV(false); HIST[HIST.length - 1] = { ca: was[2], cb: was[3], upp: V.upp }; redraw(); return; } const r = cv.getBoundingClientRect(); click((e.clientX - r.left)*dpr, (e.clientY - r.top)*dpr); });
+  cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(), px = (e.clientX - r.left)*dpr, py = (e.clientY - r.top)*dpr, ab = toUV(px, py), f = Math.exp(e.deltaY*(e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1)*0.0015); pushV(true);
     V.upp *= f; V.ca = ab[0] - (px - W/2)*V.upp; V.cb = ab[1] + (py - H/2)*V.upp; preview(); redraw(250); }, { passive: false });
   // ---- click: nearest kept curve pixel within 6 px, snapped by bisection across the curve
   function exactType(a, b) { const w = [0, null, 1]; for (let j = 3; j <= 12; j++) { const z = w[j - 1]; w.push(z === null ? 1 : z === 0 ? null : 1 + b/z + a/(z*z)); }
@@ -161,7 +213,23 @@
         let P = A, Q = B, fu = u; for (let it = 0; it < 80; it++) { const M = [(P[0] + Q[0])/2, (P[1] + Q[1])/2], fm = val(...M); if ((fm < 0) === (fu < 0)) { P = M; fu = fm; } else Q = M; }
         const U = [(P[0] + Q[0])/2, (P[1] + Q[1])/2], AB = uv2ab(...U); best = { d, a: AB[0], b: AB[1], uv: U }; } }
     return best; }
+  function clickX(px, py) {   // a COR point: Newton on (rel_r(u, v), corel_c(u, v)) = 0
+    const X = XPTS.find(p => Math.hypot(p.x - px, p.y - py) < 9*dpr); if (!X) return false; const r = REL[X.r], c = COREL[X.c], th = new Float64Array(11), tc = new Float64Array(11);
+    const F = (u, v) => { const [a, b] = uv2ab(u, v); orbitTheta(a, b, th); orbitThetaCo(a, b, tc); THX = MEGA ? 2*Math.atan(u) : 0; return [relVal(r, th), wrap(tc[c.i] - tc[c.j])]; };
+    let [u, v] = toUV(X.x, X.y), ok = false;
+    for (let it = 0; it < 60; it++) { const f0 = F(u, v); if (Math.abs(f0[0]) + Math.abs(f0[1]) < 1e-14) { ok = true; break; } const h = 1e-8*Math.max(1, Math.abs(u) + Math.abs(v)), fu = F(u + h, v), fv = F(u, v + h);
+      const J = [[(fu[0] - f0[0])/h, (fv[0] - f0[0])/h], [(fu[1] - f0[1])/h, (fv[1] - f0[1])/h]], det = J[0][0]*J[1][1] - J[0][1]*J[1][0]; if (!isFinite(det) || det === 0) break;
+      let du = (J[1][1]*f0[0] - J[0][1]*f0[1])/det, dv = (-J[1][0]*f0[0] + J[0][0]*f0[1])/det; const st = Math.hypot(du, dv), cap = 20*V.upp; if (st > cap) { du *= cap/st; dv *= cap/st; } u -= du; v -= dv; if (Math.abs(du) + Math.abs(dv) < 1e-15*(1 + Math.abs(u) + Math.abs(v))) { ok = true; break; } }
+    const [a, b] = uv2ab(u, v), T = exactType(a, b), Tc = exactTypeCo(a, b), res = F(u, v); PICK = { a, b, uv: [u, v], r }; paint(); window.E96SLICE_LASTX = { r: r.name, c: c.name, a, b, res, ok, typeOmega: [T.k, T.n], typeOmegaP: [Tc.k, Tc.n] };
+    showCard(`COR point: ${r.name} ∩ ${c.name}`, [`a = ${a.toPrecision(15)}`, `b = ${b.toPrecision(15)}`, `residuals ${Math.abs(res[0]).toExponential(1)}, ${Math.abs(res[1]).toExponential(1)}${ok ? '' : ' (Newton did not converge)'}`,
+      `ω: ${T.k === null ? 'no relation found' : T.k === 0 ? 'periodic, period ' + T.n : 'preperiod ' + T.k + ', period ' + T.n}`, `ω′ = ${(-2*a/b).toPrecision(8)}: ${Tc.k === null ? 'no relation found' : Tc.k === 0 ? 'periodic, period ' + Tc.n : 'preperiod ' + Tc.k + ', period ' + Tc.n}`,
+      'both critical points satisfy a relation: a postcritically finite map (a 0-dimensional COR variety)'], r.page ? r : null);
+    parent.postMessage({ e96: 'param', model: 'slice', ab: [[a, 0], [b, 0]], x: [a, 0], y: [b, 0], slice: { per: r.per, k: r.k, n: r.n }, label: `COR point ${r.name} ∩ ${c.name}` }, '*'); return true; }
+  function exactTypeCo(a, b) { const w = [b === 0 ? null : -2*a/b]; for (let j = 1; j <= 12; j++) { const z = w[j - 1]; w.push(z === null ? 1 : z === 0 ? null : 1 + b/z + a/(z*z)); }
+    const ch = (u, v) => u === null && v === null ? 0 : u === null ? 1/Math.hypot(1, v) : v === null ? 1/Math.hypot(1, u) : Math.abs(u - v)/Math.sqrt((1 + u*u)*(1 + v*v));
+    for (let k = 0; k <= 10; k++) for (let n = 1; k + n <= 12; n++) if (ch(w[k + n], w[k]) < 1e-9) return { k, n }; return { k: null, n: null }; }
   function click(px, py) {
+    if (CO && clickX(px, py)) return;
     const cand = new Map(); for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) { const x = Math.round(px) + dx, y = Math.round(py) + dy; if (x < 0 || y < 0 || x >= W || y >= H) continue;
       const i = y*W + x; for (let r = 0; r < REL.length; r++) { const has = r < 32 ? (LO[i] >>> r) & 1 : (HI[i] >>> (r - 32)) & 1; if (!has || !REL[r].on) continue; const d = dx*dx + dy*dy; if (!cand.has(r) || cand.get(r) > d) cand.set(r, d); } }
     if (!cand.size) { const ab = toAB(px, py); PICK = { a: ab[0], b: ab[1], uv: toUV(px, py) }; paint(); showCard('a point off the drawn curves', [`a = ${ab[0]}`, `b = ${ab[1]}`, `ω′ under the real map: ${(f => f ? 'attracted to a cycle of period ' + f : 'no attracting cycle found')(fate(...ab))}`], null);
@@ -181,6 +249,8 @@
   $('cardx').onclick = () => { $('card').style.display = 'none'; };
   window.E96SLICE_click = (a, b) => { const q = ab2uv(a, b); if (!q) return null; const p = toPx(...q); click(p[0], p[1]); return window.E96SLICE_LAST; };
   window.E96SLICE_view = (ca, cb, upp) => { V = { ca, cb, upp }; redraw(); };
+  window.E96SLICE_X = () => XPTS.map(p => ({ r: REL[p.r].name, c: COREL[p.c].name, uv: toUV(p.x, p.y) }));
+  window.E96SLICE_clickX = (u, v) => { const p = toPx(u, v); clickX(p[0], p[1]); return window.E96SLICE_LASTX; };
   window.E96SLICE_REL = () => REL.map(r => ({ name: r.name, page: !!r.page, ex: r.ex.map(q => REL[q].name) }));
   V.upp = 0.006*1.5; resize();
 })();

@@ -1,4 +1,4 @@
-Per_n(0) atlas, built by runs/2026-11-09-E96-pern-site/make_site.py at commit 4dd92c95
+Per_n(0) atlas, built by runs/2026-11-09-E96-pern-site/make_site.py at commit 5ab058bd
 n 3 puncture 0 loop0 x = -10003.0001 + 0i -> inf (distance 1e+04) -> c = 2 + 0i
 n 3 puncture 1 loop0 x = 4.99900005e-05 + 0.009997875474i -> 0 (distance 0.01) -> c = 0 + 0i
 n 4 puncture 0 loop0 y = -40013.00078 + 0i -> inf (distance 4e+04) -> c = 0 + 0i
@@ -55,4 +55,4 @@ pp62: chart_map.png: 10099 empty texels within 3 texels of D filled from the nea
 pp62: conformal hyperbolic model from 2026-11-25-PP62-conformal (32 polynomials, 19 punctures)
 American English applied to 53 files
 About page not published (E96_INTRO != 1)
-cache-busting stamp 20261125211442
+cache-busting stamp 20261125213255

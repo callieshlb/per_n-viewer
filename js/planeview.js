@@ -91,7 +91,8 @@ function PlaneView(host, opts) {
     var after = self.toPlane(lastXY[0], lastXY[1]); self.ctr[0] += before[0] - after[0]; self.ctr[1] += before[1] - after[1]; dirty = true; poke(); });
   gc.addEventListener('wheel', function (e) { e.preventDefault();
     pushView(true); var r = gc.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top, before = self.toPlane(sx, sy);
-    self.upp = Math.min(10, Math.max(1e-7, self.upp*Math.exp(e.deltaY*0.0015)));
+    var dY = e.deltaY*(e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1);   // Firefox: deltaMode 1 = lines (Caroline 2026-11-25, Firefox)
+    self.upp = Math.min(10, Math.max(1e-7, self.upp*Math.exp(dY*0.0015)));
     var after = self.toPlane(sx, sy); self.ctr[0] += before[0] - after[0]; self.ctr[1] += before[1] - after[1];
     dirty = true; poke(); }, { passive: false });
 }

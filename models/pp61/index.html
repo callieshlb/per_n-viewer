@@ -31,10 +31,10 @@
   #mlist div { padding:2px 6px; cursor:pointer; border-bottom:1px solid #f0f0ec; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #mlist div:hover { background:#eef3ff; }
 </style>
-<script src="conformal_data.js?v=20261125211442"></script>
-<script src="pern_math.js?v=20261125211442"></script>
-<script src="pp61_core.js?v=20261125211442"></script>
-<script src="pp61_viewer_core.js?v=20261125211442"></script>
+<script src="conformal_data.js?v=20261125213255"></script>
+<script src="pern_math.js?v=20261125213255"></script>
+<script src="pp61_core.js?v=20261125213255"></script>
+<script src="pp61_viewer_core.js?v=20261125213255"></script>
 </head>
 <body>
 <div id="view"><canvas id="gl"></canvas><canvas id="ov"></canvas><div id="load">Loading…</div><div id="card"><button id="cardx" title="close">&times;</button><div id="cardt"></div></div></div>
@@ -602,9 +602,104 @@ mini.addEventListener('click', e => {
   if (cabs2(z) >= 1) return; const f = fold(z); V = Mq(f); anim = null; reduceView(); inspect(f); dirty = true;
 });
 </script>
-<script>/* E96: keep the view matrix V in SU(1,1) (orchestrator's fix for the drift Caroline saw after long panning; E98 viewer_drift). On by default (Caroline 2026-11-12: go); E96_SU11=0 builds without it. */
+<script>function e96near(prev,q){for(var it=0;it<6;it++){var best=q,bd=hdist(prev,q),ch=false;for(var a=0;a<FG.length;a++){var c=ap(FG[a],q),d=hdist(prev,c);if(d<bd-1e-12){bd=d;best=c;ch=true;}}if(!ch)break;q=best;}return q;}</script><script>/* E96: chart inversion + mating markers (REGISTRATION addendum 2026-11-10 (b)) */
+var E96MARKS=[];
+function e96locate(x,y){
+  if(!idData||!CH||!CHG||!CHM)return null;
+  var S=T.idSize,ch=function(a,b){return Math.hypot(a[0]-b[0],a[1]-b[1])/Math.sqrt((1+a[0]*a[0]+a[1]*a[1])*(1+b[0]*b[0]+b[1]*b[1]));};
+  var cand=[];
+  for(var py=0;py<S;py++)for(var px=0;px<S;px++){var qx=(px+.5)/S*2-1,qy=1-(py+.5)/S*2;if(qx*qx+qy*qy>=.999)continue;
+    var o=4*(py*S+px),id=(idData[o]<<16)|(idData[o+1]<<8)|idData[o+2];
+    var d=ch([VX[2*id],VX[2*id+1]],x)+ch([VY[2*id],VY[2*id+1]],y);if(!(d<1e9))continue;
+    if(cand.length<400||d<cand[cand.length-1].d){cand.push({d:d,p:[qx,qy]});if(cand.length>800){cand.sort(function(a,b){return a.d-b.d;});cand.length=400;}}}
+  cand.sort(function(a,b){return a.d-b.d;});var sel=[];cand.forEach(function(c){if(sel.length<10&&sel.every(function(e){return Math.hypot(e.p[0]-c.p[0],e.p[1]-c.p[1])>6/S;}))sel.push(c);});cand=sel;
+  var bx=Math.hypot(x[0],x[1])>1,by=Math.hypot(y[0],y[1])>1,inv=function(v,b){if(!b)return v;var d=v[0]*v[0]+v[1]*v[1];return[v[0]/d,-v[1]/d];};
+  var tx=inv(x,bx),ty=inv(y,by),val=function(p){var L=chartLookup(p);if(!L||L.e96amb||!isFinite(L.x[0]+L.x[1]+L.y[0]+L.y[1]))return null;/* addendum (o): sheet-ambiguous lookups are not used for locating */return[inv(L.x,bx),inv(L.y,by)];};
+  /* Seeds: pixel candidates + every census marker, nearest (chordal, in (x, y)) first. From each seed: damped Newton on ONE coordinate
+     (|holomorphic| has no local minima besides zeros), which lands on some sheet over that coordinate; keep the root whose other coordinate matches. */
+  var MIx=window.E96MI||(typeof MI!=='undefined'?MI:null),seeds=cand.map(function(c){return{p:c.p,d:c.d};});
+  if(MIx)T.markers.forEach(function(m,i){var it=MIx.items[i];if(it&&it.x&&it.y&&isFinite(it.x[0]+it.y[0]))seeds.push({p:m.p,d:ch(it.x,x)+ch(it.y,y)});});
+  seeds.sort(function(a,b){return a.d-b.d;});
+  var best=null,full=function(v){return ch(inv(v[0],bx),x)+ch(inv(v[1],by),y);};
+  function newt(p,k,tg){p=fold(p);var v=val(p);if(!v)return null;var r=Math.hypot(v[k][0]-tg[0],v[k][1]-tg[1]);
+    for(var it=0;it<80&&r>1e-13;it++){var sc=1-p[0]*p[0]-p[1]*p[1],h=1e-4*sc,wv=val([p[0]+h,p[1]]);if(!wv)break;
+      var d=[(wv[k][0]-v[k][0])/h,(wv[k][1]-v[k][1])/h],dd=d[0]*d[0]+d[1]*d[1];if(!(dd>0))break;var e=[v[k][0]-tg[0],v[k][1]-tg[1]];
+      var st=[(e[0]*d[0]+e[1]*d[1])/dd,(e[1]*d[0]-e[0]*d[1])/dd],sl=Math.hypot(st[0],st[1]),mx=.25*sc;if(sl>mx){st=[st[0]*mx/sl,st[1]*mx/sl];}
+      var ok=false;for(var ls=0,t=1;ls<10;ls++,t/=2){var q=fold([p[0]-t*st[0],p[1]-t*st[1]]),u=val(q);if(!u)continue;var r1=Math.hypot(u[k][0]-tg[0],u[k][1]-tg[1]);if(r1<r){p=q;v=u;r=r1;ok=true;break;}}
+      if(!ok)break;}
+    return{p:p,v:v,r:r};}
+  var tried=0;
+  for(var si=0;si<seeds.length&&si<60&&(!best||best.res>2e-5);si++){for(var k=1;k>=0;k--){var R=newt(seeds[si].p,k,k?ty:tx);tried++;if(!R)continue;var res=full(R.v);
+      if(!best||res<best.res)best={p:R.p,res:res,seed:seeds[si].d,tried:tried};if(best.res<2e-5)break;}}
+  if(best){var c0=null,p=best.p,cost=function(p){var v=val(p);if(!v)return null;var dx=[v[0][0]-tx[0],v[0][1]-tx[1]],dy=[v[1][0]-ty[0],v[1][1]-ty[1]];return{v:v,dx:dx,dy:dy,r:Math.hypot(dx[0],dx[1])+Math.hypot(dy[0],dy[1])};};
+    c0=cost(p);                                                                 /* polish on both coordinates (least squares) */
+    for(var it=0;c0&&it<30&&c0.r>1e-13;it++){var sc=1-p[0]*p[0]-p[1]*p[1],h=1e-4*sc,wv=val([p[0]+h,p[1]]);if(!wv)break;var v=c0.v;
+      var xp=[(wv[0][0]-v[0][0])/h,(wv[0][1]-v[0][1])/h],yp=[(wv[1][0]-v[1][0])/h,(wv[1][1]-v[1][1])/h];
+      var den=xp[0]*xp[0]+xp[1]*xp[1]+yp[0]*yp[0]+yp[1]*yp[1];if(!(den>0))break;var dx=c0.dx,dy=c0.dy;
+      var num=[xp[0]*dx[0]+xp[1]*dx[1]+yp[0]*dy[0]+yp[1]*dy[1],xp[0]*dx[1]-xp[1]*dx[0]+yp[0]*dy[1]-yp[1]*dy[0]];
+      var st=[num[0]/den,num[1]/den],sl=Math.hypot(st[0],st[1]),mx=.1*sc;if(sl>mx){st=[st[0]*mx/sl,st[1]*mx/sl];}
+      var ok=false;for(var ls=0,t=1;ls<10;ls++,t/=2){var q2=fold([p[0]-t*st[0],p[1]-t*st[1]]),c1=cost(q2);if(c1&&c1.r<c0.r){p=q2;c0=c1;ok=true;break;}}
+      if(!ok)break;}
+    if(c0){var r2=full(c0.v);if(r2<=best.res){best.p=p;best.res=r2;}}}
+  return best;
+}
+(function(){var _do=drawOverlay;drawOverlay=function(){_do();if(!E96MARKS.length)return;var fs=Math.round(13*dpr);g2.textAlign='left';g2.textBaseline='middle';
+  var cbl=document.getElementById('e96mvl');if(cbl&&cbl.checked){var G={};E96MARKS.forEach(function(m){if(m.vg)(G[m.vg]=G[m.vg]||[]).push(m);});   /* vein chains (2026-11-18): consecutive points joined in arc order, each next point lifted to the copy nearest the previous one */
+    for(var gk in G){var Lc=G[gk].slice().sort(function(a,b){return a.vi-b.vi;}),pts=[];Lc.forEach(function(m){pts.push(pts.length?e96near(pts[pts.length-1],m.p):m.p);});
+      for(var tj=0;tj<tiles.length;tj++){var sp=pts.map(function(q){return ap(tiles[tj].W,q);});if(sp.every(function(q){return 1-cabs2(q)<0.02;}))continue;g2.beginPath();sp.forEach(function(q,i){var P=diskToScreen(q);if(i)g2.lineTo(P[0],P[1]);else g2.moveTo(P[0],P[1]);});
+        g2.lineWidth=3*dpr;g2.strokeStyle='rgba(0,0,0,.7)';g2.stroke();g2.lineWidth=1.4*dpr;g2.strokeStyle='#ffe600';g2.stroke();}}}
+  for(var ti=0;ti<tiles.length;ti++)for(var mi=0;mi<E96MARKS.length;mi++){var m=E96MARKS[mi],s=ap(tiles[ti].W,m.p),sc=1-cabs2(s);if(sc<0.02)continue;
+    var p=diskToScreen(s);if(p[0]<-10||p[1]<-10||p[0]>W_+10||p[1]>H_+10)continue;var r=Math.max(2*dpr,Math.min(9*dpr,9*dpr*sc*Math.pow(zoom,0.35)));
+    if(m.vein){var rv=Math.max(1.5*dpr,r*.42);g2.beginPath();g2.arc(p[0],p[1],rv,0,TAU);g2.fillStyle='#ffe600';g2.fill();g2.strokeStyle='#141414';g2.lineWidth=dpr;g2.stroke();
+      var cvl=document.getElementById('e96mvlab');if(opt.ml&&(!cvl||cvl.checked)&&r>5*dpr){g2.font='500 '+Math.round(10*dpr)+'px system-ui';g2.lineWidth=2.5*dpr;g2.strokeStyle='rgba(0,0,0,.85)';g2.strokeText(m.label,p[0]+rv+2*dpr,p[1]);g2.fillStyle='#ffe600';g2.fillText(m.label,p[0]+rv+2*dpr,p[1]);}continue;}
+    g2.beginPath();for(var k=0;k<10;k++){var rr=k%2?r*.45:r,t=-Math.PI/2+k*Math.PI/5;g2.lineTo(p[0]+rr*Math.cos(t),p[1]+rr*Math.sin(t));}g2.closePath();
+    g2.fillStyle='#ffe600';g2.fill();g2.strokeStyle='#141414';g2.lineWidth=1.2*dpr;g2.stroke();
+    if(opt.ml&&r>4*dpr&&m.label){g2.font='600 '+fs+'px system-ui';g2.lineWidth=3*dpr;g2.strokeStyle='rgba(0,0,0,.85)';g2.strokeText(m.label,p[0]+r+3*dpr,p[1]);g2.fillStyle='#ffe600';g2.fillText(m.label,p[0]+r+3*dpr,p[1]);}}};
+window.addEventListener('message',function(ev){var d=ev.data;if(!d)return;
+  if(d.e96==='clearMarks'){E96MARKS.length=0;dirty=true;return;}
+  if(d.e96==='veinLabels'){var cl=document.getElementById('e96mvlab');if(cl)cl.checked=!!d.on;dirty=true;return;}
+  if(d.e96==='veinLines'){var cb=document.getElementById('e96mvl');if(cb)cb.checked=!!d.on;dirty=true;return;}
+  if(d.e96!=='mark'||!d.x||!d.y)return;if(!idData||!CH||!CHG||!CHM)return;var L=e96locate(d.x,d.y),ok=!!L&&L.res<1e-4;
+  if(ok){if(!d.vein){var kk=E96MARKS.findIndex(function(q){return q.label===d.label&&!q.vein;});if(kk>=0)E96MARKS.splice(kk,1);}if(d.vg){var k2=E96MARKS.findIndex(function(q){return q.vg===d.vg&&q.vi===d.vi;});if(k2>=0)E96MARKS.splice(k2,1);}E96MARKS.push({p:L.p,label:d.label,vein:d.vein,vg:d.vg,vi:d.vi});if(!d.quiet){V=Mq(L.p);anim=null;reduceView();}dirty=true;}
+  parent.postMessage({e96:'markDone',label:d.label,ok:ok,res:L?L.res:null,p:L?L.p:null,tag:d.tag},'*');});})();
+</script><script>/* E96: keep the view matrix V in SU(1,1) (orchestrator's fix for the drift Caroline saw after long panning; E98 viewer_drift). On by default (Caroline 2026-11-12: go); E96_SU11=0 builds without it. */
 (function(){var su11=function(m){var a=[(m.a[0]+m.d[0])/2,(m.a[1]-m.d[1])/2],b=[(m.b[0]+m.c[0])/2,(m.b[1]-m.c[1])/2],s=Math.sqrt(cabs2(a)-cabs2(b));if(!(s>0)||!isFinite(s))return m;return M([a[0]/s,a[1]/s],[b[0]/s,b[1]/s],[b[0]/s,-b[1]/s],[a[0]/s,-a[1]/s]);};
-var _rv=reduceView;reduceView=function(){_rv.apply(this,arguments);V=su11(V);};window.E96SU11=su11;})();</script><script>fetch("escape_polygon.json").then(r => r.json()).then(d => { window.E96ESCPOLY = d; }).catch(() => {});</script><script>/* E96 addendum (am): Voronoi (Dirichlet) cell of the escape puncture (rho = 0) under the Fuchsian group: one copy of every point of the curve,
+var _rv=reduceView;reduceView=function(){_rv.apply(this,arguments);V=su11(V);};window.E96SU11=su11;})();</script><script>/* E96 addendum (ap): special PCF / geometrically finite points on the PrePer disk pages (runs/2026-11-25-PPspecial): landing-disc centers (ρ = 0),
+   single-orbit maps (ω′ = w_j in the tail), parabolic points, good-reduction places. Placed in the disk by the chart inversion e96locate (residual < 1e-4). */
+(function () {
+  let SP = null, ON = true, LAB = false, placed = 0, failed = 0;
+  const SHC = { rho0: '#ff9d2e', tail: '#00e5ff', parabolic: '#c78bff', good: '#39e75f' };
+  const short = q => q.kind === 'rho0' ? 'ρ=0 (' + q.detail.replace("omega' = ", 'ω′=').replace(/w_(\d+)/, 'w$1') + ')' : q.kind === 'tail' ? q.detail.replace("omega' = ", 'ω′=').replace(/w_(\d+)/, 'w$1').replace(' = inf (b = 0)', '') : q.kind === 'parabolic' ? 'parabolic' : q.detail.replace('-> ', '→ ');
+  const title = q => q.kind === 'rho0' ? 'landing-disc center (ρ = 0): ' + q.detail.replace("omega'", 'ω′') : q.kind === 'tail' ? 'single-orbit map: ' + q.detail.replace("omega'", 'ω′') : q.kind === 'parabolic' ? 'parabolic point: ' + q.detail : 'good-reduction place: the marking becomes ' + q.detail.replace('-> ', '');
+  fetch('special_points.json').then(r => r.json()).then(d => { SP = d.map(q => Object.assign(q, { p: null })); let i = 0;
+    (function next() { const t0 = performance.now(); while (i < SP.length && performance.now() - t0 < 40) { const q = SP[i++]; if (typeof e96locate !== 'function' || !idData || !CH || !CHG || !CHM) { i--; break; }   /* charts not loaded yet: wait */
+        const L = e96locate(q.x, q.y); if (L && L.res < 1e-4) { q.p = L.p; placed++; } else failed++; }
+      if (i < SP.length) setTimeout(next, 60); else { dirty = true; window.E96SPECIAL_DONE = true; } })(); }).catch(() => {});
+  window.E96SPECIAL = () => SP && { n: SP.length, placed, failed, kinds: SP.reduce((m, q) => (m[q.kind] = (m[q.kind] || 0) + 1, m), {}) };
+  const _dO = drawOverlay;
+  drawOverlay = function () { _dO.apply(this, arguments); if (!ON || !SP) return; g2.textAlign = 'left'; g2.textBaseline = 'middle';
+    for (const t of tiles) { const c0 = ap(t.W, [0, 0]); if (1 - cabs2(c0) < 0.01 && t !== tiles[0]) continue;
+      for (const q of SP) { if (!q.p) continue; const s = ap(t.W, q.p), sc = 1 - cabs2(s); if (sc < 0.12) continue; const P = diskToScreen(s);
+        if (P[0] < -10 || P[1] < -10 || P[0] > W_ + 10 || P[1] > H_ + 10) continue; const r = Math.max(2.5*dpr, Math.min(6*dpr, 6*dpr*sc*Math.sqrt(zoom))), c = SHC[q.kind];
+        g2.beginPath();
+        if (q.kind === 'rho0') g2.rect(P[0] - r, P[1] - r, 2*r, 2*r); else if (q.kind === 'tail') { g2.moveTo(P[0], P[1] - r - 1); g2.lineTo(P[0] + r + 1, P[1]); g2.lineTo(P[0], P[1] + r + 1); g2.lineTo(P[0] - r - 1, P[1]); g2.closePath(); }
+        else if (q.kind === 'parabolic') { g2.moveTo(P[0], P[1] - r - 1); g2.lineTo(P[0] + r + 1, P[1] + r); g2.lineTo(P[0] - r - 1, P[1] + r); g2.closePath(); }
+        else g2.arc(P[0], P[1], r + 1, 0, 2*Math.PI);
+        if (q.kind === 'good') { g2.lineWidth = 4*dpr; g2.strokeStyle = 'rgba(0,0,0,.8)'; g2.stroke(); g2.lineWidth = 2.2*dpr; g2.strokeStyle = c; g2.stroke(); }
+        else { g2.fillStyle = c; g2.fill(); g2.strokeStyle = '#141414'; g2.lineWidth = 1.1*dpr; g2.stroke(); }
+        if (LAB && r > 3.5*dpr) { const tx = short(q); g2.font = `500 ${Math.round(10.5*dpr)}px system-ui`; g2.lineWidth = 3*dpr; g2.strokeStyle = 'rgba(0,0,0,.85)'; g2.strokeText(tx, P[0] + r + 3*dpr, P[1]); g2.fillStyle = c; g2.fillText(tx, P[0] + r + 3*dpr, P[1]); } } } };
+  const _ins = inspect;
+  inspect = function (p, rpick) { _ins.apply(this, arguments); if (!ON || !SP || !rpick) return; let best = null, bd = Infinity;
+    for (const q of SP) { if (!q.p) continue; const d = hdist(p, q.p); if (d < bd) { bd = d; best = q; } }
+    if (!best || bd > rpick) return; const fm = z => cs(...z); const at = SP.filter(q => q.p && hdist(q.p, best.p) < 1e-6);
+    document.getElementById('info').textContent = title(best) + '\n' + at.filter(q => q !== best).map(q => 'also: ' + title(q) + '\n').join('') + `a  ${fm(best.a)}\nb  ${fm(best.b)}\nexact type of ω here: (${best.type.join(',')})${best.mu ? '\nmultiplier ' + best.mu : ''}\n(clicked ${bd.toFixed(4)} from the point)`;
+    if (typeof showCard === 'function') showCard(document.getElementById('info').textContent); };
+  const row = document.getElementById('ov2').parentNode, add = (label, tip, id, val, fn) => { const sp = document.createElement('span'), cb = document.createElement('input'); sp.textContent = label; sp.title = tip; cb.type = 'checkbox'; cb.id = id; cb.checked = val; cb.onchange = e => { fn(e.target.checked); dirty = true; }; row.insertBefore(cb, document.getElementById('ov2').nextSibling); row.insertBefore(sp, cb); };
+  add('Labels of special points', 'labels: ρ=0 (ω′=w_j), ω′=w_j, parabolic, → (k′,n′)', 'e96spl', false, v => { LAB = v; });
+  add('Special points', 'orange squares: landing-disc centers (ρ = 0); cyan diamonds: ω′ in the tail; violet triangles: parabolic; green rings: good reduction', 'e96sp', true, v => { ON = v; });
+})();
+</script>
+<script>fetch("escape_polygon.json").then(r => r.json()).then(d => { window.E96ESCPOLY = d; }).catch(() => {});</script><script>/* E96 addendum (am): Voronoi (Dirichlet) cell of the escape puncture (rho = 0) under the Fuchsian group: one copy of every point of the curve,
    centered on the landing region. Cell at p0: in the disk coordinate w = (z - p0)/(1 - conj(p0) z) the bisector with an orbit point q is
    |q|^2 r^2 - 2 Re(conj(q) u) r + |q|^2 = 0 along the radius u = e^(i phi); r(phi) = min over q of the smaller root (radii from 0 are geodesics). */
 (function () {
