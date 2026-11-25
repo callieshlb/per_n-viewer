@@ -2,16 +2,16 @@
 'use strict';
 (async function () {
   const id = new URLSearchParams(location.search).get('m') || 'per1';
-  const man = await fetch('models/manifest.json?v=20261125033034').then(r => r.json());
+  const man = await fetch('models/manifest.json?v=20261125033804').then(r => r.json());
   const E = man.models.find(m => m.id === id);
-  const C = await fetch(E.census + '?v=20261125033034').then(r => r.json());
+  const C = await fetch(E.census + '?v=20261125033804').then(r => r.json());
   const torus = E.kind === 'torus', T5 = PM.T5;
   const $ = s => document.getElementById(s);
   $('title').innerHTML = E.title; $('nf').innerHTML = E.normal; $('about').innerHTML = E.about || '';
   document.title = E.titleText || id;
   $('legend').innerHTML = GLSL.LEGEND(E.n, E.palette).map(([c, t]) => [c, E.preper ? t.replace('captured, phase', 'attracted to the landing cycle, phase') : t]).map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
   if (torus) (E.preper ? ['sml', 'sm'] : ['gnl', 'gn', 'vil', 'vi', 'sml', 'sm']).forEach(k => { $(k).style.display = ''; });
-  const opt = { mk: true, ml: true, gn: false, vi: false, sm: true, rc: false };      // real circles opt-in (Caroline 2026-11-10)
+  const opt = { mk: true, ml: true, sl: false, gn: false, vi: false, sm: true, rc: false };      // sl: labels of the PrePer special points, off by default (Caroline 2026-11-25)      // real circles opt-in (Caroline 2026-11-10)
   if (E.real) ['rcl', 'rc'].forEach(k => { $(k).style.display = ''; });
   ['mk', 'ml', 'gn', 'vi', 'sm', 'rc'].forEach(k => { $(k).onchange = e => { opt[k] = e.target.checked; pv.redraw(); }; });
   $('pcl').innerHTML = GLSL.PERPAL.map((c, i) => `<span style="display:inline-block;min-width:13px;text-align:center;font-size:10px;background:rgb(${c.join(',')})">${i + 2}</span>`).join('');
@@ -106,7 +106,7 @@
     if (m.shape === 'sq') g.rect(s[0] - r + 1, s[1] - r + 1, 2*r - 2, 2*r - 2); else if (m.shape === 'di') { g.moveTo(s[0], s[1] - r - 1); g.lineTo(s[0] + r + 1, s[1]); g.lineTo(s[0], s[1] + r + 1); g.lineTo(s[0] - r - 1, s[1]); g.closePath(); }
     else if (m.shape === 'tri') { g.moveTo(s[0], s[1] - r - 1); g.lineTo(s[0] + r + 1, s[1] + r); g.lineTo(s[0] - r - 1, s[1] + r); g.closePath(); } else g.arc(s[0], s[1], r - 1, 0, 2*Math.PI);
     g.fillStyle = c; g.fill(); g.strokeStyle = '#141414'; g.lineWidth = 1.2; g.stroke();
-    if (opt.ml) { g.font = '500 11px system-ui'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(m.label, s[0] + 8, s[1]); g.fillStyle = c; g.fillText(m.label, s[0] + 8, s[1]); } }
+    if (opt.ml && opt.sl) { g.font = '500 11px system-ui'; g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.85)'; g.strokeText(m.label, s[0] + 8, s[1]); g.fillStyle = c; g.fillText(m.label, s[0] + 8, s[1]); } }
   function drawOverlay(g, W, H) {
     const offs = torus ? lattice(W, H) : [[0, 0]];
     if (torus && opt.sm) {                    // seams: the fundamental rectangle's edges
@@ -433,6 +433,8 @@
     for (const k of ['webbox', 'btao', 'globe']) $(k).style.display = 'none';
     { const s = $('matebox').querySelector('.sub'); if (s) s.innerHTML = 'f: a polynomial of this curve by its label (an angle, e.g. ' + (C.centers[0] ? C.centers[0].label : '') + '); g: any external angle. Result: yellow star; the vein: f ⊔ g_i for the centers g_i on the arc from z² to g (addendum (ag)).'; }
     const ph = [...document.querySelectorAll('.sub')].find(d => /^Phase k/.test(d.textContent)); if (ph) ph.textContent = 'Coloured: the free critical point ω′ is attracted to the landing cycle w_k … w_(k+n−1) (a landing disc, |ρ| < 1), phase j = which point of the cycle it reaches at times ≡ −j (mod n).';
+    { const lab = document.createElement('span'); lab.textContent = 'Labels of special points'; const cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = 'sl'; cb.checked = false;
+      cb.onchange = e => { opt.sl = e.target.checked; pv.redraw(); }; const ml = $('ml'); ml.parentNode.insertBefore(cb, ml.nextSibling); ml.parentNode.insertBefore(lab, cb); }
     $('legend').innerHTML += [['#fff', 'polynomial z² + c (Misiurewicz; ω′ fixed)'], ['#00e5ff', '◆ ρ = 0: center of a landing disc'], ['#ff9d2e', '■ ω′ in the tail of the marked orbit'], ['#c78bff', '▲ the landing cycle collapses (ρ = 1)'], ['#9e9e9e', '● chart degenerates, a map off this curve'], ['#e8173a', 'puncture']].map(([c, t]) => `<span class="sw" style="background:${c}"></span><span>${t}</span>`).join('');
   }
   $('minb').onclick();                      // panel starts collapsed (Caroline 2026-11-10); + expands
