@@ -274,6 +274,55 @@ var PM = (function () {
     if (cabs(s) === 0) return wpLocate(null);
     var x = cdiv([1, 0], s); return wpLocate([-x[0] - 1.25, -x[1]], cmul(v, cmul(x, x)));
   }
+  // ---- general period lattice (addendum (ae)): W1 real, W2 complex (Im > 0); wp by theta functions with complex nome q = exp(i pi W2/W1)
+  function latInit(L) { var tau = cdiv(L.W2, [L.W1, 0]); L.tau = tau;
+    L.qp = function (x) { var m = Math.exp(-Math.PI*tau[1]*x), ph = Math.PI*tau[0]*x; return [m*Math.cos(ph), m*Math.sin(ph)]; };
+    var t3 = [1, 0], t4 = [1, 0]; for (var n = 1; n <= 12; n++) { var qn = L.qp(n*n); t3 = cadd(t3, cscale(qn, 2)); t4 = cadd(t4, cscale(qn, n % 2 ? -2 : 2)); }
+    L.t34 = cmul(t3, t4); return L; }
+  function latReduce(L, u) { var ry = Math.round(u[1]/L.W2[1]); u = [u[0] - ry*L.W2[0], u[1] - ry*L.W2[1]]; var rx = Math.round(u[0]/L.W1); return [u[0] - rx*L.W1, u[1]]; }
+  function latWpX(L, u) {
+    u = latReduce(L, u); if (cabs(u) < 1e-14) return null; var v = cscale(u, Math.PI/L.W1), t1 = [0, 0], t2 = [0, 0];
+    for (var n = 0; n < 12; n++) { var qq = L.qp((n + .5)*(n + .5)), arg = cscale(v, 2*n + 1); t1 = cadd(t1, cscale(cmul(qq, csin(arg)), n % 2 ? -2 : 2)); t2 = cadd(t2, cscale(cmul(qq, ccos(arg)), 2)); }
+    var R = cmul(cdiv(t2, t1), L.t34), k = Math.PI/L.W1; return cadd([L.e1, 0], cscale(cmul(R, R), k*k)); }
+  function latWp(L, u) {
+    var X = latWpX(L, u); if (X === null) return null;
+    var r = csqrt(csub(csub(cscale(cmul(X, cmul(X, X)), 4), cscale(X, L.g2)), [L.g3, 0]));
+    var h = 1e-5*(1 + cabs(u)), Xp = latWpX(L, [u[0] + h, u[1]]), Xm = latWpX(L, [u[0] - h, u[1]]);
+    if (Xp && Xm) { var fd = cscale(csub(Xp, Xm), 1/(2*h)); if (cabs(csub(fd, r)) > cabs(cadd(fd, r))) r = [-r[0], -r[1]]; }
+    return [X, r]; }
+  var L52 = latInit({ W1: 5.4686895299675838244, W2: [2.7343447649837919122, 1.3631824181704335964], e1: -0.84631870965255487703, g2: 4/3, g3: -35/27 });
+  // PrePer_{5,2}: s(u) = (wp' - 1)/(2(wp + 1/6)^2 - 1/2), v = s'(u); a = (7s^3 + 9s^2 + 5s + 1 + (s + 1) v)/(2(s + 1)(3s + 2)(2s^2 + 2s + 1)), b = -1 + s a
+  // s = N/D is 0/0 where wp' = 1 and 2(wp + 1/6)^2 = 1/2 (wp = 1/3, -2/3; two isolated places of the torus): there s, v are analytic, and are
+  // evaluated by the symmetric 4-point average (4(f(u+h) + f(u-h)) - (f(u+2h) + f(u-2h)))/6 (error O(h^4), h = 1e-3) (addendum (ae))
+  function pp52SV(u) {
+    var r = pp52SVraw(u); if (r && !r.near) return r.sv;
+    var h = 1e-3, F = function (d) { var q = pp52SVraw(cadd(u, [d, 0])); return q ? q.sv : null; }, f1 = F(h), fm1 = F(-h), f2 = F(2*h), fm2 = F(-2*h);
+    if (!f1 || !fm1 || !f2 || !fm2) return r ? r.sv : null;
+    return [0, 1].map(function (i) { return cscale(csub(cscale(cadd(f1[i], fm1[i]), 4), cadd(f2[i], fm2[i])), 1/6); });
+  }
+  function pp52SVraw(u) {
+    var W = latWp(L52, u); if (!W) return null; var P = W[0], dP = W[1], ddP = csub(cscale(cmul(P, P), 6), [L52.g2/2, 0]), Pc = cadd(P, [1/6, 0]);
+    var N = csub(dP, [1, 0]), D = csub(cscale(cmul(Pc, Pc), 2), [0.5, 0]); if (cabs(D) === 0) return null;
+    var s = cdiv(N, D), ds = cdiv(csub(cmul(ddP, D), cmul(N, cscale(cmul(Pc, dP), 4))), cmul(D, D)); return { sv: [s, ds], near: cabs(D) < 1e-4 && cabs(N) < 1e-2 }; }
+  function pp52AB(u) {
+    var SV = pp52SV(u); if (!SV) return null; var s = SV[0], v = SV[1], s2 = cmul(s, s), s3 = cmul(s2, s), s1 = cadd(s, [1, 0]);
+    var num = cadd(cadd(cadd(cscale(s3, 7), cscale(s2, 9)), cadd(cscale(s, 5), [1, 0])), cmul(s1, v));
+    var den = cscale(cmul(cmul(s1, cadd(cscale(s, 3), [2, 0])), cadd(cadd(cscale(s2, 2), cscale(s, 2)), [1, 0])), 2); if (cabs(den) === 0) return null;
+    var A = cdiv(num, den); return [A, csub(cmul(s, A), [1, 0])]; }
+  // place (s, v) -> u: Newton on s(u) = s0 (s0 = null: on 1/s(u) = 0, sheet by sign(v/s^2) = v0[0]) from a grid; keep the one with v(u) nearest v0
+  function pp52Locate(s0, v0) {
+    var best = null, bd = Infinity, L = L52;
+    for (var i = 0; i < 12; i++) for (var j = 0; j < 12; j++) {
+      var u = cadd(cscale([L.W1, 0], (i + .5)/12), cscale(L.W2, (j + .5)/12)), ok = false;
+      for (var it = 0; it < 80; it++) { var SV = pp52SV(u); if (!SV) break; var du;
+        if (s0 === null) { var is = cdiv([1, 0], SV[0]); du = cdiv(is, cscale(cdiv(SV[1], cmul(SV[0], SV[0])), -1)); }
+        else du = cdiv(csub(SV[0], s0), SV[1]);
+        if (!isFinite(du[0] + du[1])) break; u = csub(u, du); if (cabs(du) < 1e-14*(1 + cabs(u))) { ok = true; break; } }
+      if (!ok) continue; var S2 = pp52SV(u); if (!S2) continue;
+      var d = s0 === null ? cabs(csub(cdiv(S2[1], cmul(S2[0], S2[0])), v0)) : cabs(csub(S2[0], s0))/(1 + cabs(s0)) + cabs(csub(S2[1], v0))/(1 + cabs(v0));
+      if (d < bd) { bd = d; best = latReduce(L, u); } }
+    if (best) { best = [best[0] < 0 ? best[0] + L.W1 : best[0], best[1]]; if (best[1] < 0) best = cadd(best, L.W2); }
+    return best ? { u: best, err: bd } : null; }
   // a, b (site chart) -> the curve's parameter (inverse of ppAB / pp33AB)
   function ppParam(family, a, b) {
     if (family === 'pp21') { var i = cdiv([1, 0], a); return [-i[0], -i[1]]; }
@@ -282,6 +331,8 @@ var PM = (function () {
     if (family === 'pp31') { var s = cadd(a, b); return cscale(cdiv(cadd(s, [1, 0]), s), -1); }
     if (family === 'pp41') { var s4 = cadd(a, b), s1 = cadd(s4, [1, 0]), num = csub(cscale(cmul(cmul(s4, s4), a), 2), cmul(cmul(csub(s4, [1, 0]), s1), cadd(cscale(s4, 2), [1, 0])));
       var v4 = cdiv(num, cmul(s1, s1)), t0 = cdiv(v4, cadd(cscale(s4, 2), [1, 0])); return cdiv([2, 0], csub(t0, [1, 0])); }
+    if (family === 'pp52') { var s5 = cdiv(cadd(b, [1, 0]), a), q2 = cmul(s5, s5), q1 = cadd(s5, [1, 0]), den5 = cscale(cmul(cmul(q1, cadd(cscale(s5, 3), [2, 0])), cadd(cadd(cscale(q2, 2), cscale(s5, 2)), [1, 0])), 2);
+      var v5 = cdiv(csub(cmul(a, den5), cadd(cadd(cscale(cmul(q2, s5), 7), cscale(q2, 9)), cadd(cscale(s5, 5), [1, 0]))), q1), L5 = pp52Locate(s5, v5); return L5 ? L5.u : null; }
     if (family === 'pp33') { var s3 = cadd(a, b), v = csub(cscale(cmul(s3, a), 2), cadd(cadd(cscale(cmul(s3, s3), 2), cscale(s3, 5)), [2, 0])), L = pp33Locate(s3, v); return L ? L.u : null; }
     return null;
   }
@@ -293,7 +344,7 @@ var PM = (function () {
     return { a: csub(cscale(e1, 2), cscale(e2, 4)), b: b };
   }
   function ppMap(family, t) {
-    var k = +family[2], n = +family[3], ab = family === 'pp33' ? pp33AB(t) : ppAB(family, t); if (!ab) return null; var a = ab[0], b = ab[1];
+    var k = +family[2], n = +family[3], ab = family === 'pp33' ? pp33AB(t) : family === 'pp52' ? pp52AB(t) : ppAB(family, t); if (!ab) return null; var a = ab[0], b = ab[1];
     var M = { n: n, k: k, A: [1, 0], B: b, C: a, D: [1, 0], E: [0, 0], F: [0, 0], a: a, b: b };
     M.omega = cabs(b) === 0 ? null : cdiv(cscale(a, -2), b);
     var w = [[0, 0], null, [1, 0]]; for (var j = 3; j < k + n; j++) w.push(fz(M, w[j - 1]));
@@ -514,6 +565,6 @@ var PM = (function () {
   function fateText(f) { return f.kind === 'capture' ? 'captured by the marked cycle, phase ' + f.phase + ', time ' + f.t
     : f.kind === 'cycle' ? 'attracting cycle, period ' + f.period : 'undecided (bifurcation locus)'; }
   return { cmul: cmul, cdiv: cdiv, cadd: cadd, csub: csub, cabs: cabs, chord: chord, T5: T5, wp: wp, torusXY: torusXY, torusLocate: torusLocate,
-           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, bitransFactors: bitransFactors, bitransPhiFrom: bitransPhiFrom, bitransDiff: bitransDiff, punctureInfo: punctureInfo, ppParam: ppParam, remarkAB: remarkAB, pp33AB: pp33AB, pp33Locate: pp33Locate, wpLocate: wpLocate, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
+           corMap: corMap, mapFrom: mapFrom, captureCentre: captureCentre, bitransFactors: bitransFactors, bitransPhiFrom: bitransPhiFrom, bitransDiff: bitransDiff, punctureInfo: punctureInfo, ppParam: ppParam, L52: L52, latWp: latWp, latReduce: latReduce, pp52SV: pp52SV, pp52AB: pp52AB, pp52Locate: pp52Locate, remarkAB: remarkAB, pp33AB: pp33AB, pp33Locate: pp33Locate, wpLocate: wpLocate, cycleCentre: cycleCentre, transfer: transfer, iterN: iterN, parseAngle: parseAngle, traceRay: traceRay, rayWithLanding: rayWithLanding, hubbardTree: hubbardTree, moebius3: moebius3, anglePeriod: anglePeriod, fz: fz, fate: fate, orbit: orbit, closure: closure, fmt: fmt, fateText: fateText };
 })();
 if (typeof module !== 'undefined') module.exports = PM;

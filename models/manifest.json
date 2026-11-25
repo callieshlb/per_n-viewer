@@ -1,5 +1,5 @@
 {
- "built_from": "3b830395",
+ "built_from": "ae468cbb",
  "preperGenus": {
   "2,1": 0,
   "2,2": 0,
@@ -472,6 +472,48 @@
    }
   },
   {
+   "id": "pp52",
+   "n": 2,
+   "preper": {
+    "k": 5,
+    "n": 2
+   },
+   "short": "PrePer<sub>5,2</sub>",
+   "title": "PrePer<sub>5,2</sub>",
+   "titleText": "PrePer_{5,2}",
+   "kind": "torus",
+   "lat": {
+    "W1": 5.468689529967584,
+    "W2": [
+     2.734344764983792,
+     1.3631824181704335
+    ]
+   },
+   "family": "pp52",
+   "famId": 12,
+   "param": "u",
+   "page": "plane.html?m=pp52",
+   "census": "models/census_pp52.json",
+   "view": {
+    "ctr": [
+     4.101517147475688,
+     0.6815912090852168
+    ],
+    "upp": 0.009
+   },
+   "real": true,
+   "normal": "f(z) = 1 + b/z + a/z<sup>2</sup>, u on its torus (rhombic lattice, g<sub>2</sub> = 4/3, g<sub>3</sub> = \u221235/27): s = (\u2118\u2032(u) \u2212 1)/(2(\u2118(u) + 1/6)<sup>2</sup> \u2212 1/2), v = ds/du, v<sup>2</sup> = s<sup>4</sup> \u2212 4s<sup>3</sup> \u2212 2s<sup>2</sup> + 1, a = (7s<sup>3</sup> + 9s<sup>2</sup> + 5s + 1 + (s + 1)v)/(2(s + 1)(3s + 2)(2s<sup>2</sup> + 2s + 1)), b = \u22121 + s a: marked critical point \u03c9 = 0 \u2192 \u221e \u2192 1 \u2192 \u2026, first periodic at w<sub>5</sub>, period 2; free critical point \u03c9\u2032 = \u22122a/b.",
+   "about": "Each pixel is a parameter t of this curve, coloured by the fate of the free critical point \u03c9\u2032 (the marked one is in the Julia set). White: the polynomials z<sup>2</sup> + c (\u03c9\u2032 is a fixed critical point); their cards give c and its external angles. Phase colours: landing discs |\u03c1| < 1, where \u03c9\u2032 is attracted to the landing cycle; grey: another attracting cycle. Special points and punctures from preper_build.py (exact equations, puncture = fixed-point multipliers unbounded).  PrePer<sub>5,2</sub>: lines b + 1 = s a through its triple point (0, \u22121) give v<sup>2</sup> = s<sup>4</sup> \u2212 4s<sup>3</sup> \u2212 2s<sup>2</sup> + 1, invariants g<sub>2</sub> = 4/3, g<sub>3</sub> = \u221235/27, discriminant g<sub>2</sub><sup>3</sup> \u2212 27g<sub>3</sub><sup>2</sup> = \u221243 (j = \u22124096/43): a different torus from Per<sub>5</sub>, with a rhombic lattice and one real circle (Im u \u2208 h\u2124). Census: preper52_build.py, preper52_locate.js.",
+   "info": {
+    "genus": 1,
+    "centers": 15,
+    "centres": 15,
+    "punctures": 10,
+    "circles": 1,
+    "tiling": "Tiling: the plane of u tiled by the period parallelogram W<sub>1</sub> = 5.4687, W<sub>2</sub> = 2.7343 + 1.3632i (rhombic); opposite sides are glued."
+   }
+  },
+  {
    "id": "pp33",
    "n": 3,
    "preper": {
@@ -503,7 +545,7 @@
     "centres": 12,
     "punctures": 7,
     "circles": 1,
-    "tiling": "No tiling: the curve is a sphere and this chart covers it once."
+    "tiling": "Tiling: the plane of u tiled by the period rectangle (the Per<sub>5</sub> lattice); opposite sides are glued."
    }
   }
  ]

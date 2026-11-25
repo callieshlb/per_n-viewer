@@ -62,6 +62,17 @@ bool torusXY(vec2 u, out vec2 x, out vec2 y){
   if (length(B + vv) >= length(B - vv)) { if (dot(A, A) < 1e-24) return false; x = cd(B + vv, 2.*A); } else x = cd(2.*C, B - vv);
   return true;
 }
+// PrePer_{5,2} lattice (addendum (ae)): W1 real, W2 = W1/2 + i h; wp by theta functions with complex nome
+const float LW1 = 5.46868952996758, LW2R = 2.73434476498379, LW2I = 1.36318241817043, LTAUI = 0.249270398456596, LE1 = -0.846318709652555;
+vec2 qpL(float x){ float m = exp(-3.14159265358979*LTAUI*x), ph = 3.14159265358979*0.5*x; return m*vec2(cos(ph), sin(ph)); }
+vec2 wpL(vec2 u, out bool pole){
+  float ry = floor(u.y/LW2I + .5); u -= ry*vec2(LW2R, LW2I); u.x -= LW1*floor(u.x/LW1 + .5);
+  pole = dot(u, u) < 1e-12; vec2 v = 3.14159265358979*u/LW1, t1 = vec2(0.), t2 = vec2(0.), t3 = vec2(1., 0.), t4 = vec2(1., 0.);
+  for (int n = 0; n < 12; n++) { float fn = float(n); vec2 qq = qpL((fn + .5)*(fn + .5)), arg = (2.*fn + 1.)*v;
+    t1 += cm(qq, csin(arg))*2.*((n & 1) == 1 ? -1. : 1.); t2 += cm(qq, ccos(arg))*2.;
+    if (n > 0) { vec2 q2 = qpL(fn*fn); t3 += 2.*q2; t4 += 2.*q2*((n & 1) == 1 ? -1. : 1.); } }
+  vec2 R = cm(cd(t2, t1), cm(t3, t4)); float k = 3.14159265358979/LW1; return vec2(LE1, 0.) + cm(R, R)*k*k;
+}
 uniform vec3 CAP[9]; uniform int flatPal;                       // phase palette (0..255), flat = no time shading
 uniform int bands; uniform int plain; uniform int perCol;                                               // escape-time bands (Caroline 2026-11-10)
 vec3 shadeT(vec3 c, float t){
@@ -108,6 +119,18 @@ void main(){
     else if (fam == 3) corMap(cd(p, vec2(2., 0.) - p), vec2(0.), 3, om);                 // x = c/(2 - c); om = c
     else if (fam == 4) { vec2 y4 = cd(vec2(.1, 0.), p) + vec2(.6180339887498949, 0.); corMap(y4, y4, 4, om); }
     else if (fam == 5) { vec2 x, y; ok = torusXY(p, x, y); if (ok) corMap(x, y, 5, om); }
+    else if (fam == 12) {                      // PrePer_{5,2} on its own (rhombic) torus (addendum (ae))
+      vec2 one = vec2(1., 0.); bool pole, p1, p2; vec2 P = wpL(p, pole); if (pole) ok = false;
+      vec2 r = csq(4.*cm(P, cm(P, P)) - (4./3.)*P + vec2(35./27., 0.)); float h = 2e-3; vec2 fd = (wpL(p + vec2(h, 0.), p1) - wpL(p - vec2(h, 0.), p2))/(2.*h);
+      if (length(fd - r) > length(fd + r)) r = -r;
+      vec2 ddP = 6.*cm(P, P) - vec2(2./3., 0.), Pc = P + vec2(1./6., 0.), N = r - one, D = 2.*cm(Pc, Pc) - vec2(.5, 0.);
+      vec2 s = cd(N, D), v = cd(cm(ddP, D) - cm(N, 4.*cm(Pc, r)), cm(D, D)), s2 = cm(s, s);
+      vec2 a = cd(7.*cm(s2, s) + 9.*s2 + 5.*s + one + cm(s + one, v), 2.*cm(cm(s + one, 3.*s + 2.*one), 2.*s2 + 2.*s + one)), b = cm(s, a) - one;
+      A_ = one; B_ = b; C_ = a; D_ = one; E_ = vec2(0.); F_ = vec2(0.);
+      if (dot(b, b) < 1e-30) ok = false; else om = cd(-2.*a, b);
+      vec2 w = one; bool wi = false; fz(w, wi); fz(w, wi); fz(w, wi);
+      nm = 2; mk[0] = w; mi[0] = wi; mk[1] = w; mi[1] = wi; fz(mk[1], mi[1]);
+    }
     else if (fam == 10) {                      // PrePer_{3,3} on the Per_5 torus (addendum (aa))
       vec2 one = vec2(1., 0.); bool pole, p1, p2; vec2 X = wpX(p, pole); if (pole) ok = false;
       vec2 r = csq(4.*cm(X, cm(X, X)) - 2.75*X + vec2(.375, 0.)); float h = 2e-3; vec2 fd = (wpX(p + vec2(h, 0.), p1) - wpX(p - vec2(h, 0.), p2))/(2.*h);
